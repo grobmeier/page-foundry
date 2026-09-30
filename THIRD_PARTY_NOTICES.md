@@ -1,0 +1,18 @@
+# Third-party notices
+
+Page Foundry bundles the following components into its generated plugin file:
+
+- **Typst** and **typst.ts** — Apache License 2.0. The browser compiler is
+  provided by `@myriaddreamin/typst-ts-web-compiler` and the JavaScript adapter
+  by `@myriaddreamin/typst.ts`.
+- **File Viewer Typst assets** — Apache License 2.0. Page Foundry uses the
+  packaged copy of the standard Typst font assets without its installer or
+  renderer runtime.
+- **Libertinus Serif** — SIL Open Font License 1.1.
+- **fflate**, **unified**, **remark-parse**, and **remark-frontmatter** — MIT
+  License.
+- **yaml** — ISC License.
+
+The exact versions are recorded in `package-lock.json`. Release preparation must
+preserve the applicable licence texts and review this inventory after every
+dependency change.

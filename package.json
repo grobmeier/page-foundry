@@ -1,0 +1,51 @@
+{
+  "name": "page-foundry",
+  "version": "0.1.0",
+  "description": "Portable author publishing from Obsidian notes.",
+  "type": "module",
+  "main": "main.js",
+  "scripts": {
+    "build": "tsc --noEmit --skipLibCheck && node esbuild.config.mjs production",
+    "build:browser-smoke": "node scripts/build-browser-smoke.mjs",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "node --import tsx --test tests/**/*.test.ts",
+    "verify": "npm run format:check && npm test && npm run build",
+    "test-vault": "npm run build && node scripts/install-test-vault.mjs"
+  },
+  "keywords": [
+    "obsidian",
+    "publishing",
+    "pdf",
+    "typst",
+    "manuscript"
+  ],
+  "author": "Christian Grobmeier",
+  "license": "Apache-2.0",
+  "engines": {
+    "node": ">=22.12"
+  },
+  "overrides": {
+    "obsidian": {
+      "moment": "2.30.1"
+    }
+  },
+  "dependencies": {
+    "@file-viewer/assets-typst": "3.1.2",
+    "@myriaddreamin/typst-ts-web-compiler": "0.7.0",
+    "@myriaddreamin/typst.ts": "0.7.0",
+    "fflate": "0.8.3",
+    "remark-frontmatter": "5.0.0",
+    "remark-parse": "11.0.0",
+    "unified": "11.0.5",
+    "yaml": "2.9.1"
+  },
+  "devDependencies": {
+    "@types/node": "22.18.6",
+    "esbuild": "0.25.10",
+    "obsidian": "1.8.7",
+    "prettier": "3.6.2",
+    "tsx": "4.20.5",
+    "typescript": "5.9.2"
+  }
+}

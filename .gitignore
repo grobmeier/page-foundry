@@ -1,0 +1,13 @@
+node_modules/
+main.js
+.playwright-cli/
+dist/
+coverage/
+target/
+.DS_Store
+*.log
+
+# Local development vaults and private template packs
+.test-vault/
+.test-browser/
+.local-template-packs/

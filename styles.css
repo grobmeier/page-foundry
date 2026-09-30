@@ -1,0 +1,15 @@
+/*
+ * Copyright 2026 Christian Grobmeier
+ * Licensed under the Apache License, Version 2.0.
+ */
+
+.page-foundry-modal .setting-item-control input[type="text"] {
+  width: min(24rem, 100%);
+}
+
+.page-foundry-result-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--size-4-2);
+  margin-top: var(--size-4-4);
+}
