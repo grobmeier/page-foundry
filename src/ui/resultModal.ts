@@ -4,49 +4,116 @@
  */
 
 import { App, ButtonComponent, Modal, Notice } from "obsidian";
+import type { PublishedFile } from "../core/model";
+import { savedFileActions } from "./fileActions";
 
 export class ResultModal extends Modal {
+  private saving = false;
   constructor(
     app: App,
     private readonly filename: string,
-    private readonly pdf: Uint8Array,
+    private readonly output: PublishedFile,
     private readonly saveInVault: () => Promise<string>,
+    private savedPath?: string,
   ) {
     super(app);
   }
 
   onOpen(): void {
     this.modalEl.addClass("page-foundry-modal");
-    this.contentEl.createEl("h2", { text: "PDF ready" });
+    this.render();
+  }
+
+  private render(): void {
+    this.contentEl.empty();
+    const label = this.output.extension.toUpperCase();
+    this.contentEl.createEl("h2", { text: `${label} ready` });
     this.contentEl.createEl("p", {
-      text: "Choose where the finished file should go.",
+      text: this.savedPath
+        ? "Saved in your vault:"
+        : "Choose where the finished file should go.",
     });
+    this.contentEl.createEl("p", {
+      text: this.savedPath ?? this.filename,
+      cls: "page-foundry-result-path",
+    });
+    if (this.savedPath && this.output.extension !== "pdf") {
+      this.contentEl.createEl("p", {
+        text: "Obsidian may hide this file type in its sidebar. The file is saved; use the actions below to access it.",
+      });
+    }
     const actions = this.contentEl.createDiv({
       cls: "page-foundry-result-actions",
     });
 
-    new ButtonComponent(actions)
-      .setButtonText("Share or save elsewhere")
-      .setCta()
-      .onClick(async () => {
-        try {
-          await sharePdf(this.filename, this.pdf);
-        } catch (error) {
-          new Notice(readableError(error));
-        }
-      });
+    const shareFile = new File(
+      [this.output.bytes.slice().buffer],
+      this.savedPath?.split("/").at(-1) ?? this.filename,
+      { type: this.output.mediaType },
+    );
+    if (canShareFile(shareFile))
+      new ButtonComponent(actions)
+        .setButtonText("Share or save elsewhere")
+        .setCta()
+        .onClick(async () => {
+          try {
+            await navigator.share({
+              files: [shareFile],
+              title: shareFile.name,
+            });
+          } catch (error) {
+            new Notice(readableError(error, label));
+          }
+        });
 
+    if (!this.savedPath)
+      new ButtonComponent(actions)
+        .setButtonText("Save in vault")
+        .onClick(async () => {
+          if (this.savedPath || this.saving) return;
+          this.saving = true;
+          try {
+            // Disable before awaiting so a second click cannot save another copy.
+            actions.querySelectorAll("button").forEach((button) => {
+              button.disabled = true;
+            });
+            const path = await this.saveInVault();
+            this.savedPath = path;
+            this.render();
+          } catch (error) {
+            this.render();
+            new Notice(readableError(error, label));
+          } finally {
+            this.saving = false;
+          }
+        });
+
+    const hostActions = this.savedPath
+      ? savedFileActions(this.app, this.savedPath)
+      : undefined;
+    if (hostActions) {
+      new ButtonComponent(actions)
+        .setButtonText("Open in default app")
+        .onClick(async () => {
+          try {
+            await hostActions.open();
+          } catch (error) {
+            new Notice(readableError(error, label));
+          }
+        });
+      new ButtonComponent(actions)
+        .setButtonText("Show in folder")
+        .onClick(() => {
+          try {
+            hostActions.reveal();
+          } catch (error) {
+            new Notice(readableError(error, label));
+          }
+        });
+    }
     new ButtonComponent(actions)
-      .setButtonText("Save in vault")
-      .onClick(async () => {
-        try {
-          const path = await this.saveInVault();
-          new Notice(`Saved ${path}`);
-          this.close();
-        } catch (error) {
-          new Notice(readableError(error));
-        }
-      });
+      .setButtonText("Done")
+      .onClick(() => this.close());
   }
 
   onClose(): void {
@@ -54,25 +121,22 @@ export class ResultModal extends Modal {
   }
 }
 
-async function sharePdf(filename: string, bytes: Uint8Array): Promise<void> {
-  const file = new File([bytes.slice().buffer], filename, {
-    type: "application/pdf",
-  });
-  if (
-    !navigator.share ||
-    (navigator.canShare && !navigator.canShare({ files: [file] }))
-  ) {
-    throw new Error(
-      "This device does not expose file sharing here. Use Save in vault instead.",
+function canShareFile(file: File): boolean {
+  try {
+    return (
+      typeof navigator.share === "function" &&
+      typeof navigator.canShare === "function" &&
+      navigator.canShare({ files: [file] })
     );
+  } catch {
+    return false;
   }
-  await navigator.share({ files: [file], title: filename });
 }
 
-function readableError(error: unknown): string {
+function readableError(error: unknown, label: string): string {
   if (error instanceof DOMException && error.name === "AbortError")
     return "Sharing cancelled.";
   return error instanceof Error
     ? error.message
-    : "The PDF could not be shared.";
+    : `The ${label} could not be shared.`;
 }

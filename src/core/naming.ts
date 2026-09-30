@@ -4,19 +4,28 @@
  */
 
 import { normalizePath, type TAbstractFile, type Vault } from "obsidian";
+import type { OutputFormat } from "./model";
 
 export function safePdfName(value: string): string {
+  return safeOutputName(value, "pdf");
+}
+
+export function safeOutputName(value: string, extension: OutputFormat): string {
   const stem = value
-    .replace(/\.pdf$/iu, "")
+    .replace(/\.(?:pdf|epub|docx)$/iu, "")
     .normalize("NFKC")
     .replace(/[<>:"/\\|?*\u0000-\u001f]/gu, "-")
     .replace(/\s+/gu, " ")
     .replace(/[. ]+$/gu, "")
     .trim();
-  return `${stem || "document"}.pdf`;
+  return `${stem || "document"}.${extension}`;
 }
 
-export function outputPath(folder: string, name: string): string {
+export function outputPath(
+  folder: string,
+  name: string,
+  extension: OutputFormat,
+): string {
   const cleanFolder = normalizePath(folder.trim() || "Page Foundry").replace(
     /^\/+|\/+$/gu,
     "",
@@ -28,7 +37,7 @@ export function outputPath(folder: string, name: string): string {
   ) {
     throw new Error("Choose a folder inside the vault.");
   }
-  return normalizePath(`${cleanFolder}/${safePdfName(name)}`);
+  return normalizePath(`${cleanFolder}/${safeOutputName(name, extension)}`);
 }
 
 export function availableOutputPath(
@@ -36,9 +45,11 @@ export function availableOutputPath(
   desired: string,
 ): string {
   if (!vault.getAbstractFileByPath(desired)) return desired;
-  const stem = desired.replace(/\.pdf$/iu, "");
+  const match = /^(.*)(\.[^.]+)$/u.exec(desired);
+  const stem = match?.[1] ?? desired;
+  const extension = match?.[2] ?? "";
   for (let index = 2; index < 10_000; index += 1) {
-    const candidate = `${stem} ${index}.pdf`;
+    const candidate = `${stem} ${index}${extension}`;
     if (!vault.getAbstractFileByPath(candidate)) return candidate;
   }
   throw new Error("Could not find an available output filename.");

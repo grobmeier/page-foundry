@@ -4,9 +4,9 @@ Page Foundry is an author-focused publishing companion for Obsidian. It will
 turn ordinary Markdown notes and ordered manuscript projects into professional
 documents using explicit, reusable publishing presets.
 
-The project is in active feasibility development. Its first milestone publishes
-the active Obsidian note as a PDF on desktop and mobile without changing the
-source note.
+The project is in active feasibility development. Its current milestone
+publishes the active Obsidian note as PDF, reflowable EPUB, or editable DOCX on
+desktop and mobile without changing the source note.
 
 ## Direction
 
@@ -15,8 +15,8 @@ Page Foundry is intended to support:
 - standard manuscript submissions;
 - letters and simple printable documents;
 - print interiors for services such as KDP;
-- EPUB ebooks;
-- editable DOCX exports where a preset requires them; and
+- reflowable EPUB ebooks;
+- editable DOCX exports, including a neutral general manuscript preset; and
 - locally installed custom template packs.
 
 The planned renderer runs inside Obsidian using portable browser technologies
@@ -48,15 +48,28 @@ No production-ready plugin has been released yet.
 The development build currently provides:
 
 - `Publish current note` in the Obsidian command palette;
-- plain-document and letter presets;
+- PDF, EPUB, and DOCX output selected in one dialog;
+- plain-document and letter PDF presets;
+- a semantic reflowable EPUB with package metadata and heading navigation;
+- plain editable and general manuscript DOCX presets;
 - A4 and US Letter page profiles;
 - an embedded, lazily initialised Typst WebAssembly compiler;
 - a configurable vault-relative output folder with collision-safe names; and
 - a system-share action for mobile Files and installed storage providers.
 
-Automated parsing tests, the production build, and a mobile-sized WebKit PDF
-smoke test pass. Physical iPad and iPhone acceptance remains mandatory before
-mobile support is claimed.
+Every export opens a persistent result showing its filename and, after a vault
+save, its exact vault-relative path. Saved EPUB and DOCX files may be hidden in
+Obsidian's sidebar. Use **Show in folder** or **Open in default app** on a
+supported desktop host, or **Share or save elsewhere** on a host with file
+sharing. The sharing button is hidden when the host cannot share the generated
+file; on desktop, use **Show in folder** to access it through your file manager.
+Saving from this dialog updates the result without making another copy.
+
+Automated parsing and package-structure tests, the production build, and a
+mobile-sized WebKit PDF smoke test pass. Physical iPad and iPhone acceptance
+remains mandatory before mobile support is claimed. The first EPUB/DOCX slice
+deliberately represents local images by their alt text until an explicit,
+mobile-safe resource resolver is available.
 
 ## Development
 

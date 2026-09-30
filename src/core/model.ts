@@ -4,7 +4,11 @@
  */
 
 export type PageProfileId = "a4" | "us-letter";
-export type PresetId = "plain-document" | "letter";
+export type OutputFormat = "pdf" | "epub" | "docx";
+export type PdfPresetId = "plain-document" | "letter";
+export type EpubPresetId = "reflowable-ebook";
+export type DocxPresetId = "plain-editable" | "general-manuscript";
+export type PresetId = PdfPresetId | EpubPresetId | DocxPresetId;
 
 export type InlineNode =
   | { type: "text"; value: string }
@@ -28,7 +32,38 @@ export interface FoundryDocument {
 }
 
 export interface PublishRequest {
+  format: OutputFormat;
   preset: PresetId;
   profile: PageProfileId;
   outputName: string;
+  language: string;
+}
+
+export interface PublishedFile {
+  bytes: Uint8Array;
+  extension: OutputFormat;
+  mediaType: string;
+}
+
+export function defaultPreset(format: OutputFormat): PresetId {
+  switch (format) {
+    case "pdf":
+      return "plain-document";
+    case "epub":
+      return "reflowable-ebook";
+    case "docx":
+      return "plain-editable";
+  }
+}
+
+export function presetSupportsFormat(
+  preset: PresetId,
+  format: OutputFormat,
+): boolean {
+  return (
+    (format === "pdf" && ["plain-document", "letter"].includes(preset)) ||
+    (format === "epub" && preset === "reflowable-ebook") ||
+    (format === "docx" &&
+      ["plain-editable", "general-manuscript"].includes(preset))
+  );
 }

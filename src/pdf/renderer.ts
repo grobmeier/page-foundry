@@ -14,7 +14,11 @@ import fontBold from "@file-viewer/assets-typst/viewer/wasm/typst/fonts/Libertin
 import fontBoldItalic from "@file-viewer/assets-typst/viewer/wasm/typst/fonts/LibertinusSerif-BoldItalic.otf";
 import fontItalic from "@file-viewer/assets-typst/viewer/wasm/typst/fonts/LibertinusSerif-Italic.otf";
 import fontRegular from "@file-viewer/assets-typst/viewer/wasm/typst/fonts/LibertinusSerif-Regular.otf";
-import type { FoundryDocument, PageProfileId, PresetId } from "../core/model";
+import type {
+  FoundryDocument,
+  PageProfileId,
+  PdfPresetId,
+} from "../core/model";
 import { decodeCompressedBase64 } from "./binary";
 import { createTypstSource } from "./typstSource";
 
@@ -23,7 +27,7 @@ export class TypstPdfRenderer {
 
   async render(
     document: FoundryDocument,
-    preset: PresetId,
+    preset: PdfPresetId,
     profile: PageProfileId,
   ): Promise<Uint8Array> {
     const compiler = await (this.compilerPromise ??= this.createCompiler());

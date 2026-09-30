@@ -11,12 +11,15 @@
     "format:check": "prettier --check .",
     "test": "node --import tsx --test tests/**/*.test.ts",
     "verify": "npm run format:check && npm test && npm run build",
-    "test-vault": "npm run build && node scripts/install-test-vault.mjs"
+    "test-vault": "npm run build && node scripts/install-test-vault.mjs",
+    "test-outputs": "node --import tsx scripts/generate-test-outputs.ts"
   },
   "keywords": [
     "obsidian",
     "publishing",
     "pdf",
+    "epub",
+    "docx",
     "typst",
     "manuscript"
   ],
@@ -34,6 +37,7 @@
     "@file-viewer/assets-typst": "3.1.2",
     "@myriaddreamin/typst-ts-web-compiler": "0.7.0",
     "@myriaddreamin/typst.ts": "0.7.0",
+    "docx": "9.8.1",
     "fflate": "0.8.3",
     "remark-frontmatter": "5.0.0",
     "remark-parse": "11.0.0",

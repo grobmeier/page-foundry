@@ -8,12 +8,12 @@ import type {
   FoundryDocument,
   InlineNode,
   PageProfileId,
-  PresetId,
+  PdfPresetId,
 } from "../core/model";
 
 export function createTypstSource(
   document: FoundryDocument,
-  preset: PresetId,
+  preset: PdfPresetId,
   profile: PageProfileId,
 ): string {
   const paper = profile === "a4" ? "a4" : "us-letter";

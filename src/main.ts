@@ -16,7 +16,15 @@
 
 import { Notice, Plugin, type TFile } from "obsidian";
 import { parseMarkdown } from "./core/markdown";
-import { safePdfName } from "./core/naming";
+import type {
+  DocxPresetId,
+  FoundryDocument,
+  PdfPresetId,
+  PresetId,
+  PublishedFile,
+} from "./core/model";
+import { presetSupportsFormat } from "./core/model";
+import { safeOutputName } from "./core/naming";
 import { TypstPdfRenderer } from "./pdf/renderer";
 import {
   DEFAULT_SETTINGS,
@@ -25,11 +33,11 @@ import {
 } from "./settings";
 import { ExportModal, type ExportChoice } from "./ui/exportModal";
 import { ResultModal } from "./ui/resultModal";
-import { savePdf } from "./vault/output";
+import { saveOutput } from "./vault/output";
 
 export default class PageFoundryPlugin extends Plugin {
   settings: PageFoundrySettings = { ...DEFAULT_SETTINGS };
-  private readonly renderer = new TypstPdfRenderer();
+  private readonly pdfRenderer = new TypstPdfRenderer();
 
   async onload(): Promise<void> {
     await this.loadSettings();
@@ -41,25 +49,54 @@ export default class PageFoundryPlugin extends Plugin {
       checkCallback: (checking) => {
         const file = this.app.workspace.getActiveFile();
         const available = Boolean(file?.extension === "md");
-        if (available && !checking && file) this.openExport(file);
+        if (available && !checking && file) {
+          void this.openExport(file).catch((error: unknown) => {
+            console.error("Page Foundry could not read the active note", error);
+            new Notice("Page Foundry could not read the active note.");
+          });
+        }
         return available;
       },
     });
   }
 
   async loadSettings(): Promise<void> {
-    this.settings = { ...DEFAULT_SETTINGS, ...(await this.loadData()) };
+    const stored = (await this.loadData()) as
+      | (Partial<PageFoundrySettings> & { lastPreset?: PdfPresetId })
+      | null;
+    this.settings = {
+      ...DEFAULT_SETTINGS,
+      ...stored,
+      lastPdfPreset:
+        stored?.lastPdfPreset ??
+        stored?.lastPreset ??
+        DEFAULT_SETTINGS.lastPdfPreset,
+    };
   }
 
   async saveSettings(): Promise<void> {
     await this.saveData(this.settings);
   }
 
-  private openExport(file: TFile): void {
+  private async openExport(file: TFile): Promise<void> {
+    const format = this.settings.lastFormat;
+    const preset: PresetId =
+      format === "pdf"
+        ? this.settings.lastPdfPreset
+        : format === "docx"
+          ? this.settings.lastDocxPreset
+          : "reflowable-ebook";
+    const markdown = await this.app.vault.cachedRead(file);
+    const document = parseMarkdown(markdown, file.basename);
     const initial: ExportChoice = {
-      preset: this.settings.lastPreset,
+      format,
+      preset,
       profile: this.settings.lastProfile,
-      outputName: safePdfName(file.basename),
+      outputName: file.basename,
+      language:
+        document.metadata.language ??
+        document.metadata.lang ??
+        this.settings.defaultLanguage,
       destination: "vault",
     };
     new ExportModal(
@@ -70,42 +107,102 @@ export default class PageFoundryPlugin extends Plugin {
   }
 
   private async publish(file: TFile, choice: ExportChoice): Promise<void> {
-    const progress = new Notice("Creating PDF on this device…", 0);
+    const label = choice.format.toUpperCase();
+    const progress = new Notice(`Creating ${label} on this device…`, 0);
     try {
-      this.settings.lastPreset = choice.preset;
-      this.settings.lastProfile = choice.profile;
-      await this.saveSettings();
-
+      if (!presetSupportsFormat(choice.preset, choice.format)) {
+        throw new Error(
+          "The selected preset does not support this output format.",
+        );
+      }
       const markdown = await this.app.vault.cachedRead(file);
       const document = parseMarkdown(markdown, file.basename);
-      const pdf = await this.renderer.render(
-        document,
-        choice.preset,
-        choice.profile,
-      );
-      const filename = safePdfName(choice.outputName);
+      const output = await this.render(document, choice);
+      const filename = safeOutputName(choice.outputName, output.extension);
+
+      this.rememberChoice(choice);
+      await this.saveSettings();
 
       if (choice.destination === "vault") {
-        const path = await this.saveToVault(filename, pdf);
-        new Notice(`Saved ${path}`);
+        const path = await this.saveToVault(filename, output);
+        new ResultModal(
+          this.app,
+          filename,
+          output,
+          () => this.saveToVault(filename, output),
+          path,
+        ).open();
       } else {
-        new ResultModal(this.app, filename, pdf, () =>
-          this.saveToVault(filename, pdf),
+        new ResultModal(this.app, filename, output, () =>
+          this.saveToVault(filename, output),
         ).open();
       }
     } catch (error) {
-      console.error("Page Foundry could not create the PDF", error);
+      console.error(`Page Foundry could not create the ${label}`, error);
       new Notice(
         error instanceof Error
           ? error.message
-          : "Page Foundry could not create the PDF.",
+          : `Page Foundry could not create the ${label}.`,
       );
     } finally {
       progress.hide();
     }
   }
 
-  private saveToVault(filename: string, pdf: Uint8Array): Promise<string> {
-    return savePdf(this.app.vault, this.settings.outputFolder, filename, pdf);
+  private rememberChoice(choice: ExportChoice): void {
+    this.settings.lastFormat = choice.format;
+    this.settings.lastProfile = choice.profile;
+    if (choice.format === "pdf") {
+      this.settings.lastPdfPreset = choice.preset as PdfPresetId;
+    } else if (choice.format === "docx") {
+      this.settings.lastDocxPreset = choice.preset as DocxPresetId;
+    } else {
+      this.settings.defaultLanguage = choice.language;
+    }
+  }
+
+  private async render(
+    document: FoundryDocument,
+    choice: ExportChoice,
+  ): Promise<PublishedFile> {
+    switch (choice.format) {
+      case "pdf":
+        return {
+          bytes: await this.pdfRenderer.render(
+            document,
+            choice.preset as PdfPresetId,
+            choice.profile,
+          ),
+          extension: "pdf",
+          mediaType: "application/pdf",
+        };
+      case "epub": {
+        const { EpubRenderer } = await import("./epub/renderer");
+        return new EpubRenderer().render(document, {
+          language: choice.language,
+        });
+      }
+      case "docx": {
+        const { DocxRenderer } = await import("./docx/renderer");
+        return new DocxRenderer().render(
+          document,
+          choice.preset as DocxPresetId,
+          choice.profile,
+        );
+      }
+    }
+  }
+
+  private saveToVault(
+    filename: string,
+    output: PublishedFile,
+  ): Promise<string> {
+    return saveOutput(
+      this.app.vault,
+      this.settings.outputFolder,
+      filename,
+      output.extension,
+      output.bytes,
+    );
   }
 }

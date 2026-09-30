@@ -5,14 +5,16 @@
 
 import { normalizePath, type Vault } from "obsidian";
 import { availableOutputPath, outputPath } from "../core/naming";
+import type { OutputFormat } from "../core/model";
 
-export async function savePdf(
+export async function saveOutput(
   vault: Vault,
   folder: string,
   outputName: string,
+  extension: OutputFormat,
   bytes: Uint8Array,
 ): Promise<string> {
-  const desired = outputPath(folder, outputName);
+  const desired = outputPath(folder, outputName, extension);
   const directory = desired.slice(0, desired.lastIndexOf("/"));
   await ensureFolder(vault, directory);
   const path = availableOutputPath(vault, desired);

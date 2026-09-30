@@ -4,7 +4,14 @@
  */
 
 import { App, Modal, Setting } from "obsidian";
-import type { PageProfileId, PresetId, PublishRequest } from "../core/model";
+import {
+  defaultPreset,
+  presetSupportsFormat,
+  type OutputFormat,
+  type PageProfileId,
+  type PresetId,
+  type PublishRequest,
+} from "../core/model";
 
 export type Destination = "vault" | "share";
 
@@ -26,27 +33,59 @@ export class ExportModal extends Modal {
 
   onOpen(): void {
     this.modalEl.addClass("page-foundry-modal");
+    this.render();
+  }
+
+  private render(): void {
+    this.contentEl.empty();
     this.contentEl.createEl("h2", { text: "Publish current note" });
 
-    new Setting(this.contentEl).setName("Preset").addDropdown((dropdown) =>
-      dropdown
-        .addOption("plain-document", "Plain document")
-        .addOption("letter", "Letter")
-        .setValue(this.choice.preset)
-        .onChange((value) => {
-          this.choice.preset = value as PresetId;
-        }),
-    );
+    new Setting(this.contentEl)
+      .setName("Output format")
+      .addDropdown((dropdown) =>
+        dropdown
+          .addOption("pdf", "PDF")
+          .addOption("epub", "EPUB")
+          .addOption("docx", "DOCX")
+          .setValue(this.choice.format)
+          .onChange((value) => {
+            this.choice.format = value as OutputFormat;
+            if (!presetSupportsFormat(this.choice.preset, this.choice.format)) {
+              this.choice.preset = defaultPreset(this.choice.format);
+            }
+            this.render();
+          }),
+      );
 
-    new Setting(this.contentEl).setName("Page size").addDropdown((dropdown) =>
-      dropdown
-        .addOption("a4", "A4")
-        .addOption("us-letter", "US Letter")
-        .setValue(this.choice.profile)
-        .onChange((value) => {
-          this.choice.profile = value as PageProfileId;
-        }),
-    );
+    new Setting(this.contentEl).setName("Preset").addDropdown((dropdown) => {
+      for (const [id, label] of presetOptions(this.choice.format)) {
+        dropdown.addOption(id, label);
+      }
+      return dropdown.setValue(this.choice.preset).onChange((value) => {
+        this.choice.preset = value as PresetId;
+      });
+    });
+
+    if (this.choice.format !== "epub") {
+      new Setting(this.contentEl).setName("Page size").addDropdown((dropdown) =>
+        dropdown
+          .addOption("a4", "A4")
+          .addOption("us-letter", "US Letter")
+          .setValue(this.choice.profile)
+          .onChange((value) => {
+            this.choice.profile = value as PageProfileId;
+          }),
+      );
+    } else {
+      new Setting(this.contentEl)
+        .setName("Publication language")
+        .setDesc("BCP 47 language tag, for example en, en-GB, or de.")
+        .addText((text) =>
+          text.setValue(this.choice.language).onChange((value) => {
+            this.choice.language = value.trim();
+          }),
+        );
+    }
 
     new Setting(this.contentEl).setName("File name").addText((text) =>
       text.setValue(this.choice.outputName).onChange((value) => {
@@ -71,7 +110,7 @@ export class ExportModal extends Modal {
 
     new Setting(this.contentEl).addButton((button) =>
       button
-        .setButtonText("Create PDF")
+        .setButtonText(`Create ${this.choice.format.toUpperCase()}`)
         .setCta()
         .onClick(() => {
           this.close();
@@ -82,5 +121,22 @@ export class ExportModal extends Modal {
 
   onClose(): void {
     this.contentEl.empty();
+  }
+}
+
+function presetOptions(format: OutputFormat): Array<[PresetId, string]> {
+  switch (format) {
+    case "pdf":
+      return [
+        ["plain-document", "Plain document"],
+        ["letter", "Letter"],
+      ];
+    case "epub":
+      return [["reflowable-ebook", "Reflowable ebook"]];
+    case "docx":
+      return [
+        ["plain-editable", "Plain editable document"],
+        ["general-manuscript", "General manuscript"],
+      ];
   }
 }

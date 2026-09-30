@@ -5,18 +5,29 @@
 
 import { App, PluginSettingTab, Setting } from "obsidian";
 import type PageFoundryPlugin from "./main";
-import type { PageProfileId, PresetId } from "./core/model";
+import type {
+  DocxPresetId,
+  OutputFormat,
+  PageProfileId,
+  PdfPresetId,
+} from "./core/model";
 
 export interface PageFoundrySettings {
   outputFolder: string;
-  lastPreset: PresetId;
+  lastFormat: OutputFormat;
+  lastPdfPreset: PdfPresetId;
+  lastDocxPreset: DocxPresetId;
   lastProfile: PageProfileId;
+  defaultLanguage: string;
 }
 
 export const DEFAULT_SETTINGS: PageFoundrySettings = {
   outputFolder: "Page Foundry",
-  lastPreset: "plain-document",
+  lastFormat: "pdf",
+  lastPdfPreset: "plain-document",
+  lastDocxPreset: "plain-editable",
   lastProfile: "a4",
+  defaultLanguage: "en",
 };
 
 export class PageFoundrySettingTab extends PluginSettingTab {
@@ -39,6 +50,21 @@ export class PageFoundrySettingTab extends PluginSettingTab {
           .onChange(async (value) => {
             this.plugin.settings.outputFolder =
               value.trim() || DEFAULT_SETTINGS.outputFolder;
+            await this.plugin.saveSettings();
+          }),
+      );
+
+    new Setting(this.containerEl)
+      .setName("Default publication language")
+      .setDesc(
+        "BCP 47 language tag used for EPUB when a note has no language or lang property.",
+      )
+      .addText((text) =>
+        text
+          .setPlaceholder("en")
+          .setValue(this.plugin.settings.defaultLanguage)
+          .onChange(async (value) => {
+            this.plugin.settings.defaultLanguage = value.trim() || "en";
             await this.plugin.saveSettings();
           }),
       );

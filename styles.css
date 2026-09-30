@@ -13,3 +13,9 @@
   gap: var(--size-4-2);
   margin-top: var(--size-4-4);
 }
+
+.page-foundry-result-path {
+  overflow-wrap: anywhere;
+  user-select: text;
+  font-family: var(--font-monospace);
+}

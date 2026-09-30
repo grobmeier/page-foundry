@@ -11,6 +11,8 @@ Page Foundry bundles the following components into its generated plugin file:
 - **Libertinus Serif** — SIL Open Font License 1.1.
 - **fflate**, **unified**, **remark-parse**, and **remark-frontmatter** — MIT
   License.
+- **docx** — MIT License. Page Foundry uses its browser packer to create
+  editable Office Open XML documents locally.
 - **yaml** — ISC License.
 
 The exact versions are recorded in `package-lock.json`. Release preparation must

@@ -23,6 +23,10 @@ await writeFile(
   `---
 title: A Portable Letter
 author: Alex Example
+language: en-GB
+identifier: urn:page-foundry:test:portable-letter
+surname: Example
+short-title: Portable Letter
 to: Jamie Example
 date: 29 September 2026
 subject: Page Foundry mobile feasibility
@@ -35,6 +39,7 @@ This letter was created from an ordinary Markdown note.
 
 - The note remains authoritative.
 - The PDF is generated on this device.
+- The same note can become a reflowable EPUB or editable DOCX.
 - No Docker or rendering server is involved.
 `,
 );
