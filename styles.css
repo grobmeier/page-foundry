@@ -3,8 +3,13 @@
  * Licensed under the Apache License, Version 2.0.
  */
 
-.page-foundry-modal .setting-item-control input[type="text"] {
+.page-foundry-modal .setting-item-control input[type="text"],
+.page-foundry-modal .setting-item-control textarea {
   width: min(24rem, 100%);
+}
+
+.page-foundry-modal .setting-item-control textarea {
+  min-height: 5rem;
 }
 
 .page-foundry-result-actions {

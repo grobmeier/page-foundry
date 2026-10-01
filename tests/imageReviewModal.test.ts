@@ -33,6 +33,7 @@ function setup(errors: string[] = []) {
       },
       createEl(_tag: string, options: { text: string }) {
         text.push(options.text);
+        return { textContent: options.text };
       },
     };
     modalEl = { addClass() {} };
@@ -53,6 +54,9 @@ function setup(errors: string[] = []) {
       return this.control(fn);
     }
     addText(fn: (control: unknown) => unknown) {
+      return this.control(fn);
+    }
+    addTextArea(fn: (control: unknown) => unknown) {
       return this.control(fn);
     }
     control(fn: (control: unknown) => unknown) {
@@ -102,6 +106,7 @@ function setup(errors: string[] = []) {
     },
   };
   runInNewContext(code, {
+    TextEncoder,
     module,
     exports: module.exports,
     require() {
@@ -160,6 +165,30 @@ function setup(errors: string[] = []) {
 }
 
 describe("image review dialog", () => {
+  it("requires submission metadata and resets export-only values when changing preset", () => {
+    const host = setup();
+    host.controls.get("Preset")!("submission-letter");
+    assert.equal(host.button("Create PDF").disabled, true);
+    host.controls.get("Author")!("Alex Example");
+    host.controls.get("Recipient")!("Jamie Example");
+    host.controls.get("Subject")!("Export only subject");
+    assert.equal(host.button("Create PDF").disabled, false);
+    host.controls.get("Preset")!("letter");
+    host.button("Create PDF").click();
+    assert.equal(host.published[0]!.metadata!.subject, "");
+    assert.equal(host.published[0]!.metadata!.author, "");
+  });
+  it("does not carry an edited language to another preset and updates the page-size review", () => {
+    const host = setup();
+    host.controls.get("Preset")!("readable-plain");
+    host.controls.get("Publication language")!("de");
+    host.controls.get("Preset")!("plain-document");
+    host.controls.get("Page size")!("us-letter");
+    assert.ok(host.text.some((value) => value.startsWith("US Letter;")));
+    host.controls.get("Output format")!("epub");
+    host.button("Create EPUB").click();
+    assert.equal(host.published[0]!.metadata!.language, "en");
+  });
   it("lists reviewed resources and advisory alt warnings without blocking export", () => {
     const host = setup();
     assert.equal(

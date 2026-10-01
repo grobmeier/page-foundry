@@ -18,21 +18,40 @@ export function createTypstSource(
   profile: PageProfileId,
 ): string {
   const paper = profile === "a4" ? "a4" : "us-letter";
+  const style = document.style ?? {};
+  const manuscript = preset === "manuscript";
+  const size = style.bodySizePt ?? (manuscript ? 12 : 11);
   const body = document.blocks
     .map((block) => renderBlock(block, document))
     .join("\n\n");
   const opening =
-    preset === "letter" ? renderLetterOpening(document) : renderTitle(document);
+    preset === "letter"
+      ? renderLetterOpening(document)
+      : manuscript
+        ? renderManuscriptOpening(document)
+        : renderTitle(document);
   const closing = preset === "letter" ? renderLetterClosing(document) : "";
 
-  return `#set page(paper: "${paper}", margin: (x: 25mm, y: 24mm))
-#set text(font: "Libertinus Serif", size: 11pt, lang: "en")
-#set par(leading: 0.72em, justify: true)
+  return `#set page(paper: "${paper}", margin: (x: ${style.marginXmm ?? (manuscript ? 25.4 : 25)}mm, y: ${style.marginYmm ?? (manuscript ? 25.4 : 24)}mm))
+#set text(font: "Libertinus Serif", size: ${size}pt, fill: rgb(${stringLiteral(style.color ?? "#000000")}), lang: "en")
+#set par(leading: ${style.lineSpacing !== undefined ? Math.max(0, style.lineSpacing - 0.8) : manuscript ? 1.2 : 0.72}em, justify: ${!manuscript}${manuscript ? ", first-line-indent: 12.7mm" : ""})
 #set heading(numbering: none)
 
 ${opening}
 ${body}
 ${closing}`;
+}
+
+function renderManuscriptOpening(document: FoundryDocument): string {
+  const surname =
+    document.metadata.surname ||
+    document.metadata.author?.trim().split(/\s+/u).at(-1);
+  const label = [surname, document.metadata["short-title"] || document.title]
+    .filter(Boolean)
+    .join(" / ");
+  return `#page(header: none, footer: none)[#v(30%)#align(center)[${renderText(document.title)}\n\n${renderText(document.metadata.author ?? "")}]]
+#counter(page).update(1)
+#set page(header: context align(right)[${renderText(`${label} / `)}#counter(page).display()])`;
 }
 
 function renderTitle(document: FoundryDocument): string {
@@ -103,7 +122,19 @@ function renderInline(nodes: InlineNode[], document: FoundryDocument): string {
           return `#link(${stringLiteral(node.url)})[${renderInline(node.children, document)}]`;
         case "image": {
           const image = requireImage(document, node);
-          const size = imageSize(image, node.width, 480, 600);
+          const size = imageSize(
+            image,
+            node.width,
+            Math.min(
+              480,
+              ((210 - 2 * (document.style?.marginXmm ?? 25) - 25) * 96) / 25.4,
+            ),
+            Math.min(
+              600,
+              ((279.4 - 2 * (document.style?.marginYmm ?? 24) - 25) * 96) /
+                25.4,
+            ),
+          );
           return `#image("/assets/${image.id}.${image.extension}", width: ${size.width * 0.75}pt, height: ${size.height * 0.75}pt, fit: "contain", alt: ${stringLiteral(node.alt)})`;
         }
         case "break":

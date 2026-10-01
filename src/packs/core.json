@@ -1,0 +1,144 @@
+{
+  "schemaVersion": 1,
+  "id": "core",
+  "name": "Page Foundry Core",
+  "version": "1.0.0",
+  "compatibility": { "minEngine": 1, "maxEngine": 1 },
+  "presets": [
+    {
+      "id": "plain-document",
+      "name": "Plain document",
+      "description": "A restrained printable document with the bundled Serif font.",
+      "outputs": { "pdf": { "recipe": "plain-document" } },
+      "metadata": [
+        { "key": "title", "label": "Title" },
+        { "key": "author", "label": "Author" }
+      ]
+    },
+    {
+      "id": "letter",
+      "name": "Letter",
+      "description": "A simple letter with sender, recipient and closing metadata.",
+      "outputs": { "pdf": { "recipe": "letter" } },
+      "metadata": [
+        { "key": "author", "label": "Author" },
+        { "key": "from", "label": "Sender" },
+        { "key": "to", "label": "Recipient" },
+        { "key": "date", "label": "Date" },
+        { "key": "subject", "label": "Subject" },
+        { "key": "closing", "label": "Closing", "default": "Yours sincerely," }
+      ]
+    },
+    {
+      "id": "submission-letter",
+      "name": "Submission letter",
+      "description": "A submission covering letter. Check the recipient's requirements; this is not a universal standard.",
+      "outputs": {
+        "pdf": {
+          "recipe": "letter",
+          "style": { "bodySizePt": 11, "marginXmm": 25.4, "marginYmm": 25.4 }
+        }
+      },
+      "metadata": [
+        { "key": "author", "label": "Author", "required": true },
+        { "key": "to", "label": "Recipient", "required": true },
+        { "key": "subject", "label": "Subject", "required": true },
+        { "key": "date", "label": "Date" },
+        { "key": "closing", "label": "Closing", "default": "Yours sincerely," }
+      ]
+    },
+    {
+      "id": "plain-editable",
+      "name": "Plain editable document",
+      "description": "Semantic headings and editable text for continued work in a document editor.",
+      "outputs": { "docx": { "recipe": "plain-editable" } },
+      "metadata": [
+        { "key": "title", "label": "Title" },
+        { "key": "author", "label": "Author" }
+      ]
+    },
+    {
+      "id": "general-manuscript",
+      "name": "General manuscript",
+      "description": "A neutral submission starting point: title page, double-spaced body, running header and numbered body pages. PDF uses the bundled Serif font; DOCX uses Times New Roman.",
+      "outputs": {
+        "pdf": {
+          "recipe": "manuscript",
+          "style": {
+            "bodySizePt": 12,
+            "marginXmm": 25.4,
+            "marginYmm": 25.4,
+            "lineSpacing": 2
+          }
+        },
+        "docx": { "recipe": "general-manuscript" }
+      },
+      "metadata": [
+        { "key": "title", "label": "Title", "required": true },
+        { "key": "author", "label": "Author" },
+        { "key": "surname", "label": "Header surname" },
+        { "key": "short-title", "label": "Short title" }
+      ]
+    },
+    {
+      "id": "reflowable-ebook",
+      "name": "Reflowable ebook",
+      "description": "A semantic EPUB with heading navigation; the reading app controls pagination.",
+      "outputs": { "epub": { "recipe": "reflowable-ebook" } },
+      "metadata": [
+        { "key": "title", "label": "Title", "required": true },
+        { "key": "author", "label": "Author" },
+        {
+          "key": "language",
+          "label": "Publication language",
+          "required": true
+        },
+        { "key": "identifier", "label": "Publication identifier" }
+      ]
+    },
+    {
+      "id": "print-proof",
+      "name": "Print proof",
+      "description": "A general A4 or US Letter proof, not a KDP-ready interior or certified print profile.",
+      "outputs": {
+        "pdf": {
+          "recipe": "plain-document",
+          "style": {
+            "bodySizePt": 12,
+            "marginXmm": 28,
+            "marginYmm": 28,
+            "lineSpacing": 1.5
+          }
+        }
+      },
+      "metadata": [
+        { "key": "title", "label": "Title", "required": true },
+        { "key": "author", "label": "Author" }
+      ]
+    },
+    {
+      "id": "readable-plain",
+      "name": "Readable plain document",
+      "description": "Comfortable spacing and semantic text. This preset is not an accessibility certification.",
+      "outputs": {
+        "pdf": {
+          "recipe": "plain-document",
+          "style": { "bodySizePt": 12, "lineSpacing": 1.5 }
+        },
+        "docx": {
+          "recipe": "plain-editable",
+          "style": { "bodySizePt": 12, "lineSpacing": 1.5 }
+        },
+        "epub": {
+          "recipe": "reflowable-ebook",
+          "style": { "lineSpacing": 1.6 }
+        }
+      },
+      "metadata": [
+        { "key": "title", "label": "Title" },
+        { "key": "author", "label": "Author" },
+        { "key": "language", "label": "Publication language" }
+      ]
+    }
+  ]
+}

@@ -12,6 +12,8 @@ import type { FoundryDocument } from "../src/core/model";
 import type { ImageReview } from "../src/core/images";
 import type { ExportChoice } from "../src/ui/exportModal";
 import { fixturePng } from "./fixtures/images";
+import { readFileSync } from "node:fs";
+import type { PresetCatalog } from "../src/packs/model";
 
 const code = buildSync({
   entryPoints: ["src/main.ts"],
@@ -49,6 +51,12 @@ function setup() {
   }
   const note = new File("Notes/Images.md", "Images");
   const attachment = new File("Artwork/photo.png", "photo");
+  const pack = new File("Designs/pack.json", "pack");
+  let packSource = readFileSync(
+    "examples/neutral-pack/page-foundry-pack.json",
+    "utf8",
+  );
+  pack.stat.size = new TextEncoder().encode(packSource).length;
   let markdown = "![A panel](Artwork/photo.png)";
   let bytes = fixturePng();
   let exists = true;
@@ -57,6 +65,9 @@ function setup() {
     saves: string[] = [],
     notices: string[] = [];
   const reviews: ImageReview[] = [];
+  const catalogs: PresetCatalog[] = [];
+  const lookups: string[] = [];
+  const stored: unknown[] = [];
   const renders: FoundryDocument[] = [];
   const app = {
     vault: {
@@ -69,7 +80,17 @@ function setup() {
         return bytes.slice().buffer;
       },
       getAbstractFileByPath(path: string) {
-        return exists && path === attachment.path ? attachment : undefined;
+        lookups.push(path);
+        return path === pack.path
+          ? pack
+          : exists && path === attachment.path
+            ? attachment
+            : undefined;
+      },
+      async read(file: File) {
+        assert.equal(file, pack);
+        reads.push(file.path);
+        return packSource;
       },
       async createFolder() {},
       async createBinary(path: string) {
@@ -85,17 +106,21 @@ function setup() {
   };
   class Plugin {
     app = app;
-    async saveData() {}
+    async saveData(value: unknown) {
+      stored.push(structuredClone(value));
+    }
   }
   const module = {
     exports: {} as {
       default: new () => {
+        settings: { packManifestPath: string };
         openExport(file: File): Promise<void>;
         publish(
           file: File,
           choice: ExportChoice,
           review: ImageReview,
           source: string,
+          catalog?: PresetCatalog,
         ): Promise<void>;
       };
     },
@@ -149,8 +174,11 @@ function setup() {
               _choice: unknown,
               _publish: unknown,
               review: ImageReview,
+              _refresh: unknown,
+              catalog: PresetCatalog,
             ) {
               reviews.push(review);
+              catalogs.push(catalog);
             }
             open() {}
           },
@@ -174,6 +202,21 @@ function setup() {
     notices,
     reviews,
     renders,
+    catalogs,
+    lookups,
+    stored,
+    setPackPath(path: string) {
+      plugin.settings.packManifestPath = path;
+    },
+    changePack() {
+      packSource = packSource.replace('"bodySizePt": 14', '"bodySizePt": 15');
+    },
+    breakPack() {
+      packSource = "{";
+    },
+    oversizePack() {
+      pack.stat.size = 128 * 1024 + 1;
+    },
     source: () => markdown,
     changeNote() {
       markdown += "\n\nA changed paragraph.";
@@ -192,6 +235,90 @@ function setup() {
 }
 
 describe("review-to-export image workflow", () => {
+  it("reads only an explicitly configured pack and re-reviews content changes before rendering", async () => {
+    const host = setup();
+    host.setPackPath("Designs/pack.json");
+    await host.plugin.openExport(host.note);
+    assert.ok(host.reads.includes("Designs/pack.json"));
+    const catalog = host.catalogs[0]!;
+    host.changePack();
+    await host.plugin.publish(
+      host.note,
+      {
+        ...choice,
+        preset: "neutral-example:studio-proof",
+        metadata: {
+          title: "Only in export",
+          author: "Alex Example",
+          language: "en",
+        },
+      },
+      host.reviews[0]!,
+      host.source(),
+      catalog,
+    );
+    assert.equal(host.renders.length, 0);
+    assert.equal(host.saves.length, 0);
+    assert.equal(host.reviews.length, 2);
+    assert.ok(
+      host.notices.some((message) => message.includes("preset pack changed")),
+    );
+  });
+  it("exports custom metadata and layout without storing metadata in settings", async () => {
+    const host = setup();
+    host.setPackPath("Designs/pack.json");
+    await host.plugin.openExport(host.note);
+    await host.plugin.publish(
+      host.note,
+      {
+        ...choice,
+        preset: "neutral-example:studio-proof",
+        metadata: {
+          title: "Export only title",
+          author: "Alex Example",
+          language: "en",
+        },
+      },
+      host.reviews[0]!,
+      host.source(),
+      host.catalogs[0],
+    );
+    assert.equal(host.renders[0]!.title, "Export only title");
+    assert.equal(host.renders[0]!.style!.bodySizePt, 14);
+    assert.equal(
+      JSON.stringify(host.stored).includes("Export only title"),
+      false,
+    );
+    assert.equal(host.source(), "![A panel](Artwork/photo.png)");
+  });
+  for (const mode of ["invalid", "oversize", "traversal", "missing"] as const)
+    it(`blocks a ${mode} configured pack without falling back to publishing`, async () => {
+      const host = setup();
+      host.setPackPath(
+        mode === "traversal"
+          ? "../pack.json"
+          : mode === "missing"
+            ? "Absent/pack.json"
+            : "Designs/pack.json",
+      );
+      if (mode === "invalid") host.breakPack();
+      if (mode === "oversize") host.oversizePack();
+      await host.plugin.openExport(host.note);
+      assert.ok(host.catalogs[0]!.error);
+      await host.plugin.publish(
+        host.note,
+        choice,
+        host.reviews[0]!,
+        host.source(),
+        host.catalogs[0],
+      );
+      assert.equal(host.renders.length, 0);
+      assert.equal(host.saves.length, 0);
+      if (mode === "oversize" || mode === "traversal")
+        assert.ok(!host.reads.includes("Designs/pack.json"));
+      if (mode === "traversal")
+        assert.ok(!host.lookups.includes("../pack.json"));
+    });
   it("uses the host link cache only for short attachment names", async () => {
     const host = setup();
     host.useShortName();

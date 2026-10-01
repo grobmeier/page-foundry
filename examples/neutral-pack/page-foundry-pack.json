@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "id": "neutral-example",
+  "name": "Neutral Example",
+  "version": "1.0.0",
+  "compatibility": { "minEngine": 1, "maxEngine": 1 },
+  "presets": [
+    {
+      "id": "studio-proof",
+      "name": "Studio proof",
+      "description": "A spacious blue proof for reviewing a draft, not a submission or KDP specification.",
+      "outputs": {
+        "pdf": {
+          "recipe": "plain-document",
+          "style": {
+            "bodySizePt": 14,
+            "marginXmm": 30,
+            "marginYmm": 30,
+            "lineSpacing": 1.5,
+            "color": "#243b53"
+          }
+        },
+        "docx": {
+          "recipe": "plain-editable",
+          "style": {
+            "font": "Arial",
+            "bodySizePt": 14,
+            "marginXmm": 30,
+            "marginYmm": 30,
+            "lineSpacing": 1.5,
+            "color": "#243b53"
+          }
+        },
+        "epub": {
+          "recipe": "reflowable-ebook",
+          "style": {
+            "font": "sans-serif",
+            "lineSpacing": 1.6,
+            "color": "#243b53"
+          }
+        }
+      },
+      "metadata": [
+        { "key": "title", "label": "Title", "required": true },
+        { "key": "author", "label": "Author", "required": true },
+        { "key": "language", "label": "Publication language", "default": "en" }
+      ]
+    }
+  ]
+}

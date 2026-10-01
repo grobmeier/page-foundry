@@ -4,6 +4,10 @@ Use a disposable vault and neutral notes, not your personal manuscripts. Run
 this checklist when convenient; physical-device testing is not a development
 gate, but remains required before public compatibility claims.
 
+Also run the [preset-pack milestone checklist](preset-packs.md), copied into the
+test vault as **Preset pack test plan.md**, for custom designs, metadata forms,
+manuscript PDF and submission letters.
+
 ## Set up once
 
 On the development Mac, use Node 22.12+ and run:

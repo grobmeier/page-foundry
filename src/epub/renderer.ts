@@ -32,7 +32,9 @@ export class EpubRenderer {
         "",
     );
     const identifier =
-      document.metadata.identifier ?? options.identifier ?? createIdentifier();
+      document.metadata.identifier?.trim() ||
+      options.identifier ||
+      createIdentifier();
     const modified = (options.modified ?? new Date())
       .toISOString()
       .replace(/\.\d{3}Z$/u, "Z");
@@ -51,7 +53,7 @@ export class EpubRenderer {
       "EPUB/content.xhtml": strToU8(
         contentDocument(document, language, content),
       ),
-      "EPUB/styles.css": strToU8(STYLES),
+      "EPUB/styles.css": strToU8(styles(document)),
     };
     for (const image of Object.values(document.images ?? {}))
       files[`EPUB/images/${image.id}.${image.extension}`] = image.bytes;
@@ -71,9 +73,11 @@ const CONTAINER_XML = `<?xml version="1.0" encoding="UTF-8"?>
   </rootfiles>
 </container>`;
 
-const STYLES = `body {
-  font-family: serif;
-  line-height: 1.5;
+function styles(document: FoundryDocument): string {
+  return `body {
+  font-family: ${document.style?.font ?? "serif"};
+  line-height: ${document.style?.lineSpacing ?? 1.5};
+  color: ${document.style?.color ?? "#000000"};
   margin: 5%;
 }
 .book-title { text-align: center; margin-block: 2em; }
@@ -83,6 +87,7 @@ hr { border: 0; text-align: center; }
 hr::after { content: "* * *"; }
 img { max-width: 100%; height: auto; }
 `;
+}
 
 function packageDocument(
   document: FoundryDocument,

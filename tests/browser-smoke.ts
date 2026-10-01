@@ -11,6 +11,15 @@ import { EpubRenderer } from "../src/epub/renderer";
 import { TypstPdfRenderer } from "../src/pdf/renderer";
 import { decodeImage, resolveImages } from "../src/core/images";
 import { fixturePng } from "./fixtures/images";
+import neutralPack from "../examples/neutral-pack/page-foundry-pack.json";
+import { CORE_PACK } from "../src/packs/core";
+import {
+  applyPreset,
+  catalogue,
+  choosePreset,
+  initialMetadata,
+  parsePack,
+} from "../src/packs/model";
 
 const button = document.querySelector<HTMLButtonElement>("#generate");
 const status = document.querySelector<HTMLParagraphElement>("#status");
@@ -103,6 +112,64 @@ its original images are changed by publishing.
     assertZipContains(epub.bytes, "EPUB/images/image-2.jpg");
     assertZipContains(docx.bytes, "word/document.xml");
     showDownloads(downloads, [pdf, epub, docx]);
+    const catalog = catalogue(
+      [CORE_PACK, parsePack(JSON.stringify(neutralPack))],
+      "browser",
+    );
+    const manuscript = choosePreset(catalog, "general-manuscript", "pdf");
+    const manuscriptDocument = applyPreset(
+      document,
+      manuscript,
+      "pdf",
+      initialMetadata(document, manuscript),
+    );
+    const manuscriptPdf: PublishedFile = {
+      bytes: await renderer.render(manuscriptDocument, "manuscript", "a4"),
+      extension: "pdf",
+      mediaType: "application/pdf",
+    };
+    assertPdf(manuscriptPdf.bytes);
+    showDownloads(downloads, [manuscriptPdf], "manuscript", false);
+    const letterPreset = choosePreset(catalog, "submission-letter", "pdf");
+    const letterDocument = applyPreset(document, letterPreset, "pdf", {
+      ...initialMetadata(document, letterPreset),
+      to: "Jamie Example",
+      subject: "A portable submission",
+    });
+    const letterPdf: PublishedFile = {
+      bytes: await renderer.render(letterDocument, "letter", "a4"),
+      extension: "pdf",
+      mediaType: "application/pdf",
+    };
+    assertPdf(letterPdf.bytes);
+    showDownloads(downloads, [letterPdf], "submission-letter", false);
+    const custom = choosePreset(catalog, "neutral-example:studio-proof", "pdf");
+    const values = initialMetadata(document, custom);
+    const customPdf: PublishedFile = {
+      bytes: await renderer.render(
+        applyPreset(document, custom, "pdf", values),
+        "plain-document",
+        "us-letter",
+      ),
+      extension: "pdf",
+      mediaType: "application/pdf",
+    };
+    const customDocx = await new DocxRenderer().render(
+      applyPreset(document, custom, "docx", values),
+      "plain-editable",
+      "us-letter",
+    );
+    const customEpub = new EpubRenderer().render(
+      applyPreset(document, custom, "epub", values),
+      { language: "en" },
+    );
+    assertPdf(customPdf.bytes);
+    showDownloads(
+      downloads,
+      [customPdf, customDocx, customEpub],
+      "custom-pack",
+      false,
+    );
     // A later image-free export must work without stale mapped assets.
     assertPdf(
       await renderer.render(
@@ -112,7 +179,7 @@ its original images are changed by publishing.
       ),
     );
     status.textContent =
-      "Generated valid PDF, EPUB, and DOCX with PNG/JPEG images; clean repeat passed";
+      "Generated PDF, EPUB, DOCX, manuscript PDF and custom pack outputs with images; clean repeat passed";
   } catch (error) {
     status.textContent = error instanceof Error ? error.message : String(error);
   } finally {
@@ -135,16 +202,18 @@ function assertZipContains(bytes: Uint8Array, name: string): void {
 function showDownloads(
   container: HTMLUListElement,
   outputs: PublishedFile[],
+  name = "browser-smoke",
+  clear = true,
 ): void {
-  container.replaceChildren();
+  if (clear) container.replaceChildren();
   for (const output of outputs) {
-    const filename = `page-foundry-browser-smoke.${output.extension}`;
+    const filename = `page-foundry-${name}.${output.extension}`;
     const link = document.createElement("a");
     link.href = URL.createObjectURL(
       new Blob([output.bytes.slice().buffer], { type: output.mediaType }),
     );
     link.download = filename;
-    link.textContent = `${output.extension.toUpperCase()} (${output.bytes.length} bytes)`;
+    link.textContent = `${name} ${output.extension.toUpperCase()} (${output.bytes.length} bytes)`;
     const item = document.createElement("li");
     item.append(link);
     container.append(item);

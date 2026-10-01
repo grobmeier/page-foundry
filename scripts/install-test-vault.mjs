@@ -94,4 +94,18 @@ await cp(
   resolve("docs/testing/local-images-and-mobile.md"),
   resolve(root, "Page Foundry test plan.md"),
 );
+const designs = resolve(root, "Designs");
+await mkdir(designs, { recursive: true });
+await cp(
+  resolve("examples/neutral-pack/page-foundry-pack.json"),
+  resolve(designs, "page-foundry-pack.json"),
+);
+await cp(
+  resolve("docs/testing/preset-packs.md"),
+  resolve(root, "Preset pack test plan.md"),
+);
+await cp(
+  resolve("docs/preset-packs.md"),
+  resolve(root, "Preset pack authoring.md"),
+);
 console.log(root);

@@ -5,10 +5,10 @@
 
 export type PageProfileId = "a4" | "us-letter";
 export type OutputFormat = "pdf" | "epub" | "docx";
-export type PdfPresetId = "plain-document" | "letter";
+export type PdfPresetId = "plain-document" | "letter" | "manuscript";
 export type EpubPresetId = "reflowable-ebook";
 export type DocxPresetId = "plain-editable" | "general-manuscript";
-export type PresetId = PdfPresetId | EpubPresetId | DocxPresetId;
+export type PresetId = string;
 
 export type InlineNode =
   | { type: "text"; value: string }
@@ -38,6 +38,16 @@ export interface FoundryDocument {
   blocks: BlockNode[];
   images?: Record<string, ImageAsset>;
   resourceErrors?: string[];
+  style?: RenderStyle;
+}
+
+export interface RenderStyle {
+  bodySizePt?: number;
+  marginXmm?: number;
+  marginYmm?: number;
+  lineSpacing?: number;
+  color?: string;
+  font?: string;
 }
 
 export interface ImageAsset {
@@ -73,16 +83,4 @@ export function defaultPreset(format: OutputFormat): PresetId {
     case "docx":
       return "plain-editable";
   }
-}
-
-export function presetSupportsFormat(
-  preset: PresetId,
-  format: OutputFormat,
-): boolean {
-  return (
-    (format === "pdf" && ["plain-document", "letter"].includes(preset)) ||
-    (format === "epub" && preset === "reflowable-ebook") ||
-    (format === "docx" &&
-      ["plain-editable", "general-manuscript"].includes(preset))
-  );
 }

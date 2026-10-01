@@ -23,7 +23,13 @@ import type {
   PresetId,
   PublishedFile,
 } from "./core/model";
-import { presetSupportsFormat } from "./core/model";
+import {
+  applyPreset,
+  choosePreset,
+  initialMetadata,
+  type PresetCatalog,
+} from "./packs/model";
+import { loadVaultPacks } from "./vault/packs";
 import { safeOutputName } from "./core/naming";
 import { TypstPdfRenderer } from "./pdf/renderer";
 import {
@@ -90,10 +96,14 @@ export default class PageFoundryPlugin extends Plugin {
         ? this.settings.lastPdfPreset
         : format === "docx"
           ? this.settings.lastDocxPreset
-          : "reflowable-ebook";
+          : this.settings.lastEpubPreset;
     const markdown = await this.app.vault.cachedRead(file);
     const document = parseMarkdown(markdown, file.basename);
     const review = await reviewVaultImages(this.app, file, document);
+    const catalog = await loadVaultPacks(
+      this.app,
+      this.settings.packManifestPath,
+    );
     const initial: ExportChoice = {
       format,
       preset,
@@ -108,13 +118,14 @@ export default class PageFoundryPlugin extends Plugin {
     new ExportModal(
       this.app,
       previousChoice ?? initial,
-      (choice) => void this.publish(file, choice, review, markdown),
+      (choice) => void this.publish(file, choice, review, markdown, catalog),
       review,
       (choice) => {
         void this.openExport(file, choice).catch(
           () => new Notice("Could not refresh the image review."),
         );
       },
+      catalog,
     ).open();
   }
 
@@ -123,15 +134,24 @@ export default class PageFoundryPlugin extends Plugin {
     choice: ExportChoice,
     reviewed: ImageReview,
     reviewedMarkdown: string,
+    reviewedCatalog?: PresetCatalog,
   ): Promise<void> {
     const label = choice.format.toUpperCase();
     const progress = new Notice(`Creating ${label} on this device…`, 0);
     try {
-      if (!presetSupportsFormat(choice.preset, choice.format)) {
-        throw new Error(
-          "The selected preset does not support this output format.",
+      const catalog = await loadVaultPacks(
+        this.app,
+        this.settings.packManifestPath,
+      );
+      if (catalog.error) throw new Error(catalog.error);
+      if (reviewedCatalog && catalog.signature !== reviewedCatalog.signature) {
+        new Notice(
+          "The preset pack changed. Review the updated layout before publishing.",
         );
+        await this.openExport(file, choice);
+        return;
       }
+      const preset = choosePreset(catalog, choice.preset, choice.format);
       const markdown = await this.app.vault.cachedRead(file);
       const document = parseMarkdown(markdown, file.basename);
       const fresh = await reviewVaultImages(this.app, file, document);
@@ -146,7 +166,21 @@ export default class PageFoundryPlugin extends Plugin {
         await this.openExport(file, choice);
         return;
       }
-      const output = await this.render(fresh.document, choice);
+      const values = choice.metadata ?? {
+        ...initialMetadata(fresh.document, preset),
+        language: choice.language,
+      };
+      const outputDocument = applyPreset(
+        fresh.document,
+        preset,
+        choice.format,
+        values,
+      );
+      const output = await this.render(outputDocument, {
+        ...choice,
+        preset: preset.outputs[choice.format]!.recipe,
+        language: outputDocument.metadata.language ?? choice.language,
+      });
       const filename = safeOutputName(choice.outputName, output.extension);
 
       this.rememberChoice(choice);
@@ -182,11 +216,11 @@ export default class PageFoundryPlugin extends Plugin {
     this.settings.lastFormat = choice.format;
     this.settings.lastProfile = choice.profile;
     if (choice.format === "pdf") {
-      this.settings.lastPdfPreset = choice.preset as PdfPresetId;
+      this.settings.lastPdfPreset = choice.preset;
     } else if (choice.format === "docx") {
-      this.settings.lastDocxPreset = choice.preset as DocxPresetId;
+      this.settings.lastDocxPreset = choice.preset;
     } else {
-      this.settings.defaultLanguage = choice.language;
+      this.settings.lastEpubPreset = choice.preset;
     }
   }
 

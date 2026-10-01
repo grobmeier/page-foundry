@@ -27,6 +27,7 @@ active Markdown note
         v
 portable document model
         |-- explicit vault images -> validation + review + byte snapshot
+        |-- configured pack JSON -> strict schema + metadata + layout review
         |-- preset + page profile -> Typst WebAssembly -> PDF
         |-- ebook metadata + semantic XHTML -> EPUB 3 ZIP
         `-- editable/manuscript styles -> Office Open XML DOCX
@@ -60,6 +61,27 @@ asset paths in its in-memory filesystem. PDF compilation is serialised, with
 shadow assets reset before and after each build, including failures. Styles
 preserve proportions, avoid upscaling and bound physical-page image dimensions.
 No new runtime dependency or desktop requirement was introduced.
+
+## Preset pack boundary
+
+The bundled core pack and an optional explicitly configured vault JSON file
+share one strict schema. Pack and preset IDs, engine compatibility, format
+recipes, metadata fields and bounded style values are validated before the
+dialog opens. Invalid configured packs block creation. Private pack IDs are
+namespaced and cannot override the bundled pack. The vault adapter reads only
+the configured file, at most 128 KiB; there is no folder enumeration.
+
+Metadata forms copy original note values and pack defaults into an export-only
+selection. Preset changes reset those fields to prevent cross-preset leakage. No
+entered metadata is stored in plugin settings. The review is a resolved layout
+summary, not live pagination. Before rendering, the configured pack is read
+again and its exact source/path compared with the reviewed snapshot; changes
+reopen review. Pack contents never become executable source: only allow-listed
+recipes and numeric/colour/font values reach the renderers.
+
+Schema v1 has no code, arbitrary stylesheets, fonts, asset paths, hooks or
+remote resources. Fonts/artwork in richer private design packs require a later
+schema extension. The existing selected-note image pipeline stays independent.
 
 ## Why sharing is a second action
 
@@ -105,6 +127,15 @@ verification remains pending.
 - The image-enabled EPUB passes EPUBCheck 5.4.0 with zero messages. The PDF and
   manuscript DOCX were rendered for visual inspection of image proportions, page
   fit, title/header/page numbering, and heading placement.
+- The preset-pack milestone passes 54 automated tests and the production build,
+  including strict pack validation, metadata isolation, native style output,
+  explicit vault reads, invalid-pack blocking and changed-pack re-review.
+- WebKit at 390 × 844 generated manuscript/submission-letter PDFs and neutral
+  custom PDF/DOCX/EPUB styles offline, alongside the image regression outputs
+  and later image-free PDF. Requests were only the loopback page and bundle;
+  there were no browser warnings or errors. The custom EPUB passes EPUBCheck
+  with zero messages. Manuscript title/body pages, letter opening/closing and
+  custom PDF/DOCX layouts were rendered and inspected visually.
 
 This is browser-engine and desktop-rendering evidence, not physical-device
 acceptance. A packaged plugin must still pass in Obsidian on iPad and iPhone,
@@ -114,8 +145,9 @@ Files/iCloud Drive, and an installed cloud-provider share target.
 ## Known constraints
 
 - The embedded compiler dominates the plugin size.
-- Arbitrary Typst packages are not available: presets must carry their explicit
-  local resources.
+- Arbitrary Typst packages are not available. Schema-v1 preset packs cannot
+  introduce font/asset files; the engine carries its approved fonts and the
+  note's selected images use the separate resource resolver.
 - PDF standard and accessibility options exposed by the browser compiler must be
   verified before claiming printer, archival, or accessibility compliance.
 - EPUB is reflowable and semantic; DOCX remains editable. Neither is a

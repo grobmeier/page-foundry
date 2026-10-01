@@ -5,18 +5,15 @@
 
 import { App, PluginSettingTab, Setting } from "obsidian";
 import type PageFoundryPlugin from "./main";
-import type {
-  DocxPresetId,
-  OutputFormat,
-  PageProfileId,
-  PdfPresetId,
-} from "./core/model";
+import type { OutputFormat, PageProfileId } from "./core/model";
 
 export interface PageFoundrySettings {
   outputFolder: string;
   lastFormat: OutputFormat;
-  lastPdfPreset: PdfPresetId;
-  lastDocxPreset: DocxPresetId;
+  lastPdfPreset: string;
+  lastDocxPreset: string;
+  lastEpubPreset: string;
+  packManifestPath: string;
   lastProfile: PageProfileId;
   defaultLanguage: string;
 }
@@ -26,8 +23,10 @@ export const DEFAULT_SETTINGS: PageFoundrySettings = {
   lastFormat: "pdf",
   lastPdfPreset: "plain-document",
   lastDocxPreset: "plain-editable",
+  lastEpubPreset: "reflowable-ebook",
   lastProfile: "a4",
   defaultLanguage: "en",
+  packManifestPath: "",
 };
 
 export class PageFoundrySettingTab extends PluginSettingTab {
@@ -40,6 +39,20 @@ export class PageFoundrySettingTab extends PluginSettingTab {
 
   display(): void {
     this.containerEl.empty();
+
+    new Setting(this.containerEl)
+      .setName("Preset pack path")
+      .setDesc(
+        "Optional, explicit vault-relative JSON file. No folders are scanned. Leave empty to use only built-in presets.",
+      )
+      .addText((text) =>
+        text
+          .setValue(this.plugin.settings.packManifestPath)
+          .onChange(async (value) => {
+            this.plugin.settings.packManifestPath = value.trim();
+            await this.plugin.saveSettings();
+          }),
+      );
 
     new Setting(this.containerEl)
       .setName("Output folder")
@@ -57,7 +70,7 @@ export class PageFoundrySettingTab extends PluginSettingTab {
     new Setting(this.containerEl)
       .setName("Default publication language")
       .setDesc(
-        "BCP 47 language tag used for EPUB when a note has no language or lang property.",
+        "BCP 47 language tag used for EPUB when neither the note nor the selected pack supplies a language.",
       )
       .addText((text) =>
         text

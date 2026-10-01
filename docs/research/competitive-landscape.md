@@ -103,6 +103,13 @@ Custom fonts and additional media remain later work.
 
 ### 3. Make presets the product
 
+Locally implemented on 1 October 2026; device acceptance remains pending. See
+[pack authoring](../preset-packs.md) and the
+[preset test plan](../testing/preset-packs.md). The first schema deliberately
+uses bounded declarative settings, not executable templates or custom font/asset
+files. Its print proof is generic A4/US Letter, not KDP-ready; readable plain is
+not accessibility certification. Author preflight is the next development step.
+
 - Complete and document the versioned pack schema.
 - Add metadata forms, required-field validation, compatibility ranges, and
   format-specific styles.

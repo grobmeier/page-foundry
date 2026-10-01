@@ -49,9 +49,12 @@ The development build currently provides:
 
 - `Publish current note` in the Obsidian command palette;
 - PDF, EPUB, and DOCX output selected in one dialog;
-- plain-document and letter PDF presets;
+- plain-document, letter, submission-letter, manuscript and print-proof PDF
+  presets;
 - a semantic reflowable EPUB with package metadata and heading navigation;
 - plain editable and general manuscript DOCX presets;
+- versioned, opt-in JSON preset packs with bounded styles, export-only metadata
+  forms, required-field validation and a layout review;
 - local PNG/JPEG images in all three formats, with resource review and safety
   checks before export;
 - A4 and US Letter page profiles;
@@ -94,6 +97,20 @@ The test-vault installer includes **Portable images.md**, PNG/JPEG artwork,
 safety-case notes, and **Page Foundry test plan.md** for convenient testing.
 
 ## Development
+
+### Preset packs
+
+Set an explicit vault-relative JSON file in **Preset pack path** to enable a
+custom design. The built-in and custom presets use the same safe contract; packs
+cannot execute code, scan the vault or replace core. Private designs stay
+outside this repository. See [pack authoring](docs/preset-packs.md) and the
+[milestone test plan](docs/testing/preset-packs.md), also copied into the test
+vault alongside a neutral example. Invalid packs block publishing; changed packs
+return to review before export. Layout review is a summary, not a rendered
+preview. Print-proof and readable presets do not certify KDP/accessibility
+compliance.
+
+### Build and isolated test vault
 
 Requirements: Node.js 22.12 or later and npm.
 

@@ -27,6 +27,7 @@ import type {
   InlineNode,
   PageProfileId,
   PublishedFile,
+  RenderStyle,
 } from "../core/model";
 import { imageSize, requireImage } from "../core/images";
 
@@ -50,12 +51,15 @@ export class DocxRenderer {
     const sections: ISectionOptions[] = manuscript
       ? [
           {
-            properties: { page: pageProperties(profile) },
+            properties: { page: pageProperties(profile, source.style) },
             children: titlePage(source),
           },
           {
             properties: {
-              page: { ...pageProperties(profile), pageNumbers: { start: 1 } },
+              page: {
+                ...pageProperties(profile, source.style),
+                pageNumbers: { start: 1 },
+              },
               type: SectionType.NEXT_PAGE,
             },
             headers: header ? { default: header } : undefined,
@@ -64,7 +68,7 @@ export class DocxRenderer {
         ]
       : [
           {
-            properties: { page: pageProperties(profile) },
+            properties: { page: pageProperties(profile, source.style) },
             children: [titleParagraph(source.title), ...body],
           },
         ];
@@ -72,6 +76,29 @@ export class DocxRenderer {
       creator: source.metadata.author,
       title: source.title,
       description: "Created locally with Page Foundry",
+      styles: {
+        default: {
+          document: {
+            run: {
+              font: source.style?.font,
+              size:
+                source.style?.bodySizePt === undefined
+                  ? undefined
+                  : source.style.bodySizePt * 2,
+              color: source.style?.color?.slice(1),
+            },
+            paragraph: {
+              spacing:
+                source.style?.lineSpacing === undefined
+                  ? undefined
+                  : {
+                      line: Math.round(source.style.lineSpacing * 240),
+                      lineRule: LineRuleType.AUTO,
+                    },
+            },
+          },
+        },
+      },
       numbering: {
         config: [
           {
@@ -100,7 +127,10 @@ export class DocxRenderer {
   }
 }
 
-function pageProperties(profile: PageProfileId): {
+function pageProperties(
+  profile: PageProfileId,
+  style?: RenderStyle,
+): {
   size: { width: number; height: number };
   margin: {
     top: number;
@@ -115,10 +145,10 @@ function pageProperties(profile: PageProfileId): {
   return {
     size: pageSize(profile),
     margin: {
-      top: 1440,
-      right: 1440,
-      bottom: 1440,
-      left: 1440,
+      top: Math.round(((style?.marginYmm ?? 25.4) * 1440) / 25.4),
+      right: Math.round(((style?.marginXmm ?? 25.4) * 1440) / 25.4),
+      bottom: Math.round(((style?.marginYmm ?? 25.4) * 1440) / 25.4),
+      left: Math.round(((style?.marginXmm ?? 25.4) * 1440) / 25.4),
       header: 720,
       footer: 720,
       gutter: 0,
@@ -142,7 +172,7 @@ function titlePage(source: FoundryDocument): Paragraph[] {
         new TextRun({
           text: source.title,
           bold: true,
-          ...manuscriptTextOptions(),
+          ...manuscriptTextOptions(source.style),
         }),
       ],
     }),
@@ -150,7 +180,7 @@ function titlePage(source: FoundryDocument): Paragraph[] {
       ? [
           new Paragraph({
             alignment: AlignmentType.CENTER,
-            children: [manuscriptRun(author)],
+            children: [manuscriptRun(author, source.style)],
           }),
         ]
       : []),
@@ -177,10 +207,10 @@ function manuscriptHeader(source: FoundryDocument): Header | undefined {
       new Paragraph({
         alignment: AlignmentType.RIGHT,
         children: [
-          manuscriptRun(`${label} / `),
+          manuscriptRun(`${label} / `, source.style),
           new TextRun({
             children: [PageNumber.CURRENT],
-            ...manuscriptTextOptions(),
+            ...manuscriptTextOptions(source.style),
           }),
         ],
       }),
@@ -199,14 +229,18 @@ function renderBlock(
         new Paragraph({
           heading: headingLevel(block.depth),
           keepNext: true,
-          spacing: manuscriptSpacing(),
+          spacing: manuscript
+            ? manuscriptSpacing(source.style)
+            : { after: 240 },
           children: renderInline(block.children, {}, manuscript, source),
         }),
       ];
     case "paragraph":
       return [
         new Paragraph({
-          spacing: manuscript ? manuscriptSpacing() : { after: 160 },
+          spacing: manuscript
+            ? manuscriptSpacing(source.style)
+            : { after: 160 },
           indent: manuscript ? { firstLine: 720 } : undefined,
           children: renderInline(block.children, {}, manuscript, source),
         }),
@@ -216,7 +250,9 @@ function renderBlock(
         child.type === "paragraph"
           ? [
               new Paragraph({
-                spacing: manuscript ? manuscriptSpacing() : { after: 160 },
+                spacing: manuscript
+                  ? manuscriptSpacing(source.style)
+                  : { after: 160 },
                 indent: { left: 720, right: 720 },
                 children: renderInline(
                   child.children,
@@ -238,9 +274,13 @@ function renderBlock(
       return [
         new Paragraph({
           alignment: AlignmentType.CENTER,
-          spacing: manuscript ? manuscriptSpacing() : { after: 160 },
+          spacing: manuscript
+            ? manuscriptSpacing(source.style)
+            : { after: 160 },
           children: [
-            manuscript ? manuscriptRun("* * *") : new TextRun("* * *"),
+            manuscript
+              ? manuscriptRun("* * *", source.style)
+              : new TextRun("* * *"),
           ],
         }),
       ];
@@ -256,7 +296,7 @@ function renderListItem(
   if (block.type !== "paragraph") return renderBlock(block, manuscript, source);
   return [
     new Paragraph({
-      spacing: manuscript ? manuscriptSpacing() : { after: 80 },
+      spacing: manuscript ? manuscriptSpacing(source.style) : { after: 80 },
       ...(ordered
         ? { numbering: { reference: "page-foundry-numbering", level: 0 } }
         : { bullet: { level: 0 } }),
@@ -274,7 +314,7 @@ function renderInline(
   return nodes.flatMap((node): ParagraphChild[] => {
     switch (node.type) {
       case "text":
-        return [textRun(node.value, style, manuscript)];
+        return [textRun(node.value, style, manuscript, source.style)];
       case "emphasis":
         return renderInline(
           node.children,
@@ -290,7 +330,14 @@ function renderInline(
           source,
         );
       case "inline-code":
-        return [textRun(node.value, { ...style, code: true }, manuscript)];
+        return [
+          textRun(
+            node.value,
+            { ...style, code: true },
+            manuscript,
+            source.style,
+          ),
+        ];
       case "link": {
         const children = renderInline(node.children, style, manuscript, source);
         return safeExternalUrl(node.url)
@@ -302,7 +349,7 @@ function renderInline(
           new TextRun({
             text: "",
             break: 1,
-            ...(manuscript ? manuscriptTextOptions() : {}),
+            ...(manuscript ? manuscriptTextOptions(source.style) : {}),
           }),
         ];
       case "image": {
@@ -311,7 +358,20 @@ function renderInline(
           new ImageRun({
             type: image.extension,
             data: image.bytes,
-            transformation: imageSize(image, node.width, 480, 600),
+            transformation: imageSize(
+              image,
+              node.width,
+              Math.min(
+                480,
+                ((210 - 2 * (source.style?.marginXmm ?? 25.4) - 25) * 96) /
+                  25.4,
+              ),
+              Math.min(
+                600,
+                ((279.4 - 2 * (source.style?.marginYmm ?? 25.4) - 25) * 96) /
+                  25.4,
+              ),
+            ),
             altText: { name: image.id, description: node.alt, title: node.alt },
           }),
         ];
@@ -320,7 +380,12 @@ function renderInline(
   });
 }
 
-function textRun(text: string, style: TextStyle, manuscript: boolean): TextRun {
+function textRun(
+  text: string,
+  style: TextStyle,
+  manuscript: boolean,
+  layout?: RenderStyle,
+): TextRun {
   return new TextRun({
     text,
     bold: style.bold,
@@ -328,31 +393,39 @@ function textRun(text: string, style: TextStyle, manuscript: boolean): TextRun {
     font: style.code
       ? "Courier New"
       : manuscript
-        ? "Times New Roman"
+        ? (layout?.font ?? "Times New Roman")
         : undefined,
-    size: manuscript ? 24 : undefined,
-    color: manuscript ? "000000" : undefined,
+    size: manuscript ? (layout?.bodySizePt ?? 12) * 2 : undefined,
+    color: manuscript ? (layout?.color?.slice(1) ?? "000000") : undefined,
   });
 }
 
-function manuscriptRun(text: string): TextRun {
-  return new TextRun({ text, ...manuscriptTextOptions() });
+function manuscriptRun(text: string, style?: RenderStyle): TextRun {
+  return new TextRun({ text, ...manuscriptTextOptions(style) });
 }
 
-function manuscriptTextOptions(): {
+function manuscriptTextOptions(style?: RenderStyle): {
   font: string;
   size: number;
   color: string;
 } {
-  return { font: "Times New Roman", size: 24, color: "000000" };
+  return {
+    font: style?.font ?? "Times New Roman",
+    size: (style?.bodySizePt ?? 12) * 2,
+    color: style?.color?.slice(1) ?? "000000",
+  };
 }
 
-function manuscriptSpacing(): {
+function manuscriptSpacing(style?: RenderStyle): {
   line: number;
   lineRule: (typeof LineRuleType)[keyof typeof LineRuleType];
   after: number;
 } {
-  return { line: 480, lineRule: LineRuleType.AUTO, after: 0 };
+  return {
+    line: Math.round((style?.lineSpacing ?? 2) * 240),
+    lineRule: LineRuleType.AUTO,
+    after: 0,
+  };
 }
 
 function headingLevel(
