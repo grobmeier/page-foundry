@@ -52,6 +52,8 @@ The development build currently provides:
 - plain-document and letter PDF presets;
 - a semantic reflowable EPUB with package metadata and heading navigation;
 - plain editable and general manuscript DOCX presets;
+- local PNG/JPEG images in all three formats, with resource review and safety
+  checks before export;
 - A4 and US Letter page profiles;
 - an embedded, lazily initialised Typst WebAssembly compiler;
 - a configurable vault-relative output folder with collision-safe names; and
@@ -67,9 +69,29 @@ Saving from this dialog updates the result without making another copy.
 
 Automated parsing and package-structure tests, the production build, and a
 mobile-sized WebKit PDF smoke test pass. Physical iPad and iPhone acceptance
-remains mandatory before mobile support is claimed. The first EPUB/DOCX slice
-deliberately represents local images by their alt text until an explicit,
-mobile-safe resource resolver is available.
+remains mandatory before mobile support is claimed. Local-image export also
+passes an offline, phone-sized WebKit run and EPUBCheck; physical-device memory,
+performance and sharing checks remain pending.
+
+### Local images
+
+Use Markdown images (`![Description](Artwork/panel.png)`), reference-style
+images, or Obsidian embeds (`![[Artwork/panel.png|300]]`). A numeric embed alias
+sets a maximum width in pixels; a text alias supplies alt text. Aspect ratio is
+preserved and images are not upscaled. The publish dialog lists unique resolved
+images and explains blocking errors or non-blocking alt-text advice.
+
+Only referenced PNG/JPEG vault attachments are read. Remote URLs, absolute
+filesystem paths, parent traversal, HTML images and other media types are
+rejected. Limits are 5 MiB per image, 20 MiB total, 50 unique images, and 20
+megapixels per image. These are safeguards, not mobile performance promises. If
+the note or attachments change after review, publishing returns to a fresh
+review. No manuscript or image is uploaded by the plugin.
+
+See the
+[combined desktop/mobile test plan](docs/testing/local-images-and-mobile.md).
+The test-vault installer includes **Portable images.md**, PNG/JPEG artwork,
+safety-case notes, and **Page Foundry test plan.md** for convenient testing.
 
 ## Development
 

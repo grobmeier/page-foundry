@@ -12,6 +12,7 @@ import {
   type PresetId,
   type PublishRequest,
 } from "../core/model";
+import type { ImageReview } from "../core/images";
 
 export type Destination = "vault" | "share";
 
@@ -26,6 +27,8 @@ export class ExportModal extends Modal {
     app: App,
     initial: ExportChoice,
     private readonly onPublish: (choice: ExportChoice) => void,
+    private readonly review: ImageReview,
+    private readonly onRefresh: (choice: ExportChoice) => void,
   ) {
     super(app);
     this.choice = { ...initial };
@@ -39,6 +42,29 @@ export class ExportModal extends Modal {
   private render(): void {
     this.contentEl.empty();
     this.contentEl.createEl("h2", { text: "Publish current note" });
+    const images = Object.values(this.review.document.images ?? {});
+    if (
+      images.length ||
+      this.review.errors.length ||
+      this.review.warnings.length
+    ) {
+      this.contentEl.createEl("h3", { text: "Images included in this export" });
+      for (const image of images)
+        this.contentEl.createEl("p", {
+          text: `${image.path} — ${image.extension.toUpperCase()}, ${Math.ceil(image.bytes.length / 1024)} KiB, ${image.width} × ${image.height}`,
+          cls: "page-foundry-result-path",
+        });
+      for (const error of this.review.errors)
+        this.contentEl.createEl("p", { text: `Cannot export: ${error}` });
+      for (const warning of this.review.warnings)
+        this.contentEl.createEl("p", { text: `Advice: ${warning}` });
+      new Setting(this.contentEl).addButton((button) =>
+        button.setButtonText("Refresh image review").onClick(() => {
+          this.close();
+          this.onRefresh({ ...this.choice });
+        }),
+      );
+    }
 
     new Setting(this.contentEl)
       .setName("Output format")
@@ -112,7 +138,9 @@ export class ExportModal extends Modal {
       button
         .setButtonText(`Create ${this.choice.format.toUpperCase()}`)
         .setCta()
+        .setDisabled(this.review.errors.length > 0)
         .onClick(() => {
+          if (this.review.errors.length) return;
           this.close();
           this.onPublish({ ...this.choice });
         }),

@@ -16,19 +16,35 @@ import remarkParse from "remark-parse";
 import { unified } from "unified";
 import { parse as parseYaml } from "yaml";
 import type { BlockNode, FoundryDocument, InlineNode } from "./model";
+import { wikiImages } from "./wikiImages";
 
-const parser = unified().use(remarkParse).use(remarkFrontmatter, ["yaml"]);
+const parser = unified()
+  .use(remarkParse)
+  .use(remarkFrontmatter, ["yaml"])
+  .use(wikiImages);
+type Definitions = Map<string, { url: string }>;
 
 export function parseMarkdown(
   source: string,
   fallbackTitle: string,
 ): FoundryDocument {
   const root = parser.parse(source) as Root;
+  const definitions: Definitions = new Map();
+  function collect(node: Root | Content): void {
+    if (
+      node.type === "definition" &&
+      !definitions.has(node.identifier.toUpperCase())
+    )
+      definitions.set(node.identifier.toUpperCase(), node);
+    if ("children" in node) node.children.forEach(collect);
+  }
+  collect(root);
   const metadata = readMetadata(root);
   return {
     title: metadata.title ?? fallbackTitle,
     metadata,
-    blocks: root.children.flatMap(toBlock),
+    blocks: root.children.flatMap((node) => toBlock(node, definitions)),
+    resourceErrors: findUnsupported(root),
   };
 }
 
@@ -63,26 +79,39 @@ function readMetadata(root: Root): Record<string, string> {
   );
 }
 
-function toBlock(node: RootContent | BlockContent): BlockNode[] {
+function toBlock(
+  node: RootContent | BlockContent,
+  definitions: Definitions,
+): BlockNode[] {
   switch (node.type) {
     case "heading":
       return [
         {
           type: "heading",
           depth: node.depth,
-          children: toInlineList(node.children),
+          children: toInlineList(node.children, definitions),
         },
       ];
     case "paragraph":
-      return [{ type: "paragraph", children: toInlineList(node.children) }];
+      return [
+        {
+          type: "paragraph",
+          children: toInlineList(node.children, definitions),
+        },
+      ];
     case "blockquote":
-      return [{ type: "blockquote", blocks: node.children.flatMap(toBlock) }];
+      return [
+        {
+          type: "blockquote",
+          blocks: node.children.flatMap((child) => toBlock(child, definitions)),
+        },
+      ];
     case "list":
       return [
         {
           type: "list",
           ordered: Boolean(node.ordered),
-          items: node.children.map(toListItem),
+          items: node.children.map((item) => toListItem(item, definitions)),
         },
       ];
     case "thematicBreak":
@@ -97,33 +126,75 @@ function toBlock(node: RootContent | BlockContent): BlockNode[] {
   }
 }
 
-function toListItem(item: ListItem): BlockNode[] {
-  return item.children.flatMap(toBlock);
+function toListItem(item: ListItem, definitions: Definitions): BlockNode[] {
+  return item.children.flatMap((node) => toBlock(node, definitions));
 }
 
-function toInlineList(nodes: PhrasingContent[]): InlineNode[] {
-  return nodes.flatMap(toInline);
+function toInlineList(
+  nodes: PhrasingContent[],
+  definitions: Definitions,
+): InlineNode[] {
+  return nodes.flatMap((node) => toInline(node, definitions));
 }
 
-function toInline(node: Content): InlineNode[] {
+function toInline(node: Content, definitions: Definitions): InlineNode[] {
   switch (node.type) {
     case "text":
       return [{ type: "text", value: node.value }];
     case "emphasis":
-      return [{ type: "emphasis", children: toInlineList(node.children) }];
+      return [
+        {
+          type: "emphasis",
+          children: toInlineList(node.children, definitions),
+        },
+      ];
     case "strong":
-      return [{ type: "strong", children: toInlineList(node.children) }];
+      return [
+        { type: "strong", children: toInlineList(node.children, definitions) },
+      ];
     case "inlineCode":
       return [{ type: "inline-code", value: node.value }];
     case "link":
       return [
-        { type: "link", url: node.url, children: toInlineList(node.children) },
+        {
+          type: "link",
+          url: node.url,
+          children: toInlineList(node.children, definitions),
+        },
       ];
     case "break":
       return [{ type: "break" }];
     case "image":
-      return [{ type: "text", value: node.alt ? `[${node.alt}]` : "[Image]" }];
+      if (node.data?.foundryEmbed) {
+        const [url, alias, extra] = node.url.split("|");
+        const width = alias && /^\d+$/u.test(alias) ? Number(alias) : undefined;
+        return [
+          {
+            type: "image",
+            url: extra !== undefined ? node.url : url!,
+            alt: width ? "" : (alias ?? ""),
+            width,
+          },
+        ];
+      }
+      return [{ type: "image", url: node.url, alt: node.alt ?? "" }];
+    case "imageReference": {
+      const definition = definitions.get(node.identifier.toUpperCase());
+      return [
+        { type: "image", url: definition?.url ?? "", alt: node.alt ?? "" },
+      ];
+    }
     default:
       return [];
   }
+}
+
+function findUnsupported(node: Root | Content): string[] {
+  if (node.type === "html" && /<img\b/iu.test(node.value))
+    return [
+      "HTML images are not supported. Use Markdown image syntax instead.",
+    ];
+  if ("children" in node)
+    return node.children.flatMap((child) => findUnsupported(child));
+  return [];
 }

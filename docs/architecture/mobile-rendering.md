@@ -26,6 +26,7 @@ active Markdown note
         |
         v
 portable document model
+        |-- explicit vault images -> validation + review + byte snapshot
         |-- preset + page profile -> Typst WebAssembly -> PDF
         |-- ebook metadata + semantic XHTML -> EPUB 3 ZIP
         `-- editable/manuscript styles -> Office Open XML DOCX
@@ -36,6 +37,29 @@ portable document model
 
 Only the selected note and its explicit resources belong in this flow. The
 renderer performs no runtime network request.
+
+## Referenced image resources
+
+The Markdown model preserves image references, per-occurrence alt text and
+optional Obsidian width aliases. A Markdown parser extension recognises wiki
+embeds without scanning escaped text or code. A pure resolver/validator works
+through a narrow host interface; the Obsidian adapter uses link resolution and
+binary reads only for explicitly referenced vault files.
+
+PNG/JPEG byte signatures, dimensions, decodeability and bounded source sizes are
+checked before rendering. Parent traversal, remote resources, unsupported media
+and HTML images block export. Unique resolved paths are deduplicated. The
+publish dialog lists assets and warnings. Immediately before publishing, the
+plugin rereads the note and images and compares the source and SHA-256 resource
+signature; changes return the author to review. Exporters consume the fresh
+in-memory snapshot, not vault paths.
+
+EPUB receives local image parts and manifest entries, DOCX receives internal
+image relationships and alt descriptions, and Typst receives generated safe
+asset paths in its in-memory filesystem. PDF compilation is serialised, with
+shadow assets reset before and after each build, including failures. Styles
+preserve proportions, avoid upscaling and bound physical-page image dimensions.
+No new runtime dependency or desktop requirement was introduced.
 
 ## Why sharing is a second action
 
@@ -71,6 +95,16 @@ verification remains pending.
   paragraph, bold text, and embedded font.
 - Browser request inspection showed only the local HTML and bundle requests; PDF
   generation made no additional request.
+- The local-image milestone passes 41 automated tests, including review UI and
+  mocked-Obsidian review/export changes, resource limits, JPEG/PNG bytes, native
+  packaging, and parser escapes/reference images.
+- A phone-sized WebKit session generated PDF, EPUB and DOCX with landscape PNG,
+  portrait JPEG and repeated/sized images, then repeated generation offline. A
+  later image-free PDF succeeded with the same compiler. There were no browser
+  console errors; requests were only the loopback page and bundle.
+- The image-enabled EPUB passes EPUBCheck 5.4.0 with zero messages. The PDF and
+  manuscript DOCX were rendered for visual inspection of image proportions, page
+  fit, title/header/page numbering, and heading placement.
 
 This is browser-engine and desktop-rendering evidence, not physical-device
 acceptance. A packaged plugin must still pass in Obsidian on iPad and iPhone,

@@ -8,6 +8,7 @@ import {
   Document,
   ExternalHyperlink,
   Header,
+  ImageRun,
   HeadingLevel,
   LevelFormat,
   LineRuleType,
@@ -27,6 +28,7 @@ import type {
   PageProfileId,
   PublishedFile,
 } from "../core/model";
+import { imageSize, requireImage } from "../core/images";
 
 interface TextStyle {
   bold?: boolean;
@@ -42,7 +44,7 @@ export class DocxRenderer {
   ): Promise<PublishedFile> {
     const manuscript = preset === "general-manuscript";
     const body = source.blocks.flatMap((block) =>
-      renderBlock(block, manuscript),
+      renderBlock(block, manuscript, source),
     );
     const header = manuscript ? manuscriptHeader(source) : undefined;
     const sections: ISectionOptions[] = manuscript
@@ -186,14 +188,19 @@ function manuscriptHeader(source: FoundryDocument): Header | undefined {
   });
 }
 
-function renderBlock(block: BlockNode, manuscript: boolean): Paragraph[] {
+function renderBlock(
+  block: BlockNode,
+  manuscript: boolean,
+  source: FoundryDocument,
+): Paragraph[] {
   switch (block.type) {
     case "heading":
       return [
         new Paragraph({
           heading: headingLevel(block.depth),
+          keepNext: true,
           spacing: manuscriptSpacing(),
-          children: renderInline(block.children, {}, manuscript),
+          children: renderInline(block.children, {}, manuscript, source),
         }),
       ];
     case "paragraph":
@@ -201,7 +208,7 @@ function renderBlock(block: BlockNode, manuscript: boolean): Paragraph[] {
         new Paragraph({
           spacing: manuscript ? manuscriptSpacing() : { after: 160 },
           indent: manuscript ? { firstLine: 720 } : undefined,
-          children: renderInline(block.children, {}, manuscript),
+          children: renderInline(block.children, {}, manuscript, source),
         }),
       ];
     case "blockquote":
@@ -215,15 +222,16 @@ function renderBlock(block: BlockNode, manuscript: boolean): Paragraph[] {
                   child.children,
                   { italics: true },
                   manuscript,
+                  source,
                 ),
               }),
             ]
-          : renderBlock(child, manuscript),
+          : renderBlock(child, manuscript, source),
       );
     case "list":
       return block.items.flatMap((item) =>
         item.flatMap((child) =>
-          renderListItem(child, manuscript, block.ordered),
+          renderListItem(child, manuscript, block.ordered, source),
         ),
       );
     case "thematic-break":
@@ -243,15 +251,16 @@ function renderListItem(
   block: BlockNode,
   manuscript: boolean,
   ordered: boolean,
+  source: FoundryDocument,
 ): Paragraph[] {
-  if (block.type !== "paragraph") return renderBlock(block, manuscript);
+  if (block.type !== "paragraph") return renderBlock(block, manuscript, source);
   return [
     new Paragraph({
       spacing: manuscript ? manuscriptSpacing() : { after: 80 },
       ...(ordered
         ? { numbering: { reference: "page-foundry-numbering", level: 0 } }
         : { bullet: { level: 0 } }),
-      children: renderInline(block.children, {}, manuscript),
+      children: renderInline(block.children, {}, manuscript, source),
     }),
   ];
 }
@@ -260,6 +269,7 @@ function renderInline(
   nodes: InlineNode[],
   style: TextStyle,
   manuscript: boolean,
+  source: FoundryDocument,
 ): ParagraphChild[] {
   return nodes.flatMap((node): ParagraphChild[] => {
     switch (node.type) {
@@ -270,17 +280,19 @@ function renderInline(
           node.children,
           { ...style, italics: true },
           manuscript,
+          source,
         );
       case "strong":
         return renderInline(
           node.children,
           { ...style, bold: true },
           manuscript,
+          source,
         );
       case "inline-code":
         return [textRun(node.value, { ...style, code: true }, manuscript)];
       case "link": {
-        const children = renderInline(node.children, style, manuscript);
+        const children = renderInline(node.children, style, manuscript, source);
         return safeExternalUrl(node.url)
           ? [new ExternalHyperlink({ link: node.url, children })]
           : children;
@@ -293,6 +305,17 @@ function renderInline(
             ...(manuscript ? manuscriptTextOptions() : {}),
           }),
         ];
+      case "image": {
+        const image = requireImage(source, node);
+        return [
+          new ImageRun({
+            type: image.extension,
+            data: image.bytes,
+            transformation: imageSize(image, node.width, 480, 600),
+            altText: { name: image.id, description: node.alt, title: node.alt },
+          }),
+        ];
+      }
     }
   });
 }

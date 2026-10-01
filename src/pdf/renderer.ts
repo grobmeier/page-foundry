@@ -24,29 +24,52 @@ import { createTypstSource } from "./typstSource";
 
 export class TypstPdfRenderer {
   private compilerPromise?: Promise<TypstCompiler>;
+  private queue: Promise<unknown> = Promise.resolve();
 
   async render(
     document: FoundryDocument,
     preset: PdfPresetId,
     profile: PageProfileId,
   ): Promise<Uint8Array> {
-    const compiler = await (this.compilerPromise ??= this.createCompiler());
-    compiler.addSource(
-      "/main.typ",
-      createTypstSource(document, preset, profile),
+    const pending = this.queue.then(() =>
+      this.compile(document, preset, profile),
     );
-    const result = await compiler.compile({
-      mainFilePath: "/main.typ",
-      format: CompileFormatEnum.pdf,
-      diagnostics: "full",
-    });
-    if (!result.result) {
-      const message = result.diagnostics
-        ?.map((item) => item.message)
-        .join("; ");
-      throw new Error(message || "Typst did not return a PDF.");
+    this.queue = pending.catch(() => undefined);
+    return pending;
+  }
+
+  private async compile(
+    document: FoundryDocument,
+    preset: PdfPresetId,
+    profile: PageProfileId,
+  ): Promise<Uint8Array> {
+    const compiler = await (this.compilerPromise ??= this.createCompiler());
+    compiler.resetShadow();
+    try {
+      for (const image of Object.values(document.images ?? {}))
+        compiler.mapShadow(
+          `/assets/${image.id}.${image.extension}`,
+          image.bytes,
+        );
+      compiler.addSource(
+        "/main.typ",
+        createTypstSource(document, preset, profile),
+      );
+      const result = await compiler.compile({
+        mainFilePath: "/main.typ",
+        format: CompileFormatEnum.pdf,
+        diagnostics: "full",
+      });
+      if (!result.result) {
+        const message = result.diagnostics
+          ?.map((item) => item.message)
+          .join("; ");
+        throw new Error(message || "Typst did not return a PDF.");
+      }
+      return result.result;
+    } finally {
+      compiler.resetShadow();
     }
-    return result.result;
   }
 
   private async createCompiler(): Promise<TypstCompiler> {

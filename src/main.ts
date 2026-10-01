@@ -34,6 +34,8 @@ import {
 import { ExportModal, type ExportChoice } from "./ui/exportModal";
 import { ResultModal } from "./ui/resultModal";
 import { saveOutput } from "./vault/output";
+import { reviewVaultImages } from "./vault/images";
+import type { ImageReview } from "./core/images";
 
 export default class PageFoundryPlugin extends Plugin {
   settings: PageFoundrySettings = { ...DEFAULT_SETTINGS };
@@ -50,8 +52,8 @@ export default class PageFoundryPlugin extends Plugin {
         const file = this.app.workspace.getActiveFile();
         const available = Boolean(file?.extension === "md");
         if (available && !checking && file) {
-          void this.openExport(file).catch((error: unknown) => {
-            console.error("Page Foundry could not read the active note", error);
+          void this.openExport(file).catch(() => {
+            console.error("Page Foundry could not read the active note");
             new Notice("Page Foundry could not read the active note.");
           });
         }
@@ -78,7 +80,10 @@ export default class PageFoundryPlugin extends Plugin {
     await this.saveData(this.settings);
   }
 
-  private async openExport(file: TFile): Promise<void> {
+  private async openExport(
+    file: TFile,
+    previousChoice?: ExportChoice,
+  ): Promise<void> {
     const format = this.settings.lastFormat;
     const preset: PresetId =
       format === "pdf"
@@ -88,6 +93,7 @@ export default class PageFoundryPlugin extends Plugin {
           : "reflowable-ebook";
     const markdown = await this.app.vault.cachedRead(file);
     const document = parseMarkdown(markdown, file.basename);
+    const review = await reviewVaultImages(this.app, file, document);
     const initial: ExportChoice = {
       format,
       preset,
@@ -101,12 +107,23 @@ export default class PageFoundryPlugin extends Plugin {
     };
     new ExportModal(
       this.app,
-      initial,
-      (choice) => void this.publish(file, choice),
+      previousChoice ?? initial,
+      (choice) => void this.publish(file, choice, review, markdown),
+      review,
+      (choice) => {
+        void this.openExport(file, choice).catch(
+          () => new Notice("Could not refresh the image review."),
+        );
+      },
     ).open();
   }
 
-  private async publish(file: TFile, choice: ExportChoice): Promise<void> {
+  private async publish(
+    file: TFile,
+    choice: ExportChoice,
+    reviewed: ImageReview,
+    reviewedMarkdown: string,
+  ): Promise<void> {
     const label = choice.format.toUpperCase();
     const progress = new Notice(`Creating ${label} on this device…`, 0);
     try {
@@ -117,7 +134,19 @@ export default class PageFoundryPlugin extends Plugin {
       }
       const markdown = await this.app.vault.cachedRead(file);
       const document = parseMarkdown(markdown, file.basename);
-      const output = await this.render(document, choice);
+      const fresh = await reviewVaultImages(this.app, file, document);
+      if (
+        markdown !== reviewedMarkdown ||
+        fresh.signature !== reviewed.signature ||
+        fresh.errors.length
+      ) {
+        new Notice(
+          "The note or its images changed. Review the updated files before publishing.",
+        );
+        await this.openExport(file, choice);
+        return;
+      }
+      const output = await this.render(fresh.document, choice);
       const filename = safeOutputName(choice.outputName, output.extension);
 
       this.rememberChoice(choice);
@@ -138,7 +167,7 @@ export default class PageFoundryPlugin extends Plugin {
         ).open();
       }
     } catch (error) {
-      console.error(`Page Foundry could not create the ${label}`, error);
+      console.error(`Page Foundry could not create the ${label}`);
       new Notice(
         error instanceof Error
           ? error.message

@@ -10,6 +10,7 @@ import type {
   InlineNode,
   PublishedFile,
 } from "../core/model";
+import { imageSize, requireImage } from "../core/images";
 
 export interface EpubOptions {
   language: string;
@@ -36,7 +37,7 @@ export class EpubRenderer {
       .toISOString()
       .replace(/\.\d{3}Z$/u, "Z");
     const headings: HeadingEntry[] = [];
-    const content = renderBlocks(document.blocks, headings);
+    const content = renderBlocks(document.blocks, headings, document);
 
     const files: Zippable = {
       mimetype: [strToU8("application/epub+zip"), { level: 0 }],
@@ -52,6 +53,8 @@ export class EpubRenderer {
       ),
       "EPUB/styles.css": strToU8(STYLES),
     };
+    for (const image of Object.values(document.images ?? {}))
+      files[`EPUB/images/${image.id}.${image.extension}`] = image.bytes;
 
     return {
       bytes: zipSync(files, { level: 6 }),
@@ -78,6 +81,7 @@ blockquote { border-inline-start: 0.2em solid currentColor; margin-inline: 1em; 
 pre, code { font-family: monospace; }
 hr { border: 0; text-align: center; }
 hr::after { content: "* * *"; }
+img { max-width: 100%; height: auto; }
 `;
 
 function packageDocument(
@@ -99,6 +103,12 @@ function packageDocument(
     <item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/>
     <item id="content" href="content.xhtml" media-type="application/xhtml+xml"/>
     <item id="styles" href="styles.css" media-type="text/css"/>
+${Object.values(document.images ?? {})
+  .map(
+    (image) =>
+      `    <item id="${image.id}" href="images/${image.id}.${image.extension}" media-type="${image.mediaType}"/>`,
+  )
+  .join("\n")}
   </manifest>
   <spine>
     <itemref idref="content"/>
@@ -156,14 +166,18 @@ ${content}
 function renderBlocks(
   blocks: BlockNode[],
   headings: HeadingEntry[],
+  document: FoundryDocument,
   indent = "    ",
 ): string {
-  return blocks.map((block) => renderBlock(block, headings, indent)).join("\n");
+  return blocks
+    .map((block) => renderBlock(block, headings, document, indent))
+    .join("\n");
 }
 
 function renderBlock(
   block: BlockNode,
   headings: HeadingEntry[],
+  document: FoundryDocument,
   indent: string,
 ): string {
   switch (block.type) {
@@ -174,18 +188,18 @@ function renderBlock(
         label: inlineText(block.children) || "Untitled section",
       });
       const depth = Math.min(block.depth + 1, 6);
-      return `${indent}<h${depth} id="${id}">${renderInline(block.children)}</h${depth}>`;
+      return `${indent}<h${depth} id="${id}">${renderInline(block.children, document)}</h${depth}>`;
     }
     case "paragraph":
-      return `${indent}<p>${renderInline(block.children)}</p>`;
+      return `${indent}<p>${renderInline(block.children, document)}</p>`;
     case "blockquote":
-      return `${indent}<blockquote>\n${renderBlocks(block.blocks, headings, `${indent}  `)}\n${indent}</blockquote>`;
+      return `${indent}<blockquote>\n${renderBlocks(block.blocks, headings, document, `${indent}  `)}\n${indent}</blockquote>`;
     case "list": {
       const tag = block.ordered ? "ol" : "ul";
       const items = block.items
         .map(
           (item) =>
-            `${indent}  <li>\n${renderBlocks(item, headings, `${indent}    `)}\n${indent}  </li>`,
+            `${indent}  <li>\n${renderBlocks(item, headings, document, `${indent}    `)}\n${indent}  </li>`,
         )
         .join("\n");
       return `${indent}<${tag}>\n${items}\n${indent}</${tag}>`;
@@ -195,25 +209,30 @@ function renderBlock(
   }
 }
 
-function renderInline(nodes: InlineNode[]): string {
+function renderInline(nodes: InlineNode[], document: FoundryDocument): string {
   return nodes
     .map((node) => {
       switch (node.type) {
         case "text":
           return escapeXml(node.value);
         case "emphasis":
-          return `<em>${renderInline(node.children)}</em>`;
+          return `<em>${renderInline(node.children, document)}</em>`;
         case "strong":
-          return `<strong>${renderInline(node.children)}</strong>`;
+          return `<strong>${renderInline(node.children, document)}</strong>`;
         case "inline-code":
           return `<code>${escapeXml(node.value)}</code>`;
         case "link": {
           const href = safeHref(node.url);
-          const label = renderInline(node.children);
+          const label = renderInline(node.children, document);
           return href ? `<a href="${escapeXml(href)}">${label}</a>` : label;
         }
         case "break":
           return "<br/>";
+        case "image": {
+          const image = requireImage(document, node);
+          const size = imageSize(image, node.width, image.width, image.height);
+          return `<img src="images/${image.id}.${image.extension}" alt="${escapeXml(node.alt)}" width="${Math.round(size.width)}" height="${Math.round(size.height)}"/>`;
+        }
       }
     })
     .join("");
@@ -232,6 +251,8 @@ function inlineText(nodes: InlineNode[]): string {
           return inlineText(node.children);
         case "break":
           return " ";
+        case "image":
+          return node.alt;
       }
     })
     .join("")

@@ -80,12 +80,20 @@ step before physical-device acceptance and richer publishing features.
 
 ### 1. Finish the portable proof
 
+Physical testing is deferred at the user's request and is not a gate on
+development of milestone 2. It remains required before compatibility claims.
+
 - Test PDF, EPUB, and DOCX generation in physical iPad and iPhone Obsidian.
 - Confirm vault saving, Files/iCloud Drive, an installed share target, offline
   behaviour, peak memory, and acceptable generation time.
 - Add representative Android acceptance before a public compatibility claim.
 
 ### 2. Resolve local resources safely
+
+PNG/JPEG implementation is available locally, with image review, bounded
+explicit attachment reads, native embedding in all three formats, and
+review-to-export change detection. Physical-device acceptance remains pending.
+Custom fonts and additional media remain later work.
 
 - Add an explicit resolver for referenced local images and later fonts.
 - Show every resource that will be included before publishing.

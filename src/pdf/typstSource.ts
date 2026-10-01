@@ -10,6 +10,7 @@ import type {
   PageProfileId,
   PdfPresetId,
 } from "../core/model";
+import { imageSize, requireImage } from "../core/images";
 
 export function createTypstSource(
   document: FoundryDocument,
@@ -17,7 +18,9 @@ export function createTypstSource(
   profile: PageProfileId,
 ): string {
   const paper = profile === "a4" ? "a4" : "us-letter";
-  const body = document.blocks.map(renderBlock).join("\n\n");
+  const body = document.blocks
+    .map((block) => renderBlock(block, document))
+    .join("\n\n");
   const opening =
     preset === "letter" ? renderLetterOpening(document) : renderTitle(document);
   const closing = preset === "letter" ? renderLetterClosing(document) : "";
@@ -61,18 +64,21 @@ function renderLetterClosing(document: FoundryDocument): string {
   return `\n#v(8mm)\n${renderText(closing)}\n\n#v(8mm)\n${renderText(author)}`;
 }
 
-function renderBlock(block: BlockNode): string {
+function renderBlock(block: BlockNode, document: FoundryDocument): string {
   switch (block.type) {
     case "heading":
-      return `#heading(level: ${Math.min(block.depth, 6)})[${renderInline(block.children)}]`;
+      return `#heading(level: ${Math.min(block.depth, 6)})[${renderInline(block.children, document)}]`;
     case "paragraph":
-      return renderInline(block.children);
+      return renderInline(block.children, document);
     case "blockquote":
-      return `#quote(block: true)[${block.blocks.map(renderBlock).join("\n\n")}]`;
+      return `#quote(block: true)[${block.blocks.map((child) => renderBlock(child, document)).join("\n\n")}]`;
     case "list": {
       const functionName = block.ordered ? "enum" : "list";
       const items = block.items
-        .map((item) => `[${item.map(renderBlock).join("\n")}]`)
+        .map(
+          (item) =>
+            `[${item.map((child) => renderBlock(child, document)).join("\n")}]`,
+        )
         .join(",\n");
       return `#${functionName}(\n${items}\n)`;
     }
@@ -81,20 +87,25 @@ function renderBlock(block: BlockNode): string {
   }
 }
 
-function renderInline(nodes: InlineNode[]): string {
+function renderInline(nodes: InlineNode[], document: FoundryDocument): string {
   return nodes
     .map((node) => {
       switch (node.type) {
         case "text":
           return renderText(node.value);
         case "emphasis":
-          return `#emph[${renderInline(node.children)}]`;
+          return `#emph[${renderInline(node.children, document)}]`;
         case "strong":
-          return `#strong[${renderInline(node.children)}]`;
+          return `#strong[${renderInline(node.children, document)}]`;
         case "inline-code":
           return `#raw(${stringLiteral(node.value)})`;
         case "link":
-          return `#link(${stringLiteral(node.url)})[${renderInline(node.children)}]`;
+          return `#link(${stringLiteral(node.url)})[${renderInline(node.children, document)}]`;
+        case "image": {
+          const image = requireImage(document, node);
+          const size = imageSize(image, node.width, 480, 600);
+          return `#image("/assets/${image.id}.${image.extension}", width: ${size.width * 0.75}pt, height: ${size.height * 0.75}pt, fit: "contain", alt: ${stringLiteral(node.alt)})`;
+        }
         case "break":
           return "\\";
       }

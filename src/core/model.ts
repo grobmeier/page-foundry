@@ -16,6 +16,13 @@ export type InlineNode =
   | { type: "strong"; children: InlineNode[] }
   | { type: "inline-code"; value: string }
   | { type: "link"; url: string; children: InlineNode[] }
+  | {
+      type: "image";
+      url: string;
+      alt: string;
+      width?: number;
+      resourceId?: string;
+    }
   | { type: "break" };
 
 export type BlockNode =
@@ -29,6 +36,18 @@ export interface FoundryDocument {
   title: string;
   metadata: Record<string, string>;
   blocks: BlockNode[];
+  images?: Record<string, ImageAsset>;
+  resourceErrors?: string[];
+}
+
+export interface ImageAsset {
+  id: string;
+  path: string;
+  bytes: Uint8Array;
+  mediaType: "image/png" | "image/jpeg";
+  extension: "png" | "jpg";
+  width: number;
+  height: number;
 }
 
 export interface PublishRequest {
