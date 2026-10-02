@@ -15,7 +15,12 @@ export type InlineNode =
   | { type: "emphasis"; children: InlineNode[] }
   | { type: "strong"; children: InlineNode[] }
   | { type: "inline-code"; value: string }
-  | { type: "link"; url: string; children: InlineNode[] }
+  | {
+      type: "link";
+      url: string;
+      children: InlineNode[];
+      destinationError?: string;
+    }
   | {
       type: "image";
       url: string;
@@ -26,11 +31,12 @@ export type InlineNode =
   | { type: "break" };
 
 export type BlockNode =
-  | { type: "heading"; depth: number; children: InlineNode[] }
+  | { type: "heading"; depth: number; children: InlineNode[]; anchor?: string }
   | { type: "paragraph"; children: InlineNode[] }
   | { type: "blockquote"; blocks: BlockNode[] }
   | { type: "list"; ordered: boolean; items: BlockNode[][] }
-  | { type: "thematic-break" };
+  | { type: "thematic-break" }
+  | { type: "page-break" };
 
 export interface FoundryDocument {
   title: string;
@@ -38,7 +44,11 @@ export interface FoundryDocument {
   blocks: BlockNode[];
   images?: Record<string, ImageAsset>;
   resourceErrors?: string[];
+  sourceWarnings?: string[];
   style?: RenderStyle;
+  book?: {
+    entries: { id: string; role: string; title: string; path?: string }[];
+  };
 }
 
 export interface RenderStyle {

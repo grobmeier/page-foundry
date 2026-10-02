@@ -11,6 +11,7 @@ export function reviewVaultImages(
   app: App,
   note: TFile,
   document: FoundryDocument,
+  readImage?: (file: TFile) => Promise<Uint8Array>,
 ): Promise<ImageReview> {
   return resolveImages(document, {
     resolve(path) {
@@ -30,6 +31,7 @@ export function reviewVaultImages(
         path: file.path,
         size: file.stat.size,
         async read() {
+          if (readImage) return readImage(file);
           return new Uint8Array(await app.vault.readBinary(file));
         },
       };

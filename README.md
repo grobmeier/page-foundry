@@ -48,6 +48,9 @@ No production-ready plugin has been released yet.
 The development build currently provides:
 
 - `Publish current note` in the Obsidian command palette;
+- `Publish current book` for an explicit ordered Markdown manifest, with
+  inclusion/order review, front/back matter, parts, chapters and continuous
+  scenes;
 - PDF, EPUB, and DOCX output selected in one dialog;
 - plain-document, letter, submission-letter, manuscript and print-proof PDF
   presets;
@@ -55,6 +58,8 @@ The development build currently provides:
 - plain editable and general manuscript DOCX presets;
 - versioned, opt-in JSON preset packs with bounded styles, export-only metadata
   forms, required-field validation and a layout review;
+- local author preflight with blockers, advice, unchecked limitations, optional
+  report copying and validated EPUB heading links;
 - local PNG/JPEG images in all three formats, with resource review and safety
   checks before export;
 - A4 and US Letter page profiles;
@@ -75,6 +80,29 @@ mobile-sized WebKit PDF smoke test pass. Physical iPad and iPhone acceptance
 remains mandatory before mobile support is claimed. Local-image export also
 passes an offline, phone-sized WebKit run and EPUBCheck; physical-device memory,
 performance and sharing checks remain pending.
+
+## Ordered books
+
+Open a Markdown manifest and run **Page Foundry: Publish current book**. Its
+leading YAML contains `page-foundry-book: 1`, a book `title`, optional author/
+language/identifier metadata and an ordered `entries` list. Each entry has a
+unique lowercase hyphenated `id`, a `role` and an exact vault-relative Markdown
+`path`; a heading-only `part` may use `title` instead of a path. Roles are
+`front-matter`, `part`, `chapter`, `scene` and `back-matter`.
+
+Only listed notes and their explicit images are included. Manifest prose and
+chapter metadata are not imported. PDF/DOCX have one book title page and new
+pages for non-scene entries. EPUB uses scoped destinations for links to included
+notes; links outside the list become plain labels. Sources are never rewritten.
+Change order in the manifest and refresh review. Before saving, all included
+sources and resources are checked again; changes require a new review.
+
+The isolated test vault contains `A Neutral Journey.book.md` and its five source
+notes. Follow the [ordered book test plan](docs/testing/ordered-books.md).
+Limits: 128 KiB manifest, 50 entries, 2 MiB per note, 20 MiB total note text; 50
+unique images, 5 MiB each and 20 MiB combined. There are no globs, nested
+project expansion or automatic vault discovery. Verified KDP trim/gutter/recto
+geometry remains a later milestone.
 
 ### Local images
 
@@ -97,6 +125,21 @@ The test-vault installer includes **Portable images.md**, PNG/JPEG artwork,
 safety-case notes, and **Page Foundry test plan.md** for convenient testing.
 
 ## Development
+
+### Author preflight
+
+The publish dialog checks the current note, selected preset and reviewed
+resources. Empty content, required metadata and broken/ambiguous EPUB heading
+links block creation. Missing author/descriptions, heading gaps, stripped links
+and literal HTML/code formatting are advice. Other notes and external targets
+are not read or tested. Named EPUB heading links resolve to the same IDs used by
+the table of contents; PDF/DOCX heading links are currently plain labels.
+
+The report explicitly lists checks it did not perform. It does not certify KDP,
+publisher rules, rendered-page layout or accessibility. Copying is an optional,
+explicit action, not storage or automatic sharing. See the
+[author preflight checklist](docs/testing/author-preflight.md), included in the
+test vault alongside neutral clean/advice/blocker notes.
 
 ### Preset packs
 

@@ -6,10 +6,19 @@
 import { cp, mkdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { fixtureJpeg, fixturePng } from "../tests/fixtures/images.ts";
+import { bookManifest, bookNotes } from "../tests/fixtures/book.ts";
 
 const root = resolve(".test-vault");
 const pluginDirectory = resolve(root, ".obsidian/plugins/page-foundry");
 await mkdir(pluginDirectory, { recursive: true });
+await mkdir(resolve(root, "Book"), { recursive: true });
+await writeFile(resolve(root, "A Neutral Journey.book.md"), bookManifest);
+for (const [path, source] of Object.entries(bookNotes))
+  await writeFile(resolve(root, path), source);
+await cp(
+  resolve("docs/testing/ordered-books.md"),
+  resolve(root, "Ordered book test plan.md"),
+);
 await Promise.all(
   ["main.js", "manifest.json", "styles.css"].map((file) =>
     cp(resolve(file), resolve(pluginDirectory, file)),
@@ -108,4 +117,16 @@ await cp(
   resolve("docs/preset-packs.md"),
   resolve(root, "Preset pack authoring.md"),
 );
+await cp(
+  resolve("docs/testing/author-preflight.md"),
+  resolve(root, "Author preflight test plan.md"),
+);
+const preflightFixtures = {
+  "Preflight clean": `---\ntitle: A Neutral Draft\nauthor: Alex Example\nlanguage: en-GB\nidentifier: urn:example:preflight-clean\nto: Jamie Example\nsubject: A neutral submission\n---\n\n# Chapter One\n\nA complete neutral paragraph. [Return to Chapter One](#chapter-one).\n`,
+  "Preflight advice": `### Skipped level\n\nA neutral paragraph with [an other-note link](Another%20note.md).\n\n<span>Literal HTML</span>\n\n\`\`\`text\nCode stays text, without block formatting.\n\`\`\`\n`,
+  "Preflight broken link": `# Chapter One\n\n[Missing destination](#chapter-two)\n`,
+  "Preflight empty": `---\ntitle: Metadata Only\n---\n`,
+};
+for (const [name, source] of Object.entries(preflightFixtures))
+  await writeFile(resolve(root, `${name}.md`), source);
 console.log(root);

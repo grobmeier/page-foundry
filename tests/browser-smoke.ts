@@ -13,6 +13,10 @@ import { decodeImage, resolveImages } from "../src/core/images";
 import { fixturePng } from "./fixtures/images";
 import neutralPack from "../examples/neutral-pack/page-foundry-pack.json";
 import { CORE_PACK } from "../src/packs/core";
+import { preflight, reportText } from "../src/core/preflight";
+import { assembleBook } from "../src/books/assemble";
+import { parseBookManifest } from "../src/books/manifest";
+import { bookManifest, bookNotes } from "./fixtures/book";
 import {
   applyPreset,
   catalogue,
@@ -58,6 +62,8 @@ its original images are changed by publishing.
 ![Landscape repeat][panel]
 
 [panel]: landscape.png
+
+Return to [portable publishing](#portable-publishing).
 `;
     const canvas = window.document.createElement("canvas");
     canvas.width = 240;
@@ -112,10 +118,63 @@ its original images are changed by publishing.
     assertZipContains(epub.bytes, "EPUB/images/image-2.jpg");
     assertZipContains(docx.bytes, "word/document.xml");
     showDownloads(downloads, [pdf, epub, docx]);
+    const book = assembleBook(
+      parseBookManifest(bookManifest),
+      new Map(
+        Object.entries(bookNotes).map(([path, raw]) => [
+          path,
+          parseMarkdown(raw, path),
+        ]),
+      ),
+    );
+    const bookPdf: PublishedFile = {
+      bytes: await renderer.render(book, "manuscript", "a4"),
+      extension: "pdf",
+      mediaType: "application/pdf",
+    };
+    const bookEpub = new EpubRenderer().render(book, { language: "en-GB" });
+    const bookDocx = await new DocxRenderer().render(
+      book,
+      "general-manuscript",
+      "a4",
+    );
+    assertPdf(bookPdf.bytes);
+    showDownloads(
+      downloads,
+      [bookPdf, bookEpub, bookDocx],
+      "ordered-book",
+      false,
+    );
     const catalog = catalogue(
       [CORE_PACK, parsePack(JSON.stringify(neutralPack))],
       "browser",
     );
+    const ebookPreset = choosePreset(catalog, "reflowable-ebook", "epub");
+    const report = preflight(document, {
+      format: "epub",
+      profile: "a4",
+      preset: ebookPreset,
+      metadata: initialMetadata(document, ebookPreset),
+      resourceErrors: review.errors,
+      resourceWarnings: review.warnings,
+    });
+    if (report.findings.some((finding) => finding.severity === "blocker"))
+      throw new Error(reportText(report));
+    const reportElement = window.document.querySelector("#preflight");
+    if (reportElement) reportElement.textContent = reportText(report);
+    const broken = parseMarkdown("# Chapter\n\n[Broken](#missing)", "Broken");
+    if (
+      !preflight(broken, {
+        format: "epub",
+        profile: "a4",
+        preset: ebookPreset,
+        metadata: { ...initialMetadata(broken, ebookPreset), language: "en" },
+      }).findings.some(
+        (finding) =>
+          finding.code === "heading-link" && finding.severity === "blocker",
+      )
+    )
+      throw new Error("Broken-link preflight did not block.");
     const manuscript = choosePreset(catalog, "general-manuscript", "pdf");
     const manuscriptDocument = applyPreset(
       document,
@@ -179,7 +238,7 @@ its original images are changed by publishing.
       ),
     );
     status.textContent =
-      "Generated PDF, EPUB, DOCX, manuscript PDF and custom pack outputs with images; clean repeat passed";
+      "Generated PDF, EPUB, DOCX, manuscript and custom pack outputs; valid heading link, blocked broken link and clean repeat passed";
   } catch (error) {
     status.textContent = error instanceof Error ? error.message : String(error);
   } finally {

@@ -45,6 +45,7 @@ export function parseMarkdown(
     metadata,
     blocks: root.children.flatMap((node) => toBlock(node, definitions)),
     resourceErrors: findUnsupported(root),
+    sourceWarnings: [...new Set(findWarnings(root))],
   };
 }
 
@@ -184,9 +185,32 @@ function toInline(node: Content, definitions: Definitions): InlineNode[] {
         { type: "image", url: definition?.url ?? "", alt: node.alt ?? "" },
       ];
     }
+    case "linkReference": {
+      const definition = definitions.get(node.identifier.toUpperCase());
+      const children = toInlineList(node.children, definitions);
+      return definition
+        ? [{ type: "link", url: definition.url, children }]
+        : children;
+    }
+    case "html":
+      return [{ type: "text", value: node.value }];
     default:
       return [];
   }
+}
+
+function findWarnings(node: Root | Content): string[] {
+  const warnings: string[] = [];
+  if (node.type === "html")
+    warnings.push(
+      "HTML is printed as literal text, not rendered markup. Review its appearance in the generated document.",
+    );
+  if (node.type === "code")
+    warnings.push(
+      "Code blocks are printed as ordinary text; their original block formatting is not preserved.",
+    );
+  if ("children" in node) warnings.push(...node.children.flatMap(findWarnings));
+  return warnings;
 }
 
 function findUnsupported(node: Root | Content): string[] {

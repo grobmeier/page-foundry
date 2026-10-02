@@ -24,3 +24,10 @@
   user-select: text;
   font-family: var(--font-monospace);
 }
+
+.page-foundry-modal .page-foundry-preflight {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font: inherit;
+  user-select: text;
+}

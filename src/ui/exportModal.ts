@@ -3,7 +3,7 @@
  * Licensed under the Apache License, Version 2.0.
  */
 
-import { App, Modal, Setting } from "obsidian";
+import { App, Modal, Notice, Setting } from "obsidian";
 import {
   type OutputFormat,
   type PageProfileId,
@@ -14,9 +14,9 @@ import { CORE_CATALOG } from "../packs/core";
 import {
   choosePreset,
   initialMetadata,
-  metadataErrors,
   type PresetCatalog,
 } from "../packs/model";
+import { preflight, reportText, type PreflightReport } from "../core/preflight";
 
 export type Destination = "vault" | "share";
 
@@ -46,7 +46,10 @@ export class ExportModal extends Modal {
 
   private selectPreset(reset: boolean): void {
     const compatible = this.catalog.presets.filter(
-      (p) => p.outputs[this.choice.format],
+      (p) =>
+        p.outputs[this.choice.format] &&
+        (!this.review.document.book ||
+          p.outputs[this.choice.format]?.recipe !== "letter"),
     );
     if (!compatible.some((p) => p.selectionId === this.choice.preset)) {
       this.choice.preset = compatible[0]!.selectionId;
@@ -67,15 +70,25 @@ export class ExportModal extends Modal {
   }
 
   private errors(): string[] {
-    return [
-      ...this.review.errors,
-      ...(this.catalog.error ? [this.catalog.error] : []),
-      ...metadataErrors(
-        choosePreset(this.catalog, this.choice.preset, this.choice.format),
-        this.choice.metadata!,
+    return this.report()
+      .findings.filter((finding) => finding.severity === "blocker")
+      .map((finding) => finding.message);
+  }
+
+  private report(): PreflightReport {
+    return preflight(this.review.document, {
+      format: this.choice.format,
+      profile: this.choice.profile,
+      preset: choosePreset(
+        this.catalog,
+        this.choice.preset,
         this.choice.format,
       ),
-    ];
+      metadata: this.choice.metadata!,
+      resourceErrors: this.review.errors,
+      resourceWarnings: this.review.warnings,
+      packError: this.catalog.error,
+    });
   }
 
   onOpen(): void {
@@ -85,7 +98,25 @@ export class ExportModal extends Modal {
 
   private render(): void {
     this.contentEl.empty();
-    this.contentEl.createEl("h2", { text: "Publish current note" });
+    this.contentEl.createEl("h2", {
+      text: this.review.document.book
+        ? "Publish current book"
+        : "Publish current note",
+    });
+    if (this.review.document.book) {
+      this.contentEl.createEl("h3", { text: "Inclusion and order" });
+      this.review.document.book.entries.forEach((entry, index) =>
+        this.contentEl.createEl("p", {
+          text: `${index + 1}. ${entry.role} — ${entry.title} — ${entry.path ?? "heading only"}`,
+        }),
+      );
+      new Setting(this.contentEl).addButton((button) =>
+        button.setButtonText("Refresh book review").onClick(() => {
+          this.close();
+          this.onRefresh({ ...this.choice });
+        }),
+      );
+    }
     const images = Object.values(this.review.document.images ?? {});
     if (
       images.length ||
@@ -98,10 +129,6 @@ export class ExportModal extends Modal {
           text: `${image.path} — ${image.extension.toUpperCase()}, ${Math.ceil(image.bytes.length / 1024)} KiB, ${image.width} × ${image.height}`,
           cls: "page-foundry-result-path",
         });
-      for (const error of this.review.errors)
-        this.contentEl.createEl("p", { text: `Cannot export: ${error}` });
-      for (const warning of this.review.warnings)
-        this.contentEl.createEl("p", { text: `Advice: ${warning}` });
       new Setting(this.contentEl).addButton((button) =>
         button.setButtonText("Refresh image review").onClick(() => {
           this.close();
@@ -127,7 +154,10 @@ export class ExportModal extends Modal {
 
     new Setting(this.contentEl).setName("Preset").addDropdown((dropdown) => {
       for (const preset of this.catalog.presets.filter(
-        (p) => p.outputs[this.choice.format],
+        (p) =>
+          p.outputs[this.choice.format] &&
+          (!this.review.document.book ||
+            p.outputs[this.choice.format]?.recipe !== "letter"),
       )) {
         dropdown.addOption(
           preset.selectionId,
@@ -176,9 +206,31 @@ export class ExportModal extends Modal {
     this.contentEl.createEl("p", {
       text: `Body colour: ${style.color ?? "recipe default"}. PDF line spacing is font-relative; this is a summary, not a rendered preview.`,
     });
-    const validation = this.contentEl.createEl("p", {
-      text: this.errors().join(" "),
+    this.contentEl.createEl("h3", { text: "Publication checks" });
+    const validation = this.contentEl.createEl("pre", {
+      text: reportText(this.report()),
+      cls: "page-foundry-preflight",
     });
+    if (typeof globalThis.navigator?.clipboard?.writeText === "function")
+      new Setting(this.contentEl).addButton((button) =>
+        button.setButtonText("Copy preflight report").onClick(async () => {
+          button.setDisabled(true);
+          try {
+            await globalThis.navigator.clipboard.writeText(
+              reportText(this.report()),
+            );
+            new Notice(
+              "Preflight report copied. Share it only with people you choose.",
+            );
+          } catch {
+            new Notice(
+              "Could not copy the preflight report. Publishing is still available.",
+            );
+          } finally {
+            button.setDisabled(false);
+          }
+        }),
+      );
     let createButton: { setDisabled(value: boolean): unknown } | undefined;
     const fields = [...preset.metadata];
     if (
@@ -201,7 +253,7 @@ export class ExportModal extends Modal {
       const changed = (value: string): void => {
         this.choice.metadata![field.key] = value;
         const errors = this.errors();
-        validation.textContent = errors.join(" ");
+        validation.textContent = reportText(this.report());
         createButton?.setDisabled(errors.length > 0);
       };
       if (field.key === "from" || field.key === "to")

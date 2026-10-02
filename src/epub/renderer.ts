@@ -11,16 +11,18 @@ import type {
   PublishedFile,
 } from "../core/model";
 import { imageSize, requireImage } from "../core/images";
+import {
+  headingIndex,
+  resolveFragment,
+  safeExternalHref,
+  type HeadingEntry,
+  type HeadingIndex,
+} from "../core/headings";
 
 export interface EpubOptions {
   language: string;
   identifier?: string;
   modified?: Date;
-}
-
-interface HeadingEntry {
-  id: string;
-  label: string;
 }
 
 export class EpubRenderer {
@@ -38,8 +40,8 @@ export class EpubRenderer {
     const modified = (options.modified ?? new Date())
       .toISOString()
       .replace(/\.\d{3}Z$/u, "Z");
-    const headings: HeadingEntry[] = [];
-    const content = renderBlocks(document.blocks, headings, document);
+    const index = headingIndex(document);
+    const content = renderBlocks(document.blocks, document, index);
 
     const files: Zippable = {
       mimetype: [strToU8("application/epub+zip"), { level: 0 }],
@@ -48,7 +50,7 @@ export class EpubRenderer {
         packageDocument(document, language, identifier, modified),
       ),
       "EPUB/nav.xhtml": strToU8(
-        navigationDocument(document, language, headings),
+        navigationDocument(document, language, index.entries),
       ),
       "EPUB/content.xhtml": strToU8(
         contentDocument(document, language, content),
@@ -170,65 +172,73 @@ ${content}
 
 function renderBlocks(
   blocks: BlockNode[],
-  headings: HeadingEntry[],
   document: FoundryDocument,
+  index: HeadingIndex,
   indent = "    ",
 ): string {
   return blocks
-    .map((block) => renderBlock(block, headings, document, indent))
+    .map((block) => renderBlock(block, document, index, indent))
     .join("\n");
 }
 
 function renderBlock(
   block: BlockNode,
-  headings: HeadingEntry[],
   document: FoundryDocument,
+  index: HeadingIndex,
   indent: string,
 ): string {
   switch (block.type) {
     case "heading": {
-      const id = `heading-${headings.length + 1}`;
-      headings.push({
-        id,
-        label: inlineText(block.children) || "Untitled section",
-      });
+      const id = index.byBlock.get(block)!.id;
       const depth = Math.min(block.depth + 1, 6);
-      return `${indent}<h${depth} id="${id}">${renderInline(block.children, document)}</h${depth}>`;
+      return `${indent}<h${depth} id="${id}">${renderInline(block.children, document, index)}</h${depth}>`;
     }
     case "paragraph":
-      return `${indent}<p>${renderInline(block.children, document)}</p>`;
+      return `${indent}<p>${renderInline(block.children, document, index)}</p>`;
     case "blockquote":
-      return `${indent}<blockquote>\n${renderBlocks(block.blocks, headings, document, `${indent}  `)}\n${indent}</blockquote>`;
+      return `${indent}<blockquote>\n${renderBlocks(block.blocks, document, index, `${indent}  `)}\n${indent}</blockquote>`;
     case "list": {
       const tag = block.ordered ? "ol" : "ul";
       const items = block.items
         .map(
           (item) =>
-            `${indent}  <li>\n${renderBlocks(item, headings, document, `${indent}    `)}\n${indent}  </li>`,
+            `${indent}  <li>\n${renderBlocks(item, document, index, `${indent}    `)}\n${indent}  </li>`,
         )
         .join("\n");
       return `${indent}<${tag}>\n${items}\n${indent}</${tag}>`;
     }
     case "thematic-break":
       return `${indent}<hr/>`;
+    case "page-break":
+      return "";
   }
 }
 
-function renderInline(nodes: InlineNode[], document: FoundryDocument): string {
+function renderInline(
+  nodes: InlineNode[],
+  document: FoundryDocument,
+  index: HeadingIndex,
+): string {
   return nodes
     .map((node) => {
       switch (node.type) {
         case "text":
           return escapeXml(node.value);
         case "emphasis":
-          return `<em>${renderInline(node.children, document)}</em>`;
+          return `<em>${renderInline(node.children, document, index)}</em>`;
         case "strong":
-          return `<strong>${renderInline(node.children, document)}</strong>`;
+          return `<strong>${renderInline(node.children, document, index)}</strong>`;
         case "inline-code":
           return `<code>${escapeXml(node.value)}</code>`;
         case "link": {
-          const href = safeHref(node.url);
-          const label = renderInline(node.children, document);
+          if (node.destinationError) throw new Error(node.destinationError);
+          let href = safeExternalHref(node.url);
+          if (node.url.startsWith("#")) {
+            const result = resolveFragment(index, node.url);
+            if (result.error) throw new Error(result.error);
+            href = `#${result.id}`;
+          }
+          const label = renderInline(node.children, document, index);
           return href ? `<a href="${escapeXml(href)}">${label}</a>` : label;
         }
         case "break":
@@ -241,39 +251,6 @@ function renderInline(nodes: InlineNode[], document: FoundryDocument): string {
       }
     })
     .join("");
-}
-
-function inlineText(nodes: InlineNode[]): string {
-  return nodes
-    .map((node) => {
-      switch (node.type) {
-        case "text":
-        case "inline-code":
-          return node.value;
-        case "emphasis":
-        case "strong":
-        case "link":
-          return inlineText(node.children);
-        case "break":
-          return " ";
-        case "image":
-          return node.alt;
-      }
-    })
-    .join("")
-    .trim();
-}
-
-function safeHref(value: string): string | undefined {
-  if (value.startsWith("#")) return value;
-  try {
-    const url = new URL(value);
-    return ["https:", "http:", "mailto:"].includes(url.protocol)
-      ? value
-      : undefined;
-  } catch {
-    return undefined;
-  }
 }
 
 function validateLanguage(value: string): string {

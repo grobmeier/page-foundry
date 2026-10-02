@@ -8,6 +8,9 @@ Also run the [preset-pack milestone checklist](preset-packs.md), copied into the
 test vault as **Preset pack test plan.md**, for custom designs, metadata forms,
 manuscript PDF and submission letters.
 
+The [author preflight checklist](author-preflight.md), copied as **Author
+preflight test plan.md**, covers checks, heading links and report copying.
+
 ## Set up once
 
 On the development Mac, use Node 22.12+ and run:

@@ -41,8 +41,9 @@ const choice: ExportChoice = {
 };
 const nodeRequire = createRequire(import.meta.url);
 
-function setup() {
+function setup(bookMode = false) {
   class File {
+    extension = "md";
     stat = { size: fixturePng().length };
     constructor(
       public path: string,
@@ -52,6 +53,10 @@ function setup() {
   const note = new File("Notes/Images.md", "Images");
   const attachment = new File("Artwork/photo.png", "photo");
   const pack = new File("Designs/pack.json", "pack");
+  const bookNote = new File("Book/Chapter.md", "Chapter");
+  let bookSource = "# Chapter\n\nA neutral chapter.";
+  let bookManifest =
+    "---\npage-foundry-book: 1\ntitle: Neutral Book\nlanguage: en\nentries:\n  - id: chapter\n    role: chapter\n    path: Book/Chapter.md\n---\n";
   let packSource = readFileSync(
     "examples/neutral-pack/page-foundry-pack.json",
     "utf8",
@@ -81,6 +86,7 @@ function setup() {
       },
       getAbstractFileByPath(path: string) {
         lookups.push(path);
+        if (bookMode && path === bookNote.path) return bookNote;
         return path === pack.path
           ? pack
           : exists && path === attachment.path
@@ -88,6 +94,14 @@ function setup() {
             : undefined;
       },
       async read(file: File) {
+        if (bookMode && file === note) {
+          reads.push(file.path);
+          return bookManifest;
+        }
+        if (bookMode && file === bookNote) {
+          reads.push(file.path);
+          return bookSource;
+        }
         assert.equal(file, pack);
         reads.push(file.path);
         return packSource;
@@ -114,13 +128,18 @@ function setup() {
     exports: {} as {
       default: new () => {
         settings: { packManifestPath: string };
-        openExport(file: File): Promise<void>;
+        openExport(
+          file: File,
+          choice?: ExportChoice,
+          book?: boolean,
+        ): Promise<void>;
         publish(
           file: File,
           choice: ExportChoice,
           review: ImageReview,
           source: string,
           catalog?: PresetCatalog,
+          book?: boolean,
         ): Promise<void>;
       };
     },
@@ -205,6 +224,12 @@ function setup() {
     catalogs,
     lookups,
     stored,
+    changeBookNote() {
+      bookSource += "\nChanged chapter.";
+    },
+    changeBookManifest() {
+      bookManifest = bookManifest.replace("Neutral Book", "Changed Book");
+    },
     setPackPath(path: string) {
       plugin.settings.packManifestPath = path;
     },
@@ -221,6 +246,9 @@ function setup() {
     changeNote() {
       markdown += "\n\nA changed paragraph.";
     },
+    clearNote() {
+      markdown = "";
+    },
     changeImage() {
       bytes = fixturePng(240, 480);
       attachment.stat.size = bytes.length;
@@ -235,6 +263,65 @@ function setup() {
 }
 
 describe("review-to-export image workflow", () => {
+  it("rechecks the complete book snapshot before publishing", async () => {
+    const host = setup(true);
+    await host.plugin.openExport(host.note, undefined, true);
+    const review = host.reviews[0]!;
+    assert.equal(review.document.book?.entries.length, 1);
+    await host.plugin.publish(
+      host.note,
+      choice,
+      review,
+      "",
+      host.catalogs[0],
+      true,
+    );
+    assert.equal(host.renders.length, 1);
+    assert.equal(host.saves.length, 1);
+    assert.ok(host.reads.includes("Book/Chapter.md"));
+  });
+  for (const change of ["changeBookNote", "changeBookManifest"] as const)
+    it(`returns changed books to review (${change})`, async () => {
+      const host = setup(true);
+      await host.plugin.openExport(host.note, undefined, true);
+      const review = host.reviews[0]!;
+      host[change]();
+      await host.plugin.publish(
+        host.note,
+        choice,
+        review,
+        "",
+        host.catalogs[0],
+        true,
+      );
+      assert.equal(host.renders.length, 0);
+      assert.equal(host.saves.length, 0);
+      assert.equal(host.reviews.length, 2);
+      assert.ok(
+        host.notices.some((message) =>
+          message.includes("book or its included files changed"),
+        ),
+      );
+    });
+  it("rechecks preflight before rendering even when the dialog callback is bypassed", async () => {
+    const host = setup();
+    host.clearNote();
+    await host.plugin.openExport(host.note);
+    await host.plugin.publish(
+      host.note,
+      choice,
+      host.reviews[0]!,
+      host.source(),
+      host.catalogs[0],
+    );
+    assert.equal(host.renders.length, 0);
+    assert.equal(host.saves.length, 0);
+    assert.ok(
+      host.notices.some((value) =>
+        value.includes("no exportable body content"),
+      ),
+    );
+  });
   it("reads only an explicitly configured pack and re-reviews content changes before rendering", async () => {
     const host = setup();
     host.setPackPath("Designs/pack.json");

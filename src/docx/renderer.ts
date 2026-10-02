@@ -14,6 +14,7 @@ import {
   LineRuleType,
   Packer,
   PageNumber,
+  PageBreak,
   Paragraph,
   SectionType,
   TextRun,
@@ -30,6 +31,7 @@ import type {
   RenderStyle,
 } from "../core/model";
 import { imageSize, requireImage } from "../core/images";
+import { safeExternalHref } from "../core/headings";
 
 interface TextStyle {
   bold?: boolean;
@@ -48,30 +50,31 @@ export class DocxRenderer {
       renderBlock(block, manuscript, source),
     );
     const header = manuscript ? manuscriptHeader(source) : undefined;
-    const sections: ISectionOptions[] = manuscript
-      ? [
-          {
-            properties: { page: pageProperties(profile, source.style) },
-            children: titlePage(source),
-          },
-          {
-            properties: {
-              page: {
-                ...pageProperties(profile, source.style),
-                pageNumbers: { start: 1 },
-              },
-              type: SectionType.NEXT_PAGE,
+    const sections: ISectionOptions[] =
+      manuscript || source.book
+        ? [
+            {
+              properties: { page: pageProperties(profile, source.style) },
+              children: titlePage(source),
             },
-            headers: header ? { default: header } : undefined,
-            children: body,
-          },
-        ]
-      : [
-          {
-            properties: { page: pageProperties(profile, source.style) },
-            children: [titleParagraph(source.title), ...body],
-          },
-        ];
+            {
+              properties: {
+                page: {
+                  ...pageProperties(profile, source.style),
+                  pageNumbers: { start: 1 },
+                },
+                type: SectionType.NEXT_PAGE,
+              },
+              headers: header ? { default: header } : undefined,
+              children: body,
+            },
+          ]
+        : [
+            {
+              properties: { page: pageProperties(profile, source.style) },
+              children: [titleParagraph(source.title), ...body],
+            },
+          ];
     const doc = new Document({
       creator: source.metadata.author,
       title: source.title,
@@ -270,6 +273,8 @@ function renderBlock(
           renderListItem(child, manuscript, block.ordered, source),
         ),
       );
+    case "page-break":
+      return [new Paragraph({ children: [new PageBreak()] })];
     case "thematic-break":
       return [
         new Paragraph({
@@ -340,7 +345,7 @@ function renderInline(
         ];
       case "link": {
         const children = renderInline(node.children, style, manuscript, source);
-        return safeExternalUrl(node.url)
+        return safeExternalHref(node.url)
           ? [new ExternalHyperlink({ link: node.url, children })]
           : children;
       }
@@ -441,12 +446,4 @@ function headingLevel(
   ][
     Math.min(Math.max(depth, 1), 6) - 1
   ] as (typeof HeadingLevel)[keyof typeof HeadingLevel];
-}
-
-function safeExternalUrl(value: string): boolean {
-  try {
-    return ["https:", "http:", "mailto:"].includes(new URL(value).protocol);
-  } catch {
-    return false;
-  }
 }

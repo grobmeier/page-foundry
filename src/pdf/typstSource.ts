@@ -11,6 +11,7 @@ import type {
   PdfPresetId,
 } from "../core/model";
 import { imageSize, requireImage } from "../core/images";
+import { safeExternalHref } from "../core/headings";
 
 export function createTypstSource(
   document: FoundryDocument,
@@ -29,7 +30,9 @@ export function createTypstSource(
       ? renderLetterOpening(document)
       : manuscript
         ? renderManuscriptOpening(document)
-        : renderTitle(document);
+        : document.book
+          ? `#page(header: none, footer: none)[#v(30%)#align(center)[${renderText(document.title)}\n\n${renderText(document.metadata.author ?? "")}]]\n#counter(page).update(1)`
+          : renderTitle(document);
   const closing = preset === "letter" ? renderLetterClosing(document) : "";
 
   return `#set page(paper: "${paper}", margin: (x: ${style.marginXmm ?? (manuscript ? 25.4 : 25)}mm, y: ${style.marginYmm ?? (manuscript ? 25.4 : 24)}mm))
@@ -103,6 +106,8 @@ function renderBlock(block: BlockNode, document: FoundryDocument): string {
     }
     case "thematic-break":
       return "#align(center)[* * *]";
+    case "page-break":
+      return "#pagebreak(weak: true)";
   }
 }
 
@@ -119,7 +124,9 @@ function renderInline(nodes: InlineNode[], document: FoundryDocument): string {
         case "inline-code":
           return `#raw(${stringLiteral(node.value)})`;
         case "link":
-          return `#link(${stringLiteral(node.url)})[${renderInline(node.children, document)}]`;
+          return safeExternalHref(node.url)
+            ? `#link(${stringLiteral(node.url)})[${renderInline(node.children, document)}]`
+            : renderInline(node.children, document);
         case "image": {
           const image = requireImage(document, node);
           const size = imageSize(

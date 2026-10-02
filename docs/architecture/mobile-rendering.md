@@ -36,8 +36,25 @@ portable document model
                                              vault folder  share sheet
 ```
 
-Only the selected note and its explicit resources belong in this flow. The
-renderer performs no runtime network request.
+Only the selected note, or the selected book's explicitly listed notes, and
+their explicit resources belong in this flow. The renderer performs no runtime
+network request.
+
+## Ordered book snapshots
+
+The book adapter reads a bounded leading YAML manifest, then exact listed
+Markdown paths. A pure assembler preserves order, assigns section roles and
+scoped anchors, deduplicates images, and creates export-only physical page-break
+nodes (ignored by EPUB). Matching leading title headings are removed only from
+the export. Fragment resolution uses each original note's heading index before
+assembly, preventing accidental cross-chapter binding. Included-note links map
+to scoped sections; unlisted destinations are not opened.
+
+One book-wide image read cache accounts for byte/count limits and retains failed
+attempts. The review signature hashes manifest text, each included source and
+image signatures. The publish action rereads the complete explicit set and
+compares signatures before rendering its fresh snapshot. Packs are also checked
+again. Letter recipes are excluded and guarded at the publishing boundary.
 
 ## Referenced image resources
 
@@ -82,6 +99,28 @@ recipes and numeric/colour/font values reach the renderers.
 Schema v1 has no code, arbitrary stylesheets, fonts, asset paths, hooks or
 remote resources. Fonts/artwork in richer private design packs require a later
 schema extension. The existing selected-note image pipeline stays independent.
+
+## Local author preflight
+
+The pure preflight service consumes the selected note model, preset, export-only
+metadata and resource review. It reports blockers, advice and explicitly
+unchecked areas without reading files or making network requests. Its report
+updates in place as metadata changes, so typing focus is retained. The host
+recomputes it on the fresh source/resource snapshot immediately before
+rendering; a direct callback cannot bypass empty-content or EPUB link blockers.
+
+A shared ordered heading index supplies both EPUB navigation and fragment
+destinations. Named/encoded fragments map to safe generated IDs; missing,
+ambiguous and block-reference destinations block rather than emitting broken
+links. Reference-style Markdown links retain their labels and destinations.
+PDF/DOCX fragments, other-note and unsafe-protocol links become plain labels;
+external links are restricted to HTTP/HTTPS/mailto and never probed. Literal
+HTML/code-block formatting changes produce advice; HTML is never executed.
+
+The optional clipboard action copies the current report only after the author
+presses it. Failure is reported and never blocks generation. Reports are not
+persisted and may contain private labels/resource messages. Layout, font
+embedding, accessibility and KDP claims require separately evidenced checks.
 
 ## Why sharing is a second action
 
@@ -136,6 +175,16 @@ verification remains pending.
   there were no browser warnings or errors. The custom EPUB passes EPUBCheck
   with zero messages. Manuscript title/body pages, letter opening/closing and
   custom PDF/DOCX layouts were rendered and inspected visually.
+
+- Author preflight passes 68 tests and the production build, including report
+  updates, clipboard success/failure, empty-content enforcement, shared Unicode
+  heading destinations and native safe-link output. The updated isolated test
+  vault includes clean/advice/blocker fixtures and the user checklist.
+- An offline WebKit run at 390 × 844 generated all outputs with a resolved EPUB
+  heading link, detected a missing destination, and passed the clean PDF repeat.
+  Only loopback HTML/bundle requests occurred, with no console warnings/errors.
+  Both ordinary and custom-style EPUBs pass EPUBCheck with zero messages;
+  changed PDF/DOCX link labels and page layouts were inspected visually.
 
 This is browser-engine and desktop-rendering evidence, not physical-device
 acceptance. A packaged plugin must still pass in Obsidian on iPad and iPhone,

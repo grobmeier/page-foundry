@@ -42,6 +42,8 @@ import { ResultModal } from "./ui/resultModal";
 import { saveOutput } from "./vault/output";
 import { reviewVaultImages } from "./vault/images";
 import type { ImageReview } from "./core/images";
+import { preflight } from "./core/preflight";
+import { reviewVaultBook } from "./vault/books";
 
 export default class PageFoundryPlugin extends Plugin {
   settings: PageFoundrySettings = { ...DEFAULT_SETTINGS };
@@ -50,6 +52,24 @@ export default class PageFoundryPlugin extends Plugin {
   async onload(): Promise<void> {
     await this.loadSettings();
     this.addSettingTab(new PageFoundrySettingTab(this.app, this));
+    this.addCommand({
+      id: "publish-current-book",
+      name: "Publish current book",
+      checkCallback: (checking) => {
+        const file = this.app.workspace.getActiveFile();
+        if (file?.extension !== "md") return false;
+        if (!checking)
+          void this.openExport(file, undefined, true).catch(
+            (error) =>
+              new Notice(
+                error instanceof Error
+                  ? error.message
+                  : "Could not review the book.",
+              ),
+          );
+        return true;
+      },
+    });
 
     this.addCommand({
       id: "publish-current-note",
@@ -89,6 +109,7 @@ export default class PageFoundryPlugin extends Plugin {
   private async openExport(
     file: TFile,
     previousChoice?: ExportChoice,
+    book = false,
   ): Promise<void> {
     const format = this.settings.lastFormat;
     const preset: PresetId =
@@ -97,9 +118,15 @@ export default class PageFoundryPlugin extends Plugin {
         : format === "docx"
           ? this.settings.lastDocxPreset
           : this.settings.lastEpubPreset;
-    const markdown = await this.app.vault.cachedRead(file);
-    const document = parseMarkdown(markdown, file.basename);
-    const review = await reviewVaultImages(this.app, file, document);
+    const markdown = book ? "" : await this.app.vault.cachedRead(file);
+    const review = book
+      ? await reviewVaultBook(this.app, file)
+      : await reviewVaultImages(
+          this.app,
+          file,
+          parseMarkdown(markdown, file.basename),
+        );
+    const document = review.document;
     const catalog = await loadVaultPacks(
       this.app,
       this.settings.packManifestPath,
@@ -118,10 +145,11 @@ export default class PageFoundryPlugin extends Plugin {
     new ExportModal(
       this.app,
       previousChoice ?? initial,
-      (choice) => void this.publish(file, choice, review, markdown, catalog),
+      (choice) =>
+        void this.publish(file, choice, review, markdown, catalog, book),
       review,
       (choice) => {
-        void this.openExport(file, choice).catch(
+        void this.openExport(file, choice, book).catch(
           () => new Notice("Could not refresh the image review."),
         );
       },
@@ -135,6 +163,7 @@ export default class PageFoundryPlugin extends Plugin {
     reviewed: ImageReview,
     reviewedMarkdown: string,
     reviewedCatalog?: PresetCatalog,
+    book = false,
   ): Promise<void> {
     const label = choice.format.toUpperCase();
     const progress = new Notice(`Creating ${label} on this device…`, 0);
@@ -148,28 +177,50 @@ export default class PageFoundryPlugin extends Plugin {
         new Notice(
           "The preset pack changed. Review the updated layout before publishing.",
         );
-        await this.openExport(file, choice);
+        await this.openExport(file, choice, book);
         return;
       }
       const preset = choosePreset(catalog, choice.preset, choice.format);
-      const markdown = await this.app.vault.cachedRead(file);
-      const document = parseMarkdown(markdown, file.basename);
-      const fresh = await reviewVaultImages(this.app, file, document);
+      if (book && preset.outputs[choice.format]?.recipe === "letter")
+        throw new Error("Letter layouts are not book presets.");
+      const markdown = book ? "" : await this.app.vault.cachedRead(file);
+      const fresh = book
+        ? await reviewVaultBook(this.app, file)
+        : await reviewVaultImages(
+            this.app,
+            file,
+            parseMarkdown(markdown, file.basename),
+          );
       if (
         markdown !== reviewedMarkdown ||
         fresh.signature !== reviewed.signature ||
         fresh.errors.length
       ) {
         new Notice(
-          "The note or its images changed. Review the updated files before publishing.",
+          book
+            ? "The book or its included files changed. Review them before publishing."
+            : "The note or its images changed. Review the updated files before publishing.",
         );
-        await this.openExport(file, choice);
+        await this.openExport(file, choice, book);
         return;
       }
       const values = choice.metadata ?? {
         ...initialMetadata(fresh.document, preset),
         language: choice.language,
       };
+      const report = preflight(fresh.document, {
+        format: choice.format,
+        profile: choice.profile,
+        preset,
+        metadata: values,
+        resourceErrors: fresh.errors,
+        resourceWarnings: fresh.warnings,
+      });
+      const blockers = report.findings.filter(
+        (finding) => finding.severity === "blocker",
+      );
+      if (blockers.length)
+        throw new Error(blockers.map((finding) => finding.message).join(" "));
       const outputDocument = applyPreset(
         fresh.document,
         preset,

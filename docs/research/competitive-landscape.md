@@ -119,6 +119,15 @@ not accessibility certification. Author preflight is the next development step.
 
 ### 4. Add author preflight
 
+The local author-checking slice is implemented: metadata/content blockers,
+heading/link/navigation checks, resource advice and explicit unchecked limits.
+See [the test plan](../testing/author-preflight.md). Named EPUB heading links
+share the exporter index. No external links or unrelated notes are probed.
+Rendered-page inspection, accessibility certification and printer/KDP compliance
+remain deferred; this is not a conformance report. Ordered book manifests are
+the next development milestone; advanced print preflight belongs with verified
+geometry in step 6.
+
 - EPUB: metadata, navigation, language, image alt text, broken internal links,
   and accessibility checks.
 - DOCX manuscript: page size, margins, font, spacing, title page, header, page
@@ -128,6 +137,12 @@ not accessibility certification. Author preflight is the next development step.
 - Present warnings in plain language and distinguish blockers from advice.
 
 ### 5. Add books without becoming a writing suite
+
+Locally implemented on 2 October 2026: explicit ordered manifests and
+inclusion/order review, combined PDF/EPUB/DOCX, entry-scoped EPUB links,
+book-wide image budgets and source-change re-review. Device acceptance is still
+pending; see [ordered book test plan](../testing/ordered-books.md). Longform
+ordering import is deferred; there is no writing-suite or vault-discovery layer.
 
 - Introduce an explicit project manifest with ordered notes and roles for front
   matter, parts, chapters, scenes, and back matter.
