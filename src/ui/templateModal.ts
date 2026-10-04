@@ -9,6 +9,7 @@ export class TemplateModal extends SuggestModal<Template> {
     recent = false,
   ) {
     super(app);
+    this.modalEl.addClass("page-foundry-template-picker");
     this.setPlaceholder(
       recent
         ? "Recent templates — search by name, size or format"

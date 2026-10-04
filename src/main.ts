@@ -54,6 +54,9 @@ import {
   templateLibrary,
 } from "./templates/catalog";
 import { isBookPlan } from "./books/manifest";
+import { editableBook, newBookEntry } from "./books/editor";
+import { BookModal } from "./ui/bookModal";
+import { saveBookPlan } from "./vault/bookPlan";
 
 export default class PageFoundryPlugin extends Plugin {
   settings: PageFoundrySettings = { ...DEFAULT_SETTINGS };
@@ -62,6 +65,20 @@ export default class PageFoundryPlugin extends Plugin {
   async onload(): Promise<void> {
     await this.loadSettings();
     this.addSettingTab(new PageFoundrySettingTab(this.app, this));
+    this.addCommand({
+      id: "set-up-book",
+      name: "Set up book",
+      callback: () => {
+        void this.openBookSetup().catch(
+          (error) =>
+            new Notice(
+              error instanceof Error
+                ? error.message
+                : "Could not open the book plan.",
+            ),
+        );
+      },
+    });
     for (const recent of [false, true])
       this.addCommand({
         id: recent ? "create-recent" : "create",
@@ -188,6 +205,44 @@ export default class PageFoundryPlugin extends Plugin {
         );
       },
       recent,
+    ).open();
+  }
+
+  private async openBookSetup(): Promise<void> {
+    const active = this.app.workspace.getActiveFile();
+    const source =
+      active?.extension === "md"
+        ? await this.app.vault.read(active)
+        : undefined;
+    const editing = Boolean(
+      source !== undefined && active && isBookPlan(source, active.basename),
+    );
+    const book = editableBook(editing ? source : undefined);
+    if (!editing) {
+      book.metadata.language = this.settings.defaultLanguage;
+      if (active?.extension === "md")
+        book.entries.push({ ...newBookEntry(), path: active.path });
+    }
+    const snapshot =
+      editing && active && source !== undefined
+        ? { file: active, source }
+        : undefined;
+    new BookModal(
+      this.app,
+      book,
+      snapshot?.file.path ?? "My Book.book.md",
+      editing,
+      async (path, draft) => {
+        const file = await saveBookPlan(this.app.vault, path, draft, snapshot);
+        new Notice("Book plan saved. Use Page Foundry: Create to publish it.");
+        try {
+          await this.app.workspace.openLinkText(file.path, "");
+        } catch {
+          new Notice(
+            `The book plan was saved at ${file.path}. Open it to continue.`,
+          );
+        }
+      },
     ).open();
   }
 

@@ -38,6 +38,13 @@ export async function saveBookPlan(
       "The book plan was moved or removed. Reopen it before saving.",
     );
   await vault.process(snapshot.file, (current) => {
+    if (
+      snapshot.file.path !== desired ||
+      vault.getAbstractFileByPath(desired) !== snapshot.file
+    )
+      throw new Error(
+        "The book plan was moved or removed. Reopen it before saving.",
+      );
     if (current !== snapshot.source)
       throw new Error(
         "The book plan changed while this form was open. Reopen it to review the latest version; nothing was overwritten.",

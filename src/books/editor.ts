@@ -77,6 +77,10 @@ export function serializeBookPlan(
   } catch (error) {
     let message =
       error instanceof Error ? error.message : "Check the book information.";
+    message = message.replace(
+      "List between 1 and 50 book entries.",
+      "Add between 1 and 50 sections.",
+    );
     for (const [index, entry] of entries.entries())
       message = message.replaceAll(entry.id, `section ${index + 1}`);
     throw new Error(message);

@@ -53,6 +53,9 @@ The development build currently provides:
   manuscripts, documents and ebooks, plus six paperback size/paper combinations
   with right-hand or next-page chapter starts. Most-used layouts appear first;
   recent history stores only layout choices and can be cleared in settings;
+- **Set up book** to create or edit a book plan visually: add sections, choose
+  their note paths, and move them into reading order. IDs are managed
+  internally; saves reject changed plans and never rewrite chapter notes;
 
 - `Publish current note` in the Obsidian command palette;
 - `Publish current book` for an explicit ordered Markdown manifest, with
@@ -92,6 +95,11 @@ passes an offline, phone-sized WebKit run and EPUBCheck; physical-device memory,
 performance and sharing checks remain pending.
 
 ## Ordered books
+
+For the everyday workflow, run **Page Foundry: Set up book**. Add the notes in
+reading order and save the plan, then run **Create** to choose a book template.
+Open an existing plan and run **Set up book** to edit it. The form manages the
+technical fields below for you; editing YAML is optional, not required.
 
 Open a Markdown manifest and run **Page Foundry: Publish current book**. Its
 leading YAML contains `page-foundry-book: 1`, a book `title`, optional author/

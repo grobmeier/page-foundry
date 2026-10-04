@@ -35,6 +35,30 @@
 .page-foundry-check-summary {
   white-space: pre-wrap;
 }
+.page-foundry-book-row {
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-m);
+  padding: var(--size-4-2);
+  margin-block: var(--size-4-2);
+}
+.page-foundry-template-picker .suggestion-item {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.page-foundry-book-row .setting-item-control {
+  flex-wrap: wrap;
+}
+@media (max-width: 600px) {
+  .page-foundry-modal .setting-item {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--size-4-2);
+  }
+  .page-foundry-modal .setting-item-control {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+}
 
 .page-foundry-modal .page-foundry-preflight {
   white-space: pre-wrap;
