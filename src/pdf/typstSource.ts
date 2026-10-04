@@ -86,7 +86,10 @@ function renderLetterClosing(document: FoundryDocument): string {
   return `\n#v(8mm)\n${renderText(closing)}\n\n#v(8mm)\n${renderText(author)}`;
 }
 
-function renderBlock(block: BlockNode, document: FoundryDocument): string {
+export function renderBlock(
+  block: BlockNode,
+  document: FoundryDocument,
+): string {
   switch (block.type) {
     case "heading":
       return `#heading(level: ${Math.min(block.depth, 6)})[${renderInline(block.children, document)}]`;
@@ -134,11 +137,25 @@ function renderInline(nodes: InlineNode[], document: FoundryDocument): string {
             node.width,
             Math.min(
               480,
-              ((210 - 2 * (document.style?.marginXmm ?? 25) - 25) * 96) / 25.4,
+              (((document.paperback
+                ? (document.paperback.widthIn -
+                    document.paperback.insideIn -
+                    document.paperback.outsideIn) *
+                  25.4
+                : 210 - 2 * (document.style?.marginXmm ?? 25)) -
+                25) *
+                96) /
+                25.4,
             ),
             Math.min(
               600,
-              ((279.4 - 2 * (document.style?.marginYmm ?? 24) - 25) * 96) /
+              (((document.paperback
+                ? (document.paperback.heightIn -
+                    2 * document.paperback.verticalIn) *
+                  25.4
+                : 279.4 - 2 * (document.style?.marginYmm ?? 24)) -
+                25) *
+                96) /
                 25.4,
             ),
           );
@@ -151,7 +168,7 @@ function renderInline(nodes: InlineNode[], document: FoundryDocument): string {
     .join("");
 }
 
-function renderText(value: string): string {
+export function renderText(value: string): string {
   return `#text(${stringLiteral(value)})`;
 }
 

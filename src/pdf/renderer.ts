@@ -18,13 +18,50 @@ import type {
   FoundryDocument,
   PageProfileId,
   PdfPresetId,
+  PublishedFile,
 } from "../core/model";
 import { decodeCompressedBase64 } from "./binary";
 import { createTypstSource } from "./typstSource";
+import { createPrintSource } from "./printSource";
+import { paginatePrint, type PrintOptions } from "../print/model";
 
 export class TypstPdfRenderer {
   private compilerPromise?: Promise<TypstCompiler>;
   private queue: Promise<unknown> = Promise.resolve();
+  async renderPrint(
+    document: FoundryDocument,
+    options: PrintOptions,
+  ): Promise<PublishedFile> {
+    const pending = this.queue.then(async () => {
+      const result = await paginatePrint(options, (inside) =>
+        this.compileSource(
+          document,
+          createPrintSource(document, options, inside),
+          true,
+        ),
+      );
+      const included = document.book!.entries;
+      if (
+        result.measurements.sections.length !== included.length ||
+        result.measurements.sections.some(
+          (section, index) =>
+            section.id !== included[index]!.id ||
+            section.role !== included[index]!.role,
+        )
+      )
+        throw new Error(
+          "The proof's measured sections do not match the included book.",
+        );
+      return {
+        bytes: result.bytes,
+        extension: "pdf" as const,
+        mediaType: "application/pdf",
+        proofReport: result.proofReport,
+      };
+    });
+    this.queue = pending.catch(() => undefined);
+    return pending;
+  }
 
   async render(
     document: FoundryDocument,
@@ -43,6 +80,22 @@ export class TypstPdfRenderer {
     preset: PdfPresetId,
     profile: PageProfileId,
   ): Promise<Uint8Array> {
+    if (preset === "paperback-interior")
+      throw new Error(
+        "Paperback publishing requires print options and a measured proof.",
+      );
+    return (
+      await this.compileSource(
+        document,
+        createTypstSource(document, preset, profile),
+      )
+    ).bytes;
+  }
+  private async compileSource(
+    document: FoundryDocument,
+    source: string,
+    proof = false,
+  ): Promise<{ bytes: Uint8Array; measurements?: unknown }> {
     const compiler = await (this.compilerPromise ??= this.createCompiler());
     compiler.resetShadow();
     try {
@@ -51,10 +104,49 @@ export class TypstPdfRenderer {
           `/assets/${image.id}.${image.extension}`,
           image.bytes,
         );
-      compiler.addSource(
-        "/main.typ",
-        createTypstSource(document, preset, profile),
-      );
+      compiler.addSource("/main.typ", source);
+      if (proof) {
+        const measured = await compiler.runWithWorld(
+          { mainFilePath: "/main.typ" },
+          async (world) => {
+            // Return errors from the callback so the library always frees its world.
+            try {
+              const compilation = await world.compile({ diagnostics: "full" });
+              if (compilation.hasError)
+                return {
+                  error:
+                    compilation.diagnostics
+                      ?.map((item) => item.message)
+                      .join("; ") || "Could not paginate the paperback.",
+                };
+              const artifact = await world.pdf({ diagnostics: "full" });
+              if (!artifact.result)
+                return { error: "Typst did not return a paperback PDF." };
+              const query: unknown = await world.query({
+                selector: "<foundry-proof>",
+                field: "value",
+              });
+              return {
+                bytes: artifact.result,
+                measurements:
+                  Array.isArray(query) && query.length === 1
+                    ? query[0]
+                    : undefined,
+              };
+            } catch (error) {
+              return {
+                error:
+                  error instanceof Error
+                    ? error.message
+                    : "Could not measure the paperback.",
+              };
+            }
+          },
+        );
+        if (measured.error || !measured.bytes)
+          throw new Error(measured.error || "Could not measure the paperback.");
+        return { bytes: measured.bytes, measurements: measured.measurements };
+      }
       const result = await compiler.compile({
         mainFilePath: "/main.typ",
         format: CompileFormatEnum.pdf,
@@ -66,7 +158,7 @@ export class TypstPdfRenderer {
           .join("; ");
         throw new Error(message || "Typst did not return a PDF.");
       }
-      return result.result;
+      return { bytes: result.result };
     } finally {
       compiler.resetShadow();
     }

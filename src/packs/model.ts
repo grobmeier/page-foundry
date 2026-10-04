@@ -98,7 +98,7 @@ function id(value: unknown, label: string): string {
   return result;
 }
 const RECIPES: Record<OutputFormat, readonly string[]> = {
-  pdf: ["plain-document", "letter", "manuscript"],
+  pdf: ["plain-document", "letter", "manuscript", "paperback-interior"],
   epub: ["reflowable-ebook"],
   docx: ["plain-editable", "general-manuscript"],
 };

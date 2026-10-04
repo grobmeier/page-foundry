@@ -8,6 +8,12 @@ import type {
 } from "./model";
 import { headingIndex, resolveFragment, safeExternalHref } from "./headings";
 import { metadataErrors, type ResolvedPreset } from "../packs/model";
+import {
+  DEFAULT_PRINT_OPTIONS,
+  PRINT_TRIMS,
+  validatePrintOptions,
+  type PrintOptions,
+} from "../print/model";
 
 export interface PreflightFinding {
   code: string;
@@ -27,6 +33,7 @@ export interface PreflightOptions {
   resourceErrors?: string[];
   resourceWarnings?: string[];
   packError?: string;
+  printOptions?: PrintOptions;
 }
 
 export function preflight(
@@ -110,7 +117,9 @@ export function preflight(
             add(
               "unsupported-link",
               "advice",
-              "A local, other-note, or unsupported-protocol link becomes plain text. Only this note is included; other files and remote destinations are not checked.",
+              document.book
+                ? "A link outside the explicit book list or using an unsupported protocol becomes plain text. Unlisted notes and remote destinations are not checked."
+                : "A local, other-note, or unsupported-protocol link becomes plain text. Only this note is included; other files and remote destinations are not checked.",
             );
         }
         inline(node.children);
@@ -157,6 +166,25 @@ export function preflight(
       "No section headings are present. EPUB navigation will contain only the document title.",
     );
   const recipe = options.preset.outputs[options.format]?.recipe;
+  const print = recipe === "paperback-interior";
+  if (print) {
+    if (!document.book)
+      add(
+        "print-book",
+        "blocker",
+        "Paperback interior requires an ordered book.",
+      );
+    try {
+      validatePrintOptions(options.printOptions ?? DEFAULT_PRINT_OPTIONS);
+    } catch (error) {
+      add("print-options", "blocker", (error as Error).message);
+    }
+    add(
+      "print-proof",
+      "advice",
+      "No-bleed black-ink paperback proof. Colour images are not converted to greyscale. Inspect the measured report and every PDF page before publication.",
+    );
+  }
   if (document.book && recipe === "letter")
     add("book-preset", "blocker", "Letter layouts are not book presets.");
   const manuscript = recipe === "manuscript" || recipe === "general-manuscript";
@@ -171,14 +199,14 @@ export function preflight(
     notChecked.unshift(
       "Rendered page count, overflow, blank pages and font embedding have not been inspected by this report.",
     );
-  if (options.format === "pdf")
+  if (options.format === "pdf" && !print)
     notChecked.unshift(
       "KDP trim, gutter, bleed and recto/verso rules are not checked; A4/US Letter is not a KDP profile.",
     );
   return {
     findings,
     notChecked,
-    summary: `${options.format.toUpperCase()} · ${options.preset.name} · approximately ${words} body words · ${index.entries.length} section headings · ${images} image occurrences${options.format !== "epub" ? ` · ${options.profile === "a4" ? "A4" : "US Letter"}` : ""}.${manuscript ? " The selected recipe provides a title page, running header and numbered body; inspect the generated file to confirm layout." : ""}`,
+    summary: `${options.format.toUpperCase()} · ${options.preset.name} · approximately ${words} body words · ${index.entries.length} section headings · ${images} image occurrences${print ? ` · ${PRINT_TRIMS[(options.printOptions ?? DEFAULT_PRINT_OPTIONS).trim]?.label ?? "invalid trim"}` : options.format !== "epub" ? ` · ${options.profile === "a4" ? "A4" : "US Letter"}` : ""}.${manuscript ? " The selected recipe provides a title page, running header and numbered body; inspect the generated file to confirm layout." : ""}`,
   };
 }
 

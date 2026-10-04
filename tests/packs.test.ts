@@ -30,7 +30,7 @@ const document = parseMarkdown(
 
 describe("preset packs", () => {
   it("uses the same contract for built-ins and namespaced private packs", () => {
-    assert.equal(CORE_CATALOG.presets.length, 8);
+    assert.equal(CORE_CATALOG.presets.length, 9);
     assert.equal(preset.packVersion, "1.0.0");
     assert.throws(
       () => catalogue([CORE_PACK, { ...parsePack(source), id: "core" }], "x"),

@@ -5,7 +5,11 @@
 
 export type PageProfileId = "a4" | "us-letter";
 export type OutputFormat = "pdf" | "epub" | "docx";
-export type PdfPresetId = "plain-document" | "letter" | "manuscript";
+export type PdfPresetId =
+  | "plain-document"
+  | "letter"
+  | "manuscript"
+  | "paperback-interior";
 export type EpubPresetId = "reflowable-ebook";
 export type DocxPresetId = "plain-editable" | "general-manuscript";
 export type PresetId = string;
@@ -46,6 +50,13 @@ export interface FoundryDocument {
   resourceErrors?: string[];
   sourceWarnings?: string[];
   style?: RenderStyle;
+  paperback?: {
+    widthIn: number;
+    heightIn: number;
+    insideIn: number;
+    outsideIn: number;
+    verticalIn: number;
+  };
   book?: {
     entries: { id: string; role: string; title: string; path?: string }[];
   };
@@ -76,12 +87,14 @@ export interface PublishRequest {
   profile: PageProfileId;
   outputName: string;
   language: string;
+  printOptions?: import("../print/model").PrintOptions;
 }
 
 export interface PublishedFile {
   bytes: Uint8Array;
   extension: OutputFormat;
   mediaType: string;
+  proofReport?: string;
 }
 
 export function defaultPreset(format: OutputFormat): PresetId {
