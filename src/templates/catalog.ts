@@ -166,17 +166,21 @@ export function searchTemplates(
   templates: Template[],
   query: string,
 ): Template[] {
-  const words = query
-    .toLowerCase()
-    .replace(/×/g, "x")
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean);
+  const words = searchWords(query);
   return templates.filter((template) =>
     words.every((word) =>
       ["pdf", "epub", "docx"].includes(word)
         ? template.format === word
-        : template.search.replace(/×/g, "x").includes(word),
+        : searchWords(template.search).some((token) => token.startsWith(word)),
     ),
   );
+}
+
+function searchWords(value: string): string[] {
+  return value
+    .toLowerCase()
+    .replace(/us[-\s]+letter/g, "usletter")
+    .replace(/(\d)\s*[x×]\s*(\d)/g, "$1x$2")
+    .split(/[^\p{L}\p{N}.-]+/u)
+    .filter(Boolean);
 }

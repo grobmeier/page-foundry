@@ -41,6 +41,9 @@ it("offers supported purpose-first variants and filters note/book layouts", () =
   assert.equal(searchTemplates(notes, "Manuscript US Letter DOCX").length, 1);
   assert.equal(searchTemplates(notes, "general-manuscript").length, 0);
   assert.equal(searchTemplates(notes, "no such template").length, 0);
+  assert.equal(searchTemplates(notes, "letter").length, 4);
+  assert.equal(searchTemplates(notes, "manus").length, 4);
+  assert.equal(searchTemplates(books, "amazon 6 × 9 cream").length, 2);
   assert.deepEqual(
     searchTemplates(notes, "letter pdf a4")
       .map((t) => t.preset)
