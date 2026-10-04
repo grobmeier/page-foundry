@@ -56,6 +56,29 @@ image signatures. The publish action rereads the complete explicit set and
 compares signatures before rendering its fresh snapshot. Packs are also checked
 again. Letter recipes are excluded and guarded at the publishing boundary.
 
+## Measured paperback PDF
+
+The allow-listed `paperback-interior` recipe is PDF-only and requires an ordered
+book. Export-only options choose a fixed no-bleed trim/paper/recto policy. It
+uses left-bound mirrored margins with black text and conservative outside/top/
+bottom margins; style margin/colour overrides cannot weaken them. Images are
+bounded against the trim's usable content area, not A4 dimensions.
+
+Section containers preserve continuous scenes and permit overflow onto further
+pages. Physical-page context inserts explicit unnumbered blank pages before
+right-hand part/chapter starts. Front/body footer numbering is derived from
+physical section locations, so resetting visible numbers cannot change binding
+parity. Metadata markers measure physical page count, section starts and blanks.
+
+Compilation and metadata query run in the same compiler world. Errors are
+returned from the callback to guarantee the library frees that world; shadow
+assets are reset in a finally block. A pure bounded pagination loop increases
+the gutter monotonically when measured page counts cross KDP bands. The final
+PDF and proof report come from the same layout, not a word-count estimate.
+Measured chapter parity and inclusion IDs/order are checked before returning the
+PDF. The result shows a proof report and optional explicit copy action; there is
+no telemetry, retailer upload or manuscript/settings persistence.
+
 ## Referenced image resources
 
 The Markdown model preserves image references, per-occurrence alt text and

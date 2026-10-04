@@ -48,11 +48,18 @@ Each preset has `id`, `name`, `description` (at most 1,000 characters),
 least one is required. Each output has a required `recipe` and optional `style`.
 Custom selections are namespaced as `pack-id:preset-id` and cannot replace core.
 
-| Format | Supported recipes                        |
-| ------ | ---------------------------------------- |
-| PDF    | `plain-document`, `letter`, `manuscript` |
-| EPUB   | `reflowable-ebook`                       |
-| DOCX   | `plain-editable`, `general-manuscript`   |
+`paperback-interior` is available only when publishing an explicit ordered book.
+Its export-only trim/paper/start controls and measured proof report are supplied
+by the host; packs cannot supply executable print layouts. Fixed mirrored
+geometry and black text override pack margin/colour values; supported body size
+and leading still apply. Bleed, cover/spine and image greyscale conversion are
+not supported. See [paperback proof testing](testing/paperback-proof.md).
+
+| Format | Supported recipes                                              |
+| ------ | -------------------------------------------------------------- |
+| PDF    | `plain-document`, `letter`, `manuscript`, `paperback-interior` |
+| EPUB   | `reflowable-ebook`                                             |
+| DOCX   | `plain-editable`, `general-manuscript`                         |
 
 Styles accept only the following values. Missing values use the recipe default.
 

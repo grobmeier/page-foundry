@@ -145,6 +145,60 @@ Return to [portable publishing](#portable-publishing).
       "ordered-book",
       false,
     );
+    const paperback = await renderer.renderPrint(book, {
+      trim: "6x9",
+      paper: "white",
+      recto: true,
+    });
+    showDownloads(downloads, [paperback], "paperback", false);
+    window.document.querySelector("#print-proof")!.textContent =
+      paperback.proofReport!;
+    if (
+      !paperback.proofReport?.includes("8 physical pages") ||
+      !paperback.proofReport.includes("blank physical pages: 4, 6") ||
+      !paperback.proofReport.includes("chapter first-chapter: physical page 5")
+    )
+      throw new Error(
+        "Measured paperback recto pagination differs from the fixture.",
+      );
+    const small = await renderer.renderPrint(book, {
+      trim: "5x8",
+      paper: "cream",
+      recto: false,
+    });
+    if (!small.proofReport?.includes("6 physical pages"))
+      throw new Error("Next-page proof added unexpected blanks.");
+    const medium = await renderer.renderPrint(book, {
+      trim: "5.5x8.5",
+      paper: "white",
+      recto: true,
+    });
+    showDownloads(downloads, [small], "paperback-small", false);
+    showDownloads(downloads, [medium], "paperback-medium", false);
+    const illustratedBook = {
+      ...book,
+      images: document.images,
+      blocks: [
+        ...book.blocks,
+        {
+          type: "paragraph" as const,
+          children: [
+            {
+              type: "image" as const,
+              url: "portrait.jpg",
+              alt: "Neutral portrait",
+              resourceId: "image-2",
+            },
+          ],
+        },
+      ],
+    };
+    const imageProof = await renderer.renderPrint(illustratedBook, {
+      trim: "5x8",
+      paper: "white",
+      recto: true,
+    });
+    showDownloads(downloads, [imageProof], "paperback-images", false);
     const catalog = catalogue(
       [CORE_PACK, parsePack(JSON.stringify(neutralPack))],
       "browser",
@@ -245,6 +299,55 @@ Return to [portable publishing](#portable-publishing).
     button.disabled = false;
   }
 });
+
+document
+  .querySelector<HTMLButtonElement>("#long-print")!
+  .addEventListener("click", async (event) => {
+    const control = event.currentTarget as HTMLButtonElement;
+    control.disabled = true;
+    status.textContent = "Generating long gutter proof";
+    try {
+      const paragraph =
+        "The neutral traveller walked beside the river and watched the changing light. A quiet garden waited beyond the bridge. Each page records an invented journey solely to test local pagination, mirrored margins and the binding space of a portable paperback proof. ";
+      const manuscript = parseMarkdown(
+        Array.from(
+          { length: 2400 },
+          (_, index) => `Paragraph ${index + 1}: ${paragraph.repeat(2)}`,
+        ).join("\n\n"),
+        "Long Neutral Chapter",
+      );
+      const long = assembleBook(
+        {
+          metadata: { title: "Long Neutral Proof", author: "Alex Example" },
+          entries: [{ id: "long", role: "chapter", path: "Long.md" }],
+        },
+        new Map([["Long.md", manuscript]]),
+      );
+      const output = await new TypstPdfRenderer().renderPrint(long, {
+        trim: "5x8",
+        paper: "white",
+        recto: true,
+      });
+      if (
+        !output.proofReport?.includes("inside 0.625 in") &&
+        !output.proofReport?.includes("inside 0.75 in") &&
+        !output.proofReport?.includes("inside 0.875 in")
+      )
+        throw new Error(
+          "Long fixture did not exercise the increased gutter band.",
+        );
+      showDownloads(downloads, [output], "long-gutter-proof", false);
+      window.document.querySelector("#print-proof")!.textContent =
+        output.proofReport!;
+      status.textContent =
+        "Long gutter proof generated and increased margin verified";
+    } catch (error) {
+      status.textContent =
+        error instanceof Error ? error.message : String(error);
+    } finally {
+      control.disabled = false;
+    }
+  });
 
 function assertPdf(bytes: Uint8Array): void {
   if (new TextDecoder().decode(bytes.slice(0, 5)) !== "%PDF-") {

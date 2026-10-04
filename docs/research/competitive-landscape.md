@@ -53,6 +53,20 @@ The distinctive combination is:
 
 ## Recommended roadmap
 
+### Immediate priority: simplify author workflow
+
+User feedback on 4 October 2026: the current controls, reports and technical
+book entries are too complex for everyday use. Before expanding print
+capabilities, agree the proposed simple-Create specification and implement small
+usability slices: a purpose-first searchable template picker, Create/Create
+recent, frequently used templates first, optional reports with visible blockers,
+plain-language book order and visual setup, and a built-in Cheat Sheet. Offer
+named variants of supported layouts, including existing paperback sizes and
+paper choices; do not imply unsupported Amazon formats or upload certification.
+Personal designs continue through explicitly configured private packs.
+
+The proposal is awaiting agreement; these workflow changes are not implemented.
+
 ### Completed on desktop. Make exported files easy to find and use
 
 Implemented and accepted on Mac. Sharing is capability-checked; hosts without
@@ -152,6 +166,13 @@ ordering import is deferred; there is no writing-suite or vault-discovery layer.
 - Keep research notes and unrelated vault files excluded by default.
 
 ### 6. Target KDP and professional handoff
+
+The first local print slice is implemented on 2 October 2026: no-bleed black-ink
+paperback trim profiles, measured gutter rebuilding, mirrored margins, leading
+Roman front matter, optional physical recto starts, explicit unnumbered blanks
+and a result proof report. It does not certify upload readiness. Bleed/colour,
+cover/spine, full print certification and publisher-specific packs remain later.
+See [paperback proof test plan](../testing/paperback-proof.md).
 
 - Add verified trim profiles, gutters, mirrored margins, front-matter page
   numbering, recto chapter starts, and blank-page handling.

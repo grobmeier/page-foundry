@@ -51,6 +51,9 @@ The development build currently provides:
 - `Publish current book` for an explicit ordered Markdown manifest, with
   inclusion/order review, front/back matter, parts, chapters and continuous
   scenes;
+- a PDF-only no-bleed paperback proof recipe with three trim sizes, mirrored
+  page-count-based gutters, Roman front matter, optional right-hand starts and
+  an actual-pagination proof report;
 - PDF, EPUB, and DOCX output selected in one dialog;
 - plain-document, letter, submission-letter, manuscript and print-proof PDF
   presets;
@@ -101,8 +104,26 @@ The isolated test vault contains `A Neutral Journey.book.md` and its five source
 notes. Follow the [ordered book test plan](docs/testing/ordered-books.md).
 Limits: 128 KiB manifest, 50 entries, 2 MiB per note, 20 MiB total note text; 50
 unique images, 5 MiB each and 20 MiB combined. There are no globs, nested
-project expansion or automatic vault discovery. Verified KDP trim/gutter/recto
-geometry remains a later milestone.
+project expansion or automatic vault discovery. No-bleed paperback geometry is
+available below; full retailer/physical proof acceptance remains external.
+
+## Paperback proofs
+
+Select **Paperback interior (no bleed)** while publishing an ordered book.
+Choose 5 × 8, 5.5 × 8.5 or 6 × 9 inch, black ink on white/cream paper, and
+right-hand or next-page part/chapter starts. Print geometry overrides ordinary
+A4/US Letter and style margins. The local renderer counts physical pages and
+increases the mirrored gutter when the measured count requires it. Leading front
+matter has Roman numbers; body numbers are Arabic. Inserted blank pages are
+genuinely unnumbered.
+
+The result includes a visible, explicitly copyable proof report with dimensions,
+margins, measured section/blank-page positions and supported page-count range.
+It is not upload certification: bleed, covers/spines, greyscale image
+conversion, image DPI, accessibility and retailer/physical proof acceptance are
+excluded. Short books may be exported for inspection but are labelled **Proof
+only**. See the [paperback proof test plan](docs/testing/paperback-proof.md),
+also installed as `Paperback proof test plan.md` in the isolated vault.
 
 ### Local images
 
