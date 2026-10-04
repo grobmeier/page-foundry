@@ -12,6 +12,21 @@ export interface BookManifest {
   entries: BookEntry[];
 }
 export const MAX_BOOK_BYTES = 20 * 1024 * 1024;
+export function isBookPlan(markdown: string, basename = ""): boolean {
+  if (basename.endsWith(".book")) return true;
+  const match = /^\uFEFF?---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/.exec(markdown);
+  if (!match || match[1]!.length > 128 * 1024) return false;
+  try {
+    const root = parse(match[1]!, { maxAliasCount: 20, uniqueKeys: true });
+    return Boolean(
+      root &&
+        typeof root === "object" &&
+        Object.hasOwn(root, "page-foundry-book"),
+    );
+  } catch {
+    return /page-foundry-book\s*["']?\s*:/.test(match[1]!);
+  }
+}
 export function parseBookManifest(markdown: string): BookManifest {
   if (new TextEncoder().encode(markdown).length > 128 * 1024)
     throw new Error("The book manifest exceeds 128 KiB.");

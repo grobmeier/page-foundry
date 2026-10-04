@@ -14,6 +14,7 @@ import type { ExportChoice } from "../src/ui/exportModal";
 import { fixturePng } from "./fixtures/images";
 import { readFileSync } from "node:fs";
 import type { PresetCatalog } from "../src/packs/model";
+import type { Template } from "../src/templates/catalog";
 
 const code = buildSync({
   entryPoints: ["src/main.ts"],
@@ -28,6 +29,7 @@ const code = buildSync({
     "./epub/renderer",
     "./ui/exportModal",
     "./ui/resultModal",
+    "./ui/templateModal",
   ],
 }).outputFiles[0]!.text;
 
@@ -74,11 +76,19 @@ function setup(bookMode = false) {
   const lookups: string[] = [];
   const stored: unknown[] = [];
   const renders: FoundryDocument[] = [];
+  let reviewReady!: () => void;
+  const firstReview = new Promise<void>((resolve) => {
+    reviewReady = resolve;
+  });
+  const templateDialogs: {
+    templates: Template[];
+    choose(template: Template): void;
+  }[] = [];
   const app = {
     vault: {
       async cachedRead(file: File) {
         assert.equal(file, note);
-        return markdown;
+        return bookMode ? bookManifest : markdown;
       },
       async readBinary(file: File) {
         reads.push(file.path);
@@ -128,6 +138,7 @@ function setup(bookMode = false) {
     exports: {} as {
       default: new () => {
         settings: { packManifestPath: string };
+        openCreate(file: File, recent?: boolean): Promise<void>;
         openExport(
           file: File,
           choice?: ExportChoice,
@@ -168,6 +179,7 @@ function setup(bookMode = false) {
           Plugin,
           PluginSettingTab: class {},
           Modal: class {},
+          SuggestModal: class {},
           TFile: File,
           normalizePath: (path: string) => path,
           Notice: class {
@@ -198,6 +210,7 @@ function setup(bookMode = false) {
               catalog: PresetCatalog,
             ) {
               reviews.push(review);
+              reviewReady();
               catalogs.push(catalog);
             }
             open() {}
@@ -206,6 +219,19 @@ function setup(bookMode = false) {
       if (name === "./ui/resultModal")
         return {
           ResultModal: class {
+            open() {}
+          },
+        };
+      if (name === "./ui/templateModal")
+        return {
+          TemplateModal: class {
+            constructor(
+              _app: unknown,
+              templates: Template[],
+              choose: (template: Template) => void,
+            ) {
+              templateDialogs.push({ templates, choose });
+            }
             open() {}
           },
         };
@@ -225,6 +251,8 @@ function setup(bookMode = false) {
     catalogs,
     lookups,
     stored,
+    templateDialogs,
+    firstReview,
     changeBookNote() {
       bookSource += "\nChanged chapter.";
     },
@@ -264,6 +292,37 @@ function setup(bookMode = false) {
 }
 
 describe("review-to-export image workflow", () => {
+  it("Create recent falls back to a picker without exporting or reading images before selection", async () => {
+    const host = setup();
+    await host.plugin.openCreate(host.note, true);
+    assert.equal(host.templateDialogs.length, 1);
+    assert.equal(host.templateDialogs[0]!.templates.length, 20);
+    assert.equal(host.saves.length, 0);
+    assert.equal(host.reads.length, 0);
+    assert.equal(host.reviews.length, 0);
+    assert.ok(
+      host.notices.some((message) => message.includes("No recent templates")),
+    );
+    host.templateDialogs[0]!.choose(
+      host.templateDialogs[0]!.templates.find((t) => t.preset === "letter")!,
+    );
+    await host.firstReview;
+    assert.equal(host.reviews.length, 1);
+    assert.equal(host.saves.length, 0);
+  });
+  it("Create recognises a book and excludes letter templates without reading chapters yet", async () => {
+    const host = setup(true);
+    await host.plugin.openCreate(host.note);
+    const templates = host.templateDialogs[0]!.templates;
+    assert.equal(templates.length, 28);
+    assert.ok(templates.some((t) => t.printOptions));
+    assert.equal(
+      templates.some((t) => t.preset === "letter"),
+      false,
+    );
+    assert.equal(host.reads.length, 0);
+    assert.equal(host.saves.length, 0);
+  });
   it("rechecks the complete book snapshot before publishing", async () => {
     const host = setup(true);
     await host.plugin.openExport(host.note, undefined, true);

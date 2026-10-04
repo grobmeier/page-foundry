@@ -38,6 +38,7 @@ export class ExportModal extends Modal {
     private readonly review: ImageReview,
     private readonly onRefresh: (choice: ExportChoice) => void,
     private readonly catalog: PresetCatalog = CORE_CATALOG,
+    private readonly onTemplates?: () => void,
   ) {
     super(app);
     this.choice = {
@@ -104,12 +105,22 @@ export class ExportModal extends Modal {
   }
 
   private render(): void {
+    const opened = Array.from(
+      this.contentEl.querySelectorAll?.("details[open]") ?? [],
+    ).map((element) => element.querySelector("summary")?.textContent);
     this.contentEl.empty();
     this.contentEl.createEl("h2", {
       text: this.review.document.book
         ? "Create from this book"
         : "Create from this note",
     });
+    if (this.onTemplates)
+      new Setting(this.contentEl).addButton((button) =>
+        button.setButtonText("Change template").onClick(() => {
+          this.close();
+          this.onTemplates!();
+        }),
+      );
     if (this.review.document.book) {
       const order = disclosure(
         this.contentEl,
@@ -388,6 +399,9 @@ export class ExportModal extends Modal {
           });
         });
     });
+    for (const element of this.contentEl.querySelectorAll?.("details") ?? [])
+      if (opened.includes(element.querySelector("summary")?.textContent))
+        element.setAttribute("open", "");
   }
 
   onClose(): void {

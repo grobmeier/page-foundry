@@ -6,6 +6,7 @@
 import { App, PluginSettingTab, Setting } from "obsidian";
 import type PageFoundryPlugin from "./main";
 import type { OutputFormat, PageProfileId } from "./core/model";
+import type { TemplateUse } from "./templates/catalog";
 
 export interface PageFoundrySettings {
   outputFolder: string;
@@ -16,6 +17,7 @@ export interface PageFoundrySettings {
   packManifestPath: string;
   lastProfile: PageProfileId;
   defaultLanguage: string;
+  templateHistory: TemplateUse[];
 }
 
 export const DEFAULT_SETTINGS: PageFoundrySettings = {
@@ -27,6 +29,7 @@ export const DEFAULT_SETTINGS: PageFoundrySettings = {
   lastProfile: "a4",
   defaultLanguage: "en",
   packManifestPath: "",
+  templateHistory: [],
 };
 
 export class PageFoundrySettingTab extends PluginSettingTab {
@@ -41,9 +44,9 @@ export class PageFoundrySettingTab extends PluginSettingTab {
     this.containerEl.empty();
 
     new Setting(this.containerEl)
-      .setName("Preset pack path")
+      .setName("Your template pack (optional)")
       .setDesc(
-        "Optional, explicit vault-relative JSON file. No folders are scanned. Leave empty to use only built-in presets.",
+        "Path to your private design pack inside this vault, for example Designs/my-pack.json. Leave empty for built-in templates. No folders are scanned.",
       )
       .addText((text) =>
         text
@@ -70,7 +73,7 @@ export class PageFoundrySettingTab extends PluginSettingTab {
     new Setting(this.containerEl)
       .setName("Default publication language")
       .setDesc(
-        "BCP 47 language tag used for EPUB when neither the note nor the selected pack supplies a language.",
+        "Used when the note or template has no language. Examples: en, en-GB, de.",
       )
       .addText((text) =>
         text
@@ -80,6 +83,17 @@ export class PageFoundrySettingTab extends PluginSettingTab {
             this.plugin.settings.defaultLanguage = value.trim() || "en";
             await this.plugin.saveSettings();
           }),
+      );
+    new Setting(this.containerEl)
+      .setName("Recent and most-used templates")
+      .setDesc(
+        "Only layout choices are remembered, never publication details or manuscript text.",
+      )
+      .addButton((button) =>
+        button.setButtonText("Clear history").onClick(async () => {
+          this.plugin.settings.templateHistory = [];
+          await this.plugin.saveSettings();
+        }),
       );
   }
 }

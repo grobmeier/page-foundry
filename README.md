@@ -49,6 +49,10 @@ The development build currently provides:
 
 - a built-in **Cheat Sheet**, friendly book-order labels, and collapsed layout,
   resource and report details; blocking problems remain visible on the form;
+- **Create** and **Create recent** with a searchable template picker: letters,
+  manuscripts, documents and ebooks, plus six paperback size/paper combinations
+  with right-hand or next-page chapter starts. Most-used layouts appear first;
+  recent history stores only layout choices and can be cleared in settings;
 
 - `Publish current note` in the Obsidian command palette;
 - `Publish current book` for an explicit ordered Markdown manifest, with

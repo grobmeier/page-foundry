@@ -46,6 +46,14 @@ import { preflight } from "./core/preflight";
 import { reviewVaultBook } from "./vault/books";
 import { DEFAULT_PRINT_OPTIONS } from "./print/model";
 import { CheatSheetModal } from "./ui/cheatSheetModal";
+import { TemplateModal } from "./ui/templateModal";
+import {
+  cleanTemplateHistory,
+  rankTemplates,
+  rememberTemplate,
+  templateLibrary,
+} from "./templates/catalog";
+import { isBookPlan } from "./books/manifest";
 
 export default class PageFoundryPlugin extends Plugin {
   settings: PageFoundrySettings = { ...DEFAULT_SETTINGS };
@@ -54,6 +62,25 @@ export default class PageFoundryPlugin extends Plugin {
   async onload(): Promise<void> {
     await this.loadSettings();
     this.addSettingTab(new PageFoundrySettingTab(this.app, this));
+    for (const recent of [false, true])
+      this.addCommand({
+        id: recent ? "create-recent" : "create",
+        name: recent ? "Create recent" : "Create",
+        checkCallback: (checking) => {
+          const file = this.app.workspace.getActiveFile();
+          if (file?.extension !== "md") return false;
+          if (!checking)
+            void this.openCreate(file, recent).catch(
+              (error) =>
+                new Notice(
+                  error instanceof Error
+                    ? error.message
+                    : "Could not open templates.",
+                ),
+            );
+          return true;
+        },
+      });
     this.addCommand({
       id: "cheat-sheet",
       name: "Cheat Sheet",
@@ -102,6 +129,7 @@ export default class PageFoundryPlugin extends Plugin {
     this.settings = {
       ...DEFAULT_SETTINGS,
       ...stored,
+      templateHistory: cleanTemplateHistory(stored?.templateHistory),
       lastPdfPreset:
         stored?.lastPdfPreset ??
         stored?.lastPreset ??
@@ -111,6 +139,56 @@ export default class PageFoundryPlugin extends Plugin {
 
   async saveSettings(): Promise<void> {
     await this.saveData(this.settings);
+  }
+
+  private async openCreate(file: TFile, recent = false): Promise<void> {
+    const source = await this.app.vault.cachedRead(file);
+    const book = isBookPlan(source, file.basename);
+    const catalog = await loadVaultPacks(
+      this.app,
+      this.settings.packManifestPath,
+    );
+    const library = templateLibrary(catalog, book);
+    let templates = rankTemplates(
+      library,
+      this.settings.templateHistory,
+      recent,
+    );
+    if (!templates.length && recent) {
+      new Notice(
+        "No recent templates for this note or book yet. Choose a template to get started.",
+      );
+      templates = rankTemplates(library, this.settings.templateHistory);
+    }
+    new TemplateModal(
+      this.app,
+      templates,
+      (template) => {
+        void this.openExport(
+          file,
+          {
+            format: template.format,
+            preset: template.preset,
+            profile: template.profile,
+            printOptions: template.printOptions
+              ? { ...template.printOptions }
+              : undefined,
+            outputName: file.basename,
+            language: this.settings.defaultLanguage,
+            destination: "vault",
+          },
+          book,
+        ).catch(
+          (error) =>
+            new Notice(
+              error instanceof Error
+                ? error.message
+                : "Could not open this template.",
+            ),
+        );
+      },
+      recent,
+    ).open();
   }
 
   private async openExport(
@@ -149,6 +227,8 @@ export default class PageFoundryPlugin extends Plugin {
         this.settings.defaultLanguage,
       destination: "vault",
     };
+    if (previousChoice)
+      choosePreset(catalog, previousChoice.preset, previousChoice.format);
     new ExportModal(
       this.app,
       previousChoice ?? initial,
@@ -161,6 +241,16 @@ export default class PageFoundryPlugin extends Plugin {
         );
       },
       catalog,
+      () => {
+        void this.openCreate(file).catch(
+          (error) =>
+            new Notice(
+              error instanceof Error
+                ? error.message
+                : "Could not open templates.",
+            ),
+        );
+      },
     ).open();
   }
 
@@ -242,7 +332,10 @@ export default class PageFoundryPlugin extends Plugin {
       });
       const filename = safeOutputName(choice.outputName, output.extension);
 
-      this.rememberChoice(choice);
+      this.rememberChoice(
+        choice,
+        preset.outputs[choice.format]?.recipe === "paperback-interior",
+      );
       await this.saveSettings();
 
       if (choice.destination === "vault") {
@@ -271,7 +364,17 @@ export default class PageFoundryPlugin extends Plugin {
     }
   }
 
-  private rememberChoice(choice: ExportChoice): void {
+  private rememberChoice(choice: ExportChoice, isPrint = false): void {
+    // Check the selected recipe rather than retaining irrelevant default print controls.
+    this.settings.templateHistory = rememberTemplate(
+      this.settings.templateHistory,
+      {
+        format: choice.format,
+        preset: choice.preset,
+        profile: choice.format === "epub" || isPrint ? "a4" : choice.profile,
+        printOptions: isPrint ? choice.printOptions : undefined,
+      },
+    );
     this.settings.lastFormat = choice.format;
     this.settings.lastProfile = choice.profile;
     if (choice.format === "pdf") {
