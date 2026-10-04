@@ -167,6 +167,7 @@ function setup(bookMode = false) {
         return {
           Plugin,
           PluginSettingTab: class {},
+          Modal: class {},
           TFile: File,
           normalizePath: (path: string) => path,
           Notice: class {

@@ -47,6 +47,9 @@ No production-ready plugin has been released yet.
 
 The development build currently provides:
 
+- a built-in **Cheat Sheet**, friendly book-order labels, and collapsed layout,
+  resource and report details; blocking problems remain visible on the form;
+
 - `Publish current note` in the Obsidian command palette;
 - `Publish current book` for an explicit ordered Markdown manifest, with
   inclusion/order review, front/back matter, parts, chapters and continuous

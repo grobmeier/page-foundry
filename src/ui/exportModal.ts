@@ -18,6 +18,8 @@ import {
 } from "../packs/model";
 import { preflight, reportText, type PreflightReport } from "../core/preflight";
 import { DEFAULT_PRINT_OPTIONS, PRINT_TRIMS } from "../print/model";
+import { disclosure } from "./disclosure";
+import { bookRoleLabel } from "../books/labels";
 
 export type Destination = "vault" | "share";
 
@@ -105,17 +107,20 @@ export class ExportModal extends Modal {
     this.contentEl.empty();
     this.contentEl.createEl("h2", {
       text: this.review.document.book
-        ? "Publish current book"
-        : "Publish current note",
+        ? "Create from this book"
+        : "Create from this note",
     });
     if (this.review.document.book) {
-      this.contentEl.createEl("h3", { text: "Inclusion and order" });
+      const order = disclosure(
+        this.contentEl,
+        `Book order · ${this.review.document.book.entries.length} sections`,
+      );
       this.review.document.book.entries.forEach((entry, index) =>
-        this.contentEl.createEl("p", {
-          text: `${index + 1}. ${entry.role} — ${entry.title} — ${entry.path ?? "heading only"}`,
+        order.createEl("p", {
+          text: `${index + 1}. ${entry.title} · ${bookRoleLabel(entry.role)}`,
         }),
       );
-      new Setting(this.contentEl).addButton((button) =>
+      new Setting(order).addButton((button) =>
         button.setButtonText("Refresh book review").onClick(() => {
           this.close();
           this.onRefresh({ ...this.choice });
@@ -128,13 +133,16 @@ export class ExportModal extends Modal {
       this.review.errors.length ||
       this.review.warnings.length
     ) {
-      this.contentEl.createEl("h3", { text: "Images included in this export" });
+      const resources = disclosure(
+        this.contentEl,
+        `Images · ${images.length} included`,
+      );
       for (const image of images)
-        this.contentEl.createEl("p", {
+        resources.createEl("p", {
           text: `${image.path} — ${image.extension.toUpperCase()}, ${Math.ceil(image.bytes.length / 1024)} KiB, ${image.width} × ${image.height}`,
           cls: "page-foundry-result-path",
         });
-      new Setting(this.contentEl).addButton((button) =>
+      new Setting(resources).addButton((button) =>
         button.setButtonText("Refresh image review").onClick(() => {
           this.close();
           this.onRefresh({ ...this.choice });
@@ -142,22 +150,21 @@ export class ExportModal extends Modal {
       );
     }
 
-    new Setting(this.contentEl)
-      .setName("Output format")
-      .addDropdown((dropdown) =>
-        dropdown
-          .addOption("pdf", "PDF")
-          .addOption("epub", "EPUB")
-          .addOption("docx", "DOCX")
-          .setValue(this.choice.format)
-          .onChange((value) => {
-            this.choice.format = value as OutputFormat;
-            this.selectPreset(true);
-            this.render();
-          }),
-      );
+    const layout = disclosure(this.contentEl, "Layout options");
+    new Setting(layout).setName("Output format").addDropdown((dropdown) =>
+      dropdown
+        .addOption("pdf", "PDF")
+        .addOption("epub", "EPUB")
+        .addOption("docx", "DOCX")
+        .setValue(this.choice.format)
+        .onChange((value) => {
+          this.choice.format = value as OutputFormat;
+          this.selectPreset(true);
+          this.render();
+        }),
+    );
 
-    new Setting(this.contentEl).setName("Preset").addDropdown((dropdown) => {
+    new Setting(layout).setName("Preset").addDropdown((dropdown) => {
       for (const preset of this.catalog.presets.filter(
         (p) =>
           p.outputs[this.choice.format] &&
@@ -185,32 +192,27 @@ export class ExportModal extends Modal {
       choosePreset(this.catalog, this.choice.preset, "pdf").outputs.pdf
         ?.recipe === "paperback-interior";
     if (print) {
-      new Setting(this.contentEl)
-        .setName("Paperback trim")
-        .addDropdown((dropdown) => {
-          for (const [id, trim] of Object.entries(PRINT_TRIMS))
-            dropdown.addOption(id, trim.label);
-          return dropdown
-            .setValue(this.choice.printOptions!.trim)
-            .onChange((value) => {
-              this.choice.printOptions!.trim =
-                value as keyof typeof PRINT_TRIMS;
-              this.render();
-            });
-        });
-      new Setting(this.contentEl)
-        .setName("Paper (black ink)")
-        .addDropdown((dropdown) =>
-          dropdown
-            .addOption("white", "White")
-            .addOption("cream", "Cream")
-            .setValue(this.choice.printOptions!.paper)
-            .onChange((value) => {
-              this.choice.printOptions!.paper = value as "white" | "cream";
-              this.render();
-            }),
-        );
-      new Setting(this.contentEl)
+      new Setting(layout).setName("Paperback trim").addDropdown((dropdown) => {
+        for (const [id, trim] of Object.entries(PRINT_TRIMS))
+          dropdown.addOption(id, trim.label);
+        return dropdown
+          .setValue(this.choice.printOptions!.trim)
+          .onChange((value) => {
+            this.choice.printOptions!.trim = value as keyof typeof PRINT_TRIMS;
+            this.render();
+          });
+      });
+      new Setting(layout).setName("Paper (black ink)").addDropdown((dropdown) =>
+        dropdown
+          .addOption("white", "White")
+          .addOption("cream", "Cream")
+          .setValue(this.choice.printOptions!.paper)
+          .onChange((value) => {
+            this.choice.printOptions!.paper = value as "white" | "cream";
+            this.render();
+          }),
+      );
+      new Setting(layout)
         .setName("Part/chapter starts")
         .addDropdown((dropdown) =>
           dropdown
@@ -224,7 +226,7 @@ export class ExportModal extends Modal {
         );
     }
     if (this.choice.format !== "epub" && !print) {
-      new Setting(this.contentEl).setName("Page size").addDropdown((dropdown) =>
+      new Setting(layout).setName("Page size").addDropdown((dropdown) =>
         dropdown
           .addOption("a4", "A4")
           .addOption("us-letter", "US Letter")
@@ -243,27 +245,43 @@ export class ExportModal extends Modal {
     );
     const output = preset.outputs[this.choice.format]!;
     const style = output.style ?? {};
-    this.contentEl.createEl("h3", { text: "Layout review" });
     this.contentEl.createEl("p", {
+      text: `${preset.name} · ${this.choice.format.toUpperCase()}${print ? ` · ${PRINT_TRIMS[this.choice.printOptions!.trim].label} · ${this.choice.printOptions!.paper}` : this.choice.format === "epub" ? "" : ` · ${this.choice.profile === "a4" ? "A4" : "US Letter"}`}`,
+    });
+    if (print)
+      this.contentEl.createEl("p", {
+        text: "Paperback proof only: no bleed, black ink. Inspect the PDF before publication; retailer acceptance is not guaranteed.",
+      });
+    const checks = this.contentEl.createEl("p", {
+      text: "",
+      cls: "page-foundry-check-summary",
+    });
+    checks.setAttribute("aria-live", "polite");
+    const details = disclosure(this.contentEl, "Details and checks");
+    details.createEl("p", {
       text: `${preset.description} Pack: ${preset.packName} ${preset.packVersion}. Recipe: ${output.recipe}.`,
     });
-    this.contentEl.createEl("p", {
+    details.createEl("p", {
       text: print
         ? `${PRINT_TRIMS[this.choice.printOptions!.trim].label}; no bleed; mirrored margins; inside gutter measured after pagination, at least 0.5 in; outside 0.5 in; top/bottom 0.75 in. Style margin overrides do not apply to this recipe.`
         : this.choice.format === "epub"
           ? `Reflowable; reader settings may override ${style.font ?? "serif"} type and ${style.lineSpacing ?? 1.5} line spacing.`
           : `${this.choice.profile === "a4" ? "A4" : "US Letter"}; ${style.font ?? (this.choice.format === "pdf" ? "Libertinus Serif" : output.recipe === "general-manuscript" ? "Times New Roman" : "editor default")}; ${style.bodySizePt ?? (output.recipe.includes("manuscript") ? 12 : this.choice.format === "pdf" ? 11 : "default")} pt; margins ${style.marginXmm ?? (this.choice.format === "pdf" && output.recipe !== "manuscript" ? 25 : 25.4)} × ${style.marginYmm ?? (this.choice.format === "pdf" && output.recipe !== "manuscript" ? 24 : 25.4)} mm; line spacing ${style.lineSpacing ?? (output.recipe.includes("manuscript") ? 2 : "recipe default")}.`,
     });
-    this.contentEl.createEl("p", {
+    details.createEl("p", {
       text: `Body colour: ${style.color ?? "recipe default"}. PDF line spacing is font-relative; this is a summary, not a rendered preview.`,
     });
-    this.contentEl.createEl("h3", { text: "Publication checks" });
-    const validation = this.contentEl.createEl("pre", {
+    if (this.review.document.book)
+      for (const entry of this.review.document.book.entries)
+        details.createEl("p", {
+          text: `${entry.title}: ${entry.path ?? "Part heading"}`,
+        });
+    const validation = details.createEl("pre", {
       text: reportText(this.report()),
       cls: "page-foundry-preflight",
     });
     if (typeof globalThis.navigator?.clipboard?.writeText === "function")
-      new Setting(this.contentEl).addButton((button) =>
+      new Setting(details).addButton((button) =>
         button.setButtonText("Copy preflight report").onClick(async () => {
           button.setDisabled(true);
           try {
@@ -283,6 +301,21 @@ export class ExportModal extends Modal {
         }),
       );
     let createButton: { setDisabled(value: boolean): unknown } | undefined;
+    const updateChecks = (): void => {
+      const report = this.report();
+      const blockers = report.findings.filter(
+        (finding) => finding.severity === "blocker",
+      );
+      const advice = report.findings.filter(
+        (finding) => finding.severity === "advice",
+      ).length;
+      checks.textContent = blockers.length
+        ? blockers.map((finding) => finding.message).join("\n")
+        : `Ready to create.${advice ? ` ${advice} suggestion${advice === 1 ? "" : "s"} in Details.` : ""}`;
+      validation.textContent = reportText(report);
+      createButton?.setDisabled(blockers.length > 0);
+    };
+    updateChecks();
     const fields = [...preset.metadata];
     if (
       this.choice.format === "epub" &&
@@ -303,9 +336,7 @@ export class ExportModal extends Modal {
         );
       const changed = (value: string): void => {
         this.choice.metadata![field.key] = value;
-        const errors = this.errors();
-        validation.textContent = reportText(this.report());
-        createButton?.setDisabled(errors.length > 0);
+        updateChecks();
       };
       if (field.key === "from" || field.key === "to")
         setting.addTextArea((text) =>

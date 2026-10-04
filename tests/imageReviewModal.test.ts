@@ -40,8 +40,10 @@ function setup(
       },
       createEl(_tag: string, options: { text: string }) {
         const index = text.length;
-        text.push(options.text);
+        text.push(options.text ?? "");
         return {
+          createEl: this.createEl.bind(this),
+          setAttribute() {},
           get textContent() {
             return text[index] ?? "";
           },
@@ -219,9 +221,9 @@ describe("image review dialog", () => {
   });
   it("shows book inclusion order and refresh without retaining a letter preset", () => {
     const host = setup([], "A neutral chapter.", undefined, true);
-    assert.ok(host.text.includes("Publish current book"));
-    assert.ok(host.text.includes("1. chapter — Chapter One — Book/One.md"));
-    assert.ok(host.text.includes("2. part — Part Two — heading only"));
+    assert.ok(host.text.includes("Create from this book"));
+    assert.ok(host.text.includes("1. Chapter One · Chapter"));
+    assert.ok(host.text.includes("2. Part Two · Part"));
     host.button("Create PDF").click();
     assert.equal(host.published.length, 1);
     assert.notEqual(host.published[0]!.preset, "letter");

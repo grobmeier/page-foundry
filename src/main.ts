@@ -45,6 +45,7 @@ import type { ImageReview } from "./core/images";
 import { preflight } from "./core/preflight";
 import { reviewVaultBook } from "./vault/books";
 import { DEFAULT_PRINT_OPTIONS } from "./print/model";
+import { CheatSheetModal } from "./ui/cheatSheetModal";
 
 export default class PageFoundryPlugin extends Plugin {
   settings: PageFoundrySettings = { ...DEFAULT_SETTINGS };
@@ -53,6 +54,11 @@ export default class PageFoundryPlugin extends Plugin {
   async onload(): Promise<void> {
     await this.loadSettings();
     this.addSettingTab(new PageFoundrySettingTab(this.app, this));
+    this.addCommand({
+      id: "cheat-sheet",
+      name: "Cheat Sheet",
+      callback: () => new CheatSheetModal(this.app).open(),
+    });
     this.addCommand({
       id: "publish-current-book",
       name: "Publish current book",

@@ -25,6 +25,17 @@
   font-family: var(--font-monospace);
 }
 
+.page-foundry-details {
+  margin-block: var(--size-4-3);
+}
+.page-foundry-details > summary {
+  cursor: pointer;
+  padding-block: var(--size-4-2);
+}
+.page-foundry-check-summary {
+  white-space: pre-wrap;
+}
+
 .page-foundry-modal .page-foundry-preflight {
   white-space: pre-wrap;
   overflow-wrap: anywhere;

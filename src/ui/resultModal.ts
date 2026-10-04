@@ -6,6 +6,7 @@
 import { App, ButtonComponent, Modal, Notice } from "obsidian";
 import type { PublishedFile } from "../core/model";
 import { savedFileActions } from "./fileActions";
+import { disclosure } from "./disclosure";
 
 export class ResultModal extends Modal {
   private saving = false;
@@ -46,12 +47,13 @@ export class ResultModal extends Modal {
       cls: "page-foundry-result-actions",
     });
     if (this.output.proofReport) {
-      this.contentEl.createEl("pre", {
+      const proof = disclosure(this.contentEl, "Print proof details");
+      proof.createEl("pre", {
         text: this.output.proofReport,
         cls: "page-foundry-preflight",
       });
       if (typeof globalThis.navigator?.clipboard?.writeText === "function")
-        new ButtonComponent(actions)
+        new ButtonComponent(proof)
           .setButtonText("Copy print proof report")
           .onClick(async () => {
             try {
