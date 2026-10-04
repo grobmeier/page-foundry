@@ -57,15 +57,21 @@ The distinctive combination is:
 
 User feedback on 4 October 2026: the current controls, reports and technical
 book entries are too complex for everyday use. Before expanding print
-capabilities, agree the proposed simple-Create specification and implement small
-usability slices: a purpose-first searchable template picker, Create/Create
-recent, frequently used templates first, optional reports with visible blockers,
+capabilities, the agreed simple-Create milestone implements small usability
+slices: a purpose-first searchable template picker, Create/Create recent,
+frequently used templates first, optional reports with visible blockers,
 plain-language book order and visual setup, and a built-in Cheat Sheet. Offer
 named variants of supported layouts, including existing paperback sizes and
 paper choices; do not imply unsupported Amazon formats or upload certification.
 Personal designs continue through explicitly configured private packs.
 
-The proposal is awaiting agreement; these workflow changes are not implemented.
+Agreed, implemented and checked with neutral fixtures on 4 October 2026. Desktop
+checks include template selection, recent layouts, letter PDF creation, visual
+book creation/editing/reordering, paperback PDF/EPUB creation, collapsed reports
+and the built-in Cheat Sheet. The focused
+[Simple Create test plan](../testing/simple-create.md) covers remaining owner
+and physical-device acceptance. The book form hides IDs; its underlying Markdown
+retains stable IDs and the version marker for compatibility.
 
 ### Completed on desktop. Make exported files easy to find and use
 

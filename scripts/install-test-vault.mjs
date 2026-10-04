@@ -23,6 +23,10 @@ await cp(
   resolve("docs/testing/paperback-proof.md"),
   resolve(root, "Paperback proof test plan.md"),
 );
+await cp(
+  resolve("docs/testing/simple-create.md"),
+  resolve(root, "Simple Create test plan.md"),
+);
 await Promise.all(
   ["main.js", "manifest.json", "styles.css"].map((file) =>
     cp(resolve(file), resolve(pluginDirectory, file)),

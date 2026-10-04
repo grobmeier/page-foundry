@@ -96,6 +96,9 @@ performance and sharing checks remain pending.
 
 ## Ordered books
 
+Start with the [short Create test plan](docs/testing/simple-create.md) to try
+letters, recent templates, visual book setup and paperback/EPUB output.
+
 For the everyday workflow, run **Page Foundry: Set up book**. Add the notes in
 reading order and save the plan, then run **Create** to choose a book template.
 Open an existing plan and run **Set up book** to edit it. The form manages the
