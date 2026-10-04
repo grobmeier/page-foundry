@@ -58,8 +58,7 @@ export function templateLibrary(
           ...layout,
           key: templateKey(layout),
           name: label,
-          search:
-            `${label} ${preset.description} ${preset.packName} ${extra}`.toLowerCase(),
+          search: `${label} ${preset.packName} ${extra}`.toLowerCase(),
         });
       };
       if (output.recipe === "paperback-interior") {
@@ -154,7 +153,11 @@ export function rankTemplates(
       return (
         (!recent ? (right?.uses ?? 0) - (left?.uses ?? 0) : 0) ||
         (right?.lastUsed ?? 0) - (left?.lastUsed ?? 0) ||
-        a.name.localeCompare(b.name) ||
+        a.name
+          .replace(" · next-page chapters", "")
+          .localeCompare(b.name.replace(" · next-page chapters", "")) ||
+        Number(b.printOptions?.recto ?? true) -
+          Number(a.printOptions?.recto ?? true) ||
         a.key.localeCompare(b.key)
       );
     });

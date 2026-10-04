@@ -33,9 +33,20 @@ it("offers supported purpose-first variants and filters note/book layouts", () =
   assert.equal(print.filter((t) => t.printOptions!.recto).length, 6);
   assert.equal(print.filter((t) => !t.printOptions!.recto).length, 6);
   assert.equal(searchTemplates(books, "amazon 6x9 cream").length, 2);
+  assert.equal(
+    searchTemplates(rankTemplates(books, []), "amazon 6x9 cream")[0]!
+      .printOptions!.recto,
+    true,
+  );
   assert.equal(searchTemplates(notes, "Manuscript US Letter DOCX").length, 1);
   assert.equal(searchTemplates(notes, "general-manuscript").length, 0);
   assert.equal(searchTemplates(notes, "no such template").length, 0);
+  assert.deepEqual(
+    searchTemplates(notes, "letter pdf a4")
+      .map((t) => t.preset)
+      .sort(),
+    ["letter", "submission-letter"],
+  );
 });
 it("ranks by usage then recency; recent excludes unavailable and incompatible templates", () => {
   const library = templateLibrary(CORE_CATALOG, false);
