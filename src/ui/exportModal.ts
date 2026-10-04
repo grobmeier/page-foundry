@@ -17,6 +17,7 @@ import {
   type PresetCatalog,
 } from "../packs/model";
 import { preflight, reportText, type PreflightReport } from "../core/preflight";
+import { DEFAULT_PRINT_OPTIONS, PRINT_TRIMS } from "../print/model";
 
 export type Destination = "vault" | "share";
 
@@ -39,6 +40,7 @@ export class ExportModal extends Modal {
     super(app);
     this.choice = {
       ...initial,
+      printOptions: { ...(initial.printOptions ?? DEFAULT_PRINT_OPTIONS) },
       metadata: initial.metadata ? { ...initial.metadata } : undefined,
     };
     this.selectPreset(false);
@@ -48,6 +50,8 @@ export class ExportModal extends Modal {
     const compatible = this.catalog.presets.filter(
       (p) =>
         p.outputs[this.choice.format] &&
+        (this.review.document.book ||
+          p.outputs[this.choice.format]?.recipe !== "paperback-interior") &&
         (!this.review.document.book ||
           p.outputs[this.choice.format]?.recipe !== "letter"),
     );
@@ -88,6 +92,7 @@ export class ExportModal extends Modal {
       resourceErrors: this.review.errors,
       resourceWarnings: this.review.warnings,
       packError: this.catalog.error,
+      printOptions: this.choice.printOptions,
     });
   }
 
@@ -156,6 +161,8 @@ export class ExportModal extends Modal {
       for (const preset of this.catalog.presets.filter(
         (p) =>
           p.outputs[this.choice.format] &&
+          (this.review.document.book ||
+            p.outputs[this.choice.format]?.recipe !== "paperback-interior") &&
           (!this.review.document.book ||
             p.outputs[this.choice.format]?.recipe !== "letter"),
       )) {
@@ -173,7 +180,50 @@ export class ExportModal extends Modal {
       });
     });
 
-    if (this.choice.format !== "epub") {
+    const print =
+      this.choice.format === "pdf" &&
+      choosePreset(this.catalog, this.choice.preset, "pdf").outputs.pdf
+        ?.recipe === "paperback-interior";
+    if (print) {
+      new Setting(this.contentEl)
+        .setName("Paperback trim")
+        .addDropdown((dropdown) => {
+          for (const [id, trim] of Object.entries(PRINT_TRIMS))
+            dropdown.addOption(id, trim.label);
+          return dropdown
+            .setValue(this.choice.printOptions!.trim)
+            .onChange((value) => {
+              this.choice.printOptions!.trim =
+                value as keyof typeof PRINT_TRIMS;
+              this.render();
+            });
+        });
+      new Setting(this.contentEl)
+        .setName("Paper (black ink)")
+        .addDropdown((dropdown) =>
+          dropdown
+            .addOption("white", "White")
+            .addOption("cream", "Cream")
+            .setValue(this.choice.printOptions!.paper)
+            .onChange((value) => {
+              this.choice.printOptions!.paper = value as "white" | "cream";
+              this.render();
+            }),
+        );
+      new Setting(this.contentEl)
+        .setName("Part/chapter starts")
+        .addDropdown((dropdown) =>
+          dropdown
+            .addOption("recto", "Right-hand page")
+            .addOption("next", "Next page")
+            .setValue(this.choice.printOptions!.recto ? "recto" : "next")
+            .onChange((value) => {
+              this.choice.printOptions!.recto = value === "recto";
+              this.render();
+            }),
+        );
+    }
+    if (this.choice.format !== "epub" && !print) {
       new Setting(this.contentEl).setName("Page size").addDropdown((dropdown) =>
         dropdown
           .addOption("a4", "A4")
@@ -198,8 +248,9 @@ export class ExportModal extends Modal {
       text: `${preset.description} Pack: ${preset.packName} ${preset.packVersion}. Recipe: ${output.recipe}.`,
     });
     this.contentEl.createEl("p", {
-      text:
-        this.choice.format === "epub"
+      text: print
+        ? `${PRINT_TRIMS[this.choice.printOptions!.trim].label}; no bleed; mirrored margins; inside gutter measured after pagination, at least 0.5 in; outside 0.5 in; top/bottom 0.75 in. Style margin overrides do not apply to this recipe.`
+        : this.choice.format === "epub"
           ? `Reflowable; reader settings may override ${style.font ?? "serif"} type and ${style.lineSpacing ?? 1.5} line spacing.`
           : `${this.choice.profile === "a4" ? "A4" : "US Letter"}; ${style.font ?? (this.choice.format === "pdf" ? "Libertinus Serif" : output.recipe === "general-manuscript" ? "Times New Roman" : "editor default")}; ${style.bodySizePt ?? (output.recipe.includes("manuscript") ? 12 : this.choice.format === "pdf" ? 11 : "default")} pt; margins ${style.marginXmm ?? (this.choice.format === "pdf" && output.recipe !== "manuscript" ? 25 : 25.4)} × ${style.marginYmm ?? (this.choice.format === "pdf" && output.recipe !== "manuscript" ? 24 : 25.4)} mm; line spacing ${style.lineSpacing ?? (output.recipe.includes("manuscript") ? 2 : "recipe default")}.`,
     });

@@ -44,6 +44,7 @@ import { reviewVaultImages } from "./vault/images";
 import type { ImageReview } from "./core/images";
 import { preflight } from "./core/preflight";
 import { reviewVaultBook } from "./vault/books";
+import { DEFAULT_PRINT_OPTIONS } from "./print/model";
 
 export default class PageFoundryPlugin extends Plugin {
   settings: PageFoundrySettings = { ...DEFAULT_SETTINGS };
@@ -215,6 +216,7 @@ export default class PageFoundryPlugin extends Plugin {
         metadata: values,
         resourceErrors: fresh.errors,
         resourceWarnings: fresh.warnings,
+        printOptions: choice.printOptions,
       });
       const blockers = report.findings.filter(
         (finding) => finding.severity === "blocker",
@@ -281,6 +283,11 @@ export default class PageFoundryPlugin extends Plugin {
   ): Promise<PublishedFile> {
     switch (choice.format) {
       case "pdf":
+        if (choice.preset === "paperback-interior")
+          return this.pdfRenderer.renderPrint(
+            document,
+            choice.printOptions ?? DEFAULT_PRINT_OPTIONS,
+          );
         return {
           bytes: await this.pdfRenderer.render(
             document,

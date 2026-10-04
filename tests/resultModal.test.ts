@@ -66,7 +66,11 @@ class Adapter {
   }
 }
 
-function setup(desktop = false, sharing = "supported") {
+function setup(
+  desktop = false,
+  sharing = "supported",
+  clipboard?: { writeText(value: string): Promise<void> },
+) {
   const notices: string[] = [];
   const opened: string[] = [];
   const revealed: string[] = [];
@@ -93,6 +97,7 @@ function setup(desktop = false, sharing = "supported") {
     DOMException,
     File,
     navigator: {
+      clipboard,
       canShare:
         sharing === "unchecked"
           ? undefined
@@ -137,7 +142,11 @@ function setup(desktop = false, sharing = "supported") {
       throw new Error(name);
     },
   });
-  const create = (save: () => Promise<string>, path?: string) => {
+  const create = (
+    save: () => Promise<string>,
+    path?: string,
+    proofReport?: string,
+  ) => {
     const modal = new module.exports.ResultModal(
       { vault: { adapter: new Adapter() } },
       "Draft.epub",
@@ -145,6 +154,7 @@ function setup(desktop = false, sharing = "supported") {
         bytes: new Uint8Array([1]),
         extension: "epub",
         mediaType: "application/epub+zip",
+        proofReport,
       },
       save,
       path,
@@ -171,6 +181,42 @@ function button(modal: { contentEl: Element }, label: string): Element {
 }
 
 describe("export result", () => {
+  it("shows the measured proof and copies it only on explicit request", async () => {
+    const copied: string[] = [];
+    const host = setup(false, "missing", {
+      async writeText(value) {
+        copied.push(value);
+      },
+    });
+    const modal = host.create(
+      async () => "unused",
+      "Draft.pdf",
+      "Measured neutral proof",
+    );
+    assert.ok(
+      modal.contentEl
+        .descendants()
+        .some((element) => element.text === "Measured neutral proof"),
+    );
+    assert.equal(copied.length, 0);
+    await button(modal, "Copy print proof report").click();
+    assert.deepEqual(copied, ["Measured neutral proof"]);
+    assert.ok(host.notices.includes("Print proof report copied."));
+    const failed = setup(false, "missing", {
+      async writeText() {
+        throw new Error("Unavailable");
+      },
+    });
+    const failedModal = failed.create(
+      async () => "unused",
+      "Draft.pdf",
+      "Measured neutral proof",
+    );
+    await button(failedModal, "Copy print proof report").click();
+    assert.ok(
+      failed.notices.some((notice) => notice.includes("Could not copy")),
+    );
+  });
   for (const sharing of ["missing", "unchecked", "rejected", "throws"]) {
     it(`hides unsupported sharing (${sharing}) while keeping desktop file actions`, async () => {
       const host = setup(true, sharing);

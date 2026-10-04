@@ -200,6 +200,23 @@ function setup(
 }
 
 describe("image review dialog", () => {
+  it("offers print controls only for the book PDF recipe and keeps options export-only", () => {
+    const host = setup([], "A neutral chapter.", undefined, true);
+    host.controls.get("Preset")!("paperback-interior");
+    assert.ok(host.controls.has("Paperback trim"));
+    host.controls.get("Paperback trim")!("5x8");
+    host.controls.get("Paper (black ink)")!("cream");
+    host.controls.get("Part/chapter starts")!("next");
+    assert.ok(host.text.some((value) => value.includes("5 × 8 in")));
+    host.button("Create PDF").click();
+    assert.equal(host.published[0]!.printOptions!.trim, "5x8");
+    assert.equal(host.published[0]!.printOptions!.paper, "cream");
+    assert.equal(host.published[0]!.printOptions!.recto, false);
+    assert.equal(host.published[0]!.metadata!.trim, undefined);
+    host.controls.get("Output format")!("epub");
+    host.button("Create EPUB").click();
+    assert.notEqual(host.published.at(-1)!.preset, "paperback-interior");
+  });
   it("shows book inclusion order and refresh without retaining a letter preset", () => {
     const host = setup([], "A neutral chapter.", undefined, true);
     assert.ok(host.text.includes("Publish current book"));

@@ -45,6 +45,27 @@ export class ResultModal extends Modal {
     const actions = this.contentEl.createDiv({
       cls: "page-foundry-result-actions",
     });
+    if (this.output.proofReport) {
+      this.contentEl.createEl("pre", {
+        text: this.output.proofReport,
+        cls: "page-foundry-preflight",
+      });
+      if (typeof globalThis.navigator?.clipboard?.writeText === "function")
+        new ButtonComponent(actions)
+          .setButtonText("Copy print proof report")
+          .onClick(async () => {
+            try {
+              await globalThis.navigator.clipboard.writeText(
+                this.output.proofReport!,
+              );
+              new Notice("Print proof report copied.");
+            } catch {
+              new Notice(
+                "Could not copy the print proof report. The PDF is still available.",
+              );
+            }
+          });
+    }
 
     const shareFile = new File(
       [this.output.bytes.slice().buffer],
