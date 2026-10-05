@@ -12,9 +12,10 @@ export async function saveBookPlan(
   path: string,
   book: BookManifest,
   snapshot?: BookPlanSnapshot,
+  convert = false,
 ): Promise<TFile> {
   const desired = bookPlanPath(path);
-  const source = serializeBookPlan(book, snapshot?.source);
+  const source = serializeBookPlan(book, snapshot?.source, convert);
   for (const entry of book.entries) {
     if (!entry.path?.trim()) continue;
     if (entry.path.trim() === desired)
