@@ -12,8 +12,8 @@ export class TemplateModal extends SuggestModal<Template> {
     this.modalEl.addClass("page-foundry-template-picker");
     this.setPlaceholder(
       recent
-        ? "Recent templates — search by name, size or format"
-        : "Create — search letter, manuscript, EPUB, Amazon, size…",
+        ? "Recent output presets — search by name, size or format"
+        : "Publish — search letter, manuscript, EPUB, Amazon, size…",
     );
     this.setInstructions([
       { command: "↑↓", purpose: "choose a template" },

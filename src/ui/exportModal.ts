@@ -111,12 +111,12 @@ export class ExportModal extends Modal {
     this.contentEl.empty();
     this.contentEl.createEl("h2", {
       text: this.review.document.book
-        ? "Create from this book"
-        : "Create from this note",
+        ? "Publish this book"
+        : "Publish this note",
     });
     if (this.onTemplates)
       new Setting(this.contentEl).addButton((button) =>
-        button.setButtonText("Change template").onClick(() => {
+        button.setButtonText("Change output preset").onClick(() => {
           this.close();
           this.onTemplates!();
         }),
@@ -349,7 +349,11 @@ export class ExportModal extends Modal {
         this.choice.metadata![field.key] = value;
         updateChecks();
       };
-      if (field.key === "from" || field.key === "to")
+      if (
+        field.key === "from" ||
+        field.key === "to" ||
+        field.key.endsWith("-address")
+      )
         setting.addTextArea((text) =>
           text
             .setValue(this.choice.metadata![field.key] ?? "")

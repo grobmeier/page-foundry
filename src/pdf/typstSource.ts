@@ -63,8 +63,22 @@ function renderTitle(document: FoundryDocument): string {
 }
 
 function renderLetterOpening(document: FoundryDocument): string {
-  const from = document.metadata.from ?? document.metadata.author ?? "";
-  const to = document.metadata.to ?? "";
+  const from =
+    [document.metadata["sender-name"], document.metadata["sender-address"]]
+      .filter(Boolean)
+      .join("\n") ||
+    document.metadata.from ||
+    document.metadata.author ||
+    "";
+  const to =
+    [
+      document.metadata["recipient-name"],
+      document.metadata["recipient-address"],
+    ]
+      .filter(Boolean)
+      .join("\n") ||
+    document.metadata.to ||
+    "";
   const date = document.metadata.date ?? "";
   const subject = document.metadata.subject ?? document.title;
   return [
@@ -75,6 +89,9 @@ function renderLetterOpening(document: FoundryDocument): string {
     "#v(6mm)",
     subject ? `#strong[${renderText(subject)}]` : "",
     "#v(5mm)",
+    document.metadata.salutation
+      ? `${renderText(document.metadata.salutation)}\n#v(3mm)`
+      : "",
   ]
     .filter(Boolean)
     .join("\n");

@@ -221,7 +221,7 @@ describe("image review dialog", () => {
   });
   it("shows book inclusion order and refresh without retaining a letter preset", () => {
     const host = setup([], "A neutral chapter.", undefined, true);
-    assert.ok(host.text.includes("Create from this book"));
+    assert.ok(host.text.includes("Publish this book"));
     assert.ok(host.text.includes("1. Chapter One · Chapter"));
     assert.ok(host.text.includes("2. Part Two · Part"));
     host.button("Create PDF").click();
@@ -279,7 +279,7 @@ describe("image review dialog", () => {
     host.controls.get("Preset")!("submission-letter");
     assert.equal(host.button("Create PDF").disabled, true);
     host.controls.get("Author")!("Alex Example");
-    host.controls.get("Recipient")!("Jamie Example");
+    host.controls.get("Recipient name")!("Jamie Example");
     host.controls.get("Subject")!("Export only subject");
     assert.equal(host.button("Create PDF").disabled, false);
     host.controls.get("Preset")!("letter");

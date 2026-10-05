@@ -25,6 +25,11 @@ export const METADATA_KEYS = [
   "date",
   "subject",
   "closing",
+  "sender-name",
+  "sender-address",
+  "recipient-name",
+  "recipient-address",
+  "salutation",
 ] as const;
 export interface MetadataField {
   key: string;
@@ -323,6 +328,7 @@ export function initialMetadata(
     preset.metadata.map((field) => [
       field.key,
       document.metadata[field.key] ??
+        (field.key === "recipient-name" ? document.metadata.to : undefined) ??
         (field.key === "title"
           ? document.title
           : field.key === "language"
