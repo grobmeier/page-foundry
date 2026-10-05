@@ -57,6 +57,22 @@ import { isBookPlan } from "./books/manifest";
 import { editableBook, newBookEntry } from "./books/editor";
 import { BookModal } from "./ui/bookModal";
 import { saveBookPlan } from "./vault/bookPlan";
+import {
+  NOTE_TEMPLATES,
+  createNoteSource,
+  noteProperties,
+  updateNoteDetails,
+  cleanNoteHistory,
+  rememberNoteTemplate,
+} from "./notes/model";
+import { NoteModal, NoteTemplateModal } from "./ui/noteModal";
+import { createNote, saveNoteDetails } from "./vault/notes";
+import { loadNoteTemplates, confirmNoteTemplate } from "./vault/noteTemplates";
+import { expandNoteTemplate } from "./notes/templates";
+import { SaveTemplateModal } from "./ui/saveTemplateModal";
+import { PresetEditorModal } from "./ui/presetEditorModal";
+import { readEditablePack, saveEditablePack } from "./vault/presetEditor";
+import { bookLivePreview } from "./ui/bookLivePreview";
 
 export default class PageFoundryPlugin extends Plugin {
   settings: PageFoundrySettings = { ...DEFAULT_SETTINGS };
@@ -64,6 +80,7 @@ export default class PageFoundryPlugin extends Plugin {
 
   async onload(): Promise<void> {
     await this.loadSettings();
+    this.registerEditorExtension(bookLivePreview());
     this.addSettingTab(new PageFoundrySettingTab(this.app, this));
     this.addCommand({
       id: "set-up-book",
@@ -81,13 +98,13 @@ export default class PageFoundryPlugin extends Plugin {
     });
     for (const recent of [false, true])
       this.addCommand({
-        id: recent ? "create-recent" : "create",
-        name: recent ? "Create recent" : "Create",
+        id: recent ? "publish-recent" : "publish",
+        name: recent ? "Publish recent" : "Publish",
         checkCallback: (checking) => {
           const file = this.app.workspace.getActiveFile();
           if (file?.extension !== "md") return false;
           if (!checking)
-            void this.openCreate(file, recent).catch(
+            void this.openPublishPicker(file, recent).catch(
               (error) =>
                 new Notice(
                   error instanceof Error
@@ -98,10 +115,93 @@ export default class PageFoundryPlugin extends Plugin {
           return true;
         },
       });
+    for (const recent of [false, true])
+      this.addCommand({
+        id: recent ? "create-recent" : "create",
+        name: recent ? "Create recent" : "Create new note",
+        callback: () => {
+          void this.openNewNote(recent).catch(
+            (error) =>
+              new Notice(
+                error instanceof Error
+                  ? error.message
+                  : "Could not open note templates.",
+              ),
+          );
+        },
+      });
+    this.addCommand({
+      id: "edit-document-details",
+      name: "Edit document details",
+      checkCallback: (checking) => {
+        const file = this.app.workspace.getActiveFile();
+        if (file?.extension !== "md") return false;
+        if (!checking)
+          void this.openNoteDetails(file).catch(
+            (error) =>
+              new Notice(
+                error instanceof Error
+                  ? error.message
+                  : "Could not open document details.",
+              ),
+          );
+        return true;
+      },
+    });
+    this.addCommand({
+      id: "convert-book-plan",
+      name: "Convert to readable book plan",
+      checkCallback: (checking) => {
+        const file = this.app.workspace.getActiveFile();
+        if (file?.extension !== "md") return false;
+        if (!checking)
+          void this.openBookSetup(true).catch(
+            (error) =>
+              new Notice(
+                error instanceof Error
+                  ? error.message
+                  : "Could not convert this plan.",
+              ),
+          );
+        return true;
+      },
+    });
+    this.addCommand({
+      id: "save-note-template",
+      name: "Save as note template",
+      checkCallback: (checking) => {
+        const file = this.app.workspace.getActiveFile();
+        if (file?.extension !== "md") return false;
+        if (!checking)
+          void this.openSaveTemplate(file).catch(
+            (error) =>
+              new Notice(
+                error instanceof Error
+                  ? error.message
+                  : "Could not open template preview.",
+              ),
+          );
+        return true;
+      },
+    });
     this.addCommand({
       id: "cheat-sheet",
       name: "Cheat Sheet",
       callback: () => new CheatSheetModal(this.app).open(),
+    });
+    this.addCommand({
+      id: "manage-output-presets",
+      name: "Manage output presets",
+      callback: () => {
+        void this.openPresetEditor().catch(
+          (error) =>
+            new Notice(
+              error instanceof Error
+                ? error.message
+                : "Could not open output presets.",
+            ),
+        );
+      },
     });
     this.addCommand({
       id: "publish-current-book",
@@ -147,6 +247,10 @@ export default class PageFoundryPlugin extends Plugin {
       ...DEFAULT_SETTINGS,
       ...stored,
       templateHistory: cleanTemplateHistory(stored?.templateHistory),
+      noteTemplateHistory: cleanNoteHistory(stored?.noteTemplateHistory),
+      noteTemplatePaths: Array.isArray(stored?.noteTemplatePaths)
+        ? stored.noteTemplatePaths
+        : [],
       lastPdfPreset:
         stored?.lastPdfPreset ??
         stored?.lastPreset ??
@@ -158,7 +262,237 @@ export default class PageFoundryPlugin extends Plugin {
     await this.saveData(this.settings);
   }
 
-  private async openCreate(file: TFile, recent = false): Promise<void> {
+  async openPresetEditor(): Promise<void> {
+    const configuredPath = this.settings.packManifestPath.trim();
+    const snapshot = configuredPath
+      ? await readEditablePack(this.app.vault, configuredPath)
+      : undefined;
+    new PresetEditorModal(
+      this.app,
+      snapshot?.pack,
+      configuredPath || "My output presets.json",
+      async (path, source) => {
+        if (this.settings.packManifestPath.trim() !== configuredPath)
+          throw new Error(
+            "The configured output pack changed. Reopen Manage output presets.",
+          );
+        await saveEditablePack(this.app.vault, path, source, snapshot);
+        this.settings.packManifestPath = path.trim();
+        try {
+          await this.saveSettings();
+          new Notice("Private output preset saved. Choose it in Publish.");
+        } catch {
+          new Notice(
+            `Output preset saved at ${path}, but its configuration could not be saved. Set that pack path in settings.`,
+          );
+        }
+      },
+    ).open();
+  }
+
+  private async openNewNote(recent = false): Promise<void> {
+    const custom = await loadNoteTemplates(
+      this.app.vault,
+      this.settings.noteTemplatePaths,
+    );
+    const history = this.settings.noteTemplateHistory;
+    let templates = [...NOTE_TEMPLATES, ...custom.map((t) => t.template)].sort(
+      (a, b) => {
+        const aa = history.find((h) => h.key === a.id),
+          bb = history.find((h) => h.key === b.id);
+        return (
+          (bb?.uses ?? 0) - (aa?.uses ?? 0) ||
+          (bb?.lastUsed ?? 0) - (aa?.lastUsed ?? 0)
+        );
+      },
+    );
+    if (recent) {
+      const filtered = templates.filter((t) =>
+        history.some((h) => h.key === t.id),
+      );
+      if (filtered.length) templates = filtered;
+      else new Notice("No recent note templates yet. Choose one to begin.");
+    }
+    new NoteTemplateModal(this.app, templates, (template) => {
+      const title =
+        template.defaults.title && !template.defaults.title.includes("{{")
+          ? template.defaults.title
+          : template.name;
+      const fields = {
+        title,
+        author: template.defaults.author?.includes("{{")
+          ? ""
+          : (template.defaults.author ?? ""),
+        language:
+          template.defaults.language &&
+          !template.defaults.language.includes("{{")
+            ? template.defaults.language
+            : this.settings.defaultLanguage,
+        date:
+          template.defaults.date && !template.defaults.date.includes("{{")
+            ? template.defaults.date
+            : new Date().toISOString().slice(0, 10),
+      };
+      const initial: Record<string, string> = {
+        ...expandNoteTemplate(template, fields).defaults,
+        ...fields,
+      };
+      if (
+        !template.kind.includes("letter") &&
+        !Object.hasOwn(template.defaults, "date")
+      )
+        delete initial.date;
+      new NoteModal(
+        this.app,
+        template,
+        initial,
+        this.settings.noteFolder,
+        template.kind === "book" ? "My Book.book.md" : `${template.name}.md`,
+        false,
+        async (path, values, folders) => {
+          const selected = custom.find((t) => t.template.id === template.id);
+          if (selected) {
+            if (!this.settings.noteTemplatePaths.includes(selected.path))
+              throw new Error(
+                "This note template is no longer registered. Reopen Create new note.",
+              );
+            await confirmNoteTemplate(this.app.vault, selected);
+          }
+          const file = await createNote(
+            this.app.vault,
+            path,
+            createNoteSource(
+              expandNoteTemplate(template, { date: fields.date, ...values }),
+              values,
+            ),
+            folders,
+          );
+          new Notice(
+            `Note created: ${file.path}. Publish it when you are ready.`,
+          );
+          this.settings.noteTemplateHistory = rememberNoteTemplate(
+            this.settings.noteTemplateHistory,
+            template.id,
+          );
+          try {
+            await this.saveSettings();
+          } catch {
+            new Notice(
+              "The note was created, but its template history could not be saved.",
+            );
+          }
+          try {
+            await this.app.workspace.openLinkText(file.path, "");
+          } catch {
+            new Notice(`Open ${file.path} to continue writing.`);
+          }
+        },
+      ).open();
+    }).open();
+  }
+
+  private async openSaveTemplate(file: TFile): Promise<void> {
+    const originalPath = file.path,
+      source = await this.app.vault.read(file);
+    new SaveTemplateModal(
+      this.app,
+      source,
+      `${file.basename} template.md`,
+      async (path, templateSource) => {
+        if (this.settings.noteTemplatePaths.length >= 30)
+          throw new Error(
+            "At most 30 note templates can be registered. Remove one in settings first.",
+          );
+        if (
+          file.path !== originalPath ||
+          this.app.vault.getAbstractFileByPath(originalPath) !== file ||
+          (await this.app.vault.read(file)) !== source
+        )
+          throw new Error(
+            "The source note changed. Reopen Save as note template to review its latest content.",
+          );
+        const template = await createNote(
+          this.app.vault,
+          path.trim(),
+          templateSource,
+        );
+        this.settings.noteTemplatePaths = [
+          ...this.settings.noteTemplatePaths,
+          template.path,
+        ];
+        try {
+          await this.saveSettings();
+          new Notice(
+            `Private note template saved and registered: ${template.path}. Edit that Markdown file to change it.`,
+          );
+        } catch {
+          new Notice(
+            `Template saved at ${template.path}, but registration could not be saved. Add its exact path in settings.`,
+          );
+        }
+      },
+    ).open();
+  }
+
+  private async openNoteDetails(file: TFile): Promise<void> {
+    const path = file.path;
+    const source = await this.app.vault.read(file);
+    if (isBookPlan(source, file.basename)) {
+      await this.openBookSetup(false, file);
+      return;
+    }
+    const values = noteProperties(source);
+    const kind =
+      values.document ??
+      (values.from || values.to || values.subject ? "letter" : "plain");
+    const template =
+      NOTE_TEMPLATES.find((t) => t.kind === kind) ?? NOTE_TEMPLATES.at(-1)!;
+    if (
+      values.document &&
+      !NOTE_TEMPLATES.some((t) => t.kind === values.document)
+    )
+      throw new Error(
+        "This note has an unsupported document type. Edit its document property explicitly before using this details form; publishing ordinary notes is still available.",
+      );
+    const legacyLetter =
+      kind.includes("letter") && Boolean(values.from || values.to);
+    if (legacyLetter)
+      for (const [old, prefix] of [
+        ["from", "sender"],
+        ["to", "recipient"],
+      ]) {
+        if (
+          values[old!] &&
+          !Object.hasOwn(values, `${prefix}-name`) &&
+          !Object.hasOwn(values, `${prefix}-address`)
+        ) {
+          const [name, ...address] = values[old!]!.split(/\r?\n/);
+          values[`${prefix}-name`] = name!;
+          values[`${prefix}-address`] = address.join("\n");
+        }
+      }
+    new NoteModal(
+      this.app,
+      template,
+      { ...values, title: values.title ?? file.basename },
+      "",
+      file.path,
+      true,
+      async (_path, details) => {
+        await saveNoteDetails(
+          this.app.vault,
+          file,
+          path,
+          source,
+          updateNoteDetails(source, template.kind, details, legacyLetter),
+        );
+        new Notice("Document details saved in your note.");
+      },
+      legacyLetter,
+    ).open();
+  }
+
+  private async openPublishPicker(file: TFile, recent = false): Promise<void> {
     const source = await this.app.vault.cachedRead(file);
     const book = isBookPlan(source, file.basename);
     const catalog = await loadVaultPacks(
@@ -173,7 +507,7 @@ export default class PageFoundryPlugin extends Plugin {
     );
     if (!templates.length && recent) {
       new Notice(
-        "No recent templates for this note or book yet. Choose a template to get started.",
+        "No recent output presets for this note or book yet. Choose a preset to get started.",
       );
       templates = rankTemplates(library, this.settings.templateHistory);
     }
@@ -208,8 +542,8 @@ export default class PageFoundryPlugin extends Plugin {
     ).open();
   }
 
-  private async openBookSetup(): Promise<void> {
-    const active = this.app.workspace.getActiveFile();
+  private async openBookSetup(convert = false, target?: TFile): Promise<void> {
+    const active = target ?? this.app.workspace.getActiveFile();
     const source =
       active?.extension === "md"
         ? await this.app.vault.read(active)
@@ -218,6 +552,8 @@ export default class PageFoundryPlugin extends Plugin {
       source !== undefined && active && isBookPlan(source, active.basename),
     );
     const book = editableBook(editing ? source : undefined);
+    if (convert && (!editing || !source?.includes("page-foundry-book:")))
+      throw new Error("Open an existing YAML book plan before converting it.");
     if (!editing) {
       book.metadata.language = this.settings.defaultLanguage;
       if (active?.extension === "md")
@@ -233,8 +569,14 @@ export default class PageFoundryPlugin extends Plugin {
       snapshot?.file.path ?? "My Book.book.md",
       editing,
       async (path, draft) => {
-        const file = await saveBookPlan(this.app.vault, path, draft, snapshot);
-        new Notice("Book plan saved. Use Page Foundry: Create to publish it.");
+        const file = await saveBookPlan(
+          this.app.vault,
+          path,
+          draft,
+          snapshot,
+          convert,
+        );
+        new Notice("Book plan saved. Use Page Foundry: Publish when ready.");
         try {
           await this.app.workspace.openLinkText(file.path, "");
         } catch {
@@ -243,6 +585,7 @@ export default class PageFoundryPlugin extends Plugin {
           );
         }
       },
+      convert,
     ).open();
   }
 
@@ -297,7 +640,7 @@ export default class PageFoundryPlugin extends Plugin {
       },
       catalog,
       () => {
-        void this.openCreate(file).catch(
+        void this.openPublishPicker(file).catch(
           (error) =>
             new Notice(
               error instanceof Error

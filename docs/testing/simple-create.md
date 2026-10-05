@@ -1,5 +1,9 @@
 # Try the simpler Page Foundry workflow
 
+This historical checklist covers the superseded export-only Create workflow. Use
+[Authoring templates test plan](authoring-templates.md) for the current Create
+new note, saved details, Publish and custom-template commands.
+
 Use the isolated development vault, not a personal vault. Rebuild/install with
 `npm run test-vault`, then reload Page Foundry or reopen this test vault.
 

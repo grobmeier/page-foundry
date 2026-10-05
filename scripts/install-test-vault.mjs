@@ -7,12 +7,17 @@ import { cp, mkdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { fixtureJpeg, fixturePng } from "../tests/fixtures/images.ts";
 import { bookManifest, bookNotes } from "../tests/fixtures/book.ts";
+import { editableBook, serializeBookPlan } from "../src/books/editor.ts";
 
 const root = resolve(".test-vault");
 const pluginDirectory = resolve(root, ".obsidian/plugins/page-foundry");
 await mkdir(pluginDirectory, { recursive: true });
 await mkdir(resolve(root, "Book"), { recursive: true });
 await writeFile(resolve(root, "A Neutral Journey.book.md"), bookManifest);
+await writeFile(
+  resolve(root, "Readable Journey.book.md"),
+  serializeBookPlan(editableBook(bookManifest)),
+);
 for (const [path, source] of Object.entries(bookNotes))
   await writeFile(resolve(root, path), source);
 await cp(
@@ -26,6 +31,14 @@ await cp(
 await cp(
   resolve("docs/testing/simple-create.md"),
   resolve(root, "Simple Create test plan.md"),
+);
+await cp(
+  resolve("docs/testing/authoring-templates.md"),
+  resolve(root, "Authoring templates test plan.md"),
+);
+await cp(
+  resolve("docs/note-templates.md"),
+  resolve(root, "Note templates guide.md"),
 );
 await Promise.all(
   ["main.js", "manifest.json", "styles.css"].map((file) =>

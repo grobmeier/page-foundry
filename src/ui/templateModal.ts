@@ -16,7 +16,7 @@ export class TemplateModal extends SuggestModal<Template> {
         : "Publish — search letter, manuscript, EPUB, Amazon, size…",
     );
     this.setInstructions([
-      { command: "↑↓", purpose: "choose a template" },
+      { command: "↑↓", purpose: "choose an output preset" },
       { command: "↵", purpose: "continue" },
       { command: "esc", purpose: "cancel" },
     ]);

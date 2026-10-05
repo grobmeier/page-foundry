@@ -15,6 +15,8 @@ import { fixturePng } from "./fixtures/images";
 import { readFileSync } from "node:fs";
 import type { PresetCatalog } from "../src/packs/model";
 import type { Template } from "../src/templates/catalog";
+import type { NoteTemplate } from "../src/notes/model";
+import { noteProperties } from "../src/notes/model";
 
 const code = buildSync({
   entryPoints: ["src/main.ts"],
@@ -30,6 +32,8 @@ const code = buildSync({
     "./ui/exportModal",
     "./ui/resultModal",
     "./ui/templateModal",
+    "./ui/noteModal",
+    "./ui/bookLivePreview",
   ],
 }).outputFiles[0]!.text;
 
@@ -84,8 +88,44 @@ function setup(bookMode = false) {
     templates: Template[];
     choose(template: Template): void;
   }[] = [];
+  const notePickers: {
+    templates: NoteTemplate[];
+    choose(template: NoteTemplate): void;
+  }[] = [];
+  const noteForms: {
+    template: NoteTemplate;
+    values: Record<string, string>;
+    editing: boolean;
+    save(
+      path: string,
+      values: Record<string, string>,
+      folders: boolean,
+    ): Promise<void>;
+  }[] = [];
+  const createdNotes = new Map<string, string>();
+  const opened: string[] = [];
+  const commands: {
+    id: string;
+    callback?: () => void;
+    checkCallback?: (checking: boolean) => boolean;
+  }[] = [];
   const app = {
+    workspace: {
+      getActiveFile: () => null,
+      async openLinkText(path: string) {
+        opened.push(path);
+      },
+    },
     vault: {
+      async create(path: string, source: string) {
+        assert.ok(!createdNotes.has(path));
+        createdNotes.set(path, source);
+        return new File(path, path.replace(/\.md$/, ""));
+      },
+      async process(_file: File, fn: (source: string) => string) {
+        markdown = fn(markdown);
+        return markdown;
+      },
       async cachedRead(file: File) {
         assert.equal(file, note);
         return bookMode ? bookManifest : markdown;
@@ -96,6 +136,7 @@ function setup(bookMode = false) {
       },
       getAbstractFileByPath(path: string) {
         lookups.push(path);
+        if (path === note.path) return note;
         if (bookMode && path === bookNote.path) return bookNote;
         return path === pack.path
           ? pack
@@ -104,6 +145,7 @@ function setup(bookMode = false) {
             : undefined;
       },
       async read(file: File) {
+        if (!bookMode && file === note) return markdown;
         if (bookMode && file === note) {
           reads.push(file.path);
           return bookManifest;
@@ -130,6 +172,14 @@ function setup(bookMode = false) {
   };
   class Plugin {
     app = app;
+    async loadData() {
+      return null;
+    }
+    addSettingTab() {}
+    registerEditorExtension() {}
+    addCommand(command: (typeof commands)[number]) {
+      commands.push(command);
+    }
     async saveData(value: unknown) {
       stored.push(structuredClone(value));
     }
@@ -138,7 +188,10 @@ function setup(bookMode = false) {
     exports: {} as {
       default: new () => {
         settings: { packManifestPath: string };
-        openCreate(file: File, recent?: boolean): Promise<void>;
+        onload(): Promise<void>;
+        openNewNote(recent?: boolean): Promise<void>;
+        openNoteDetails(file: File): Promise<void>;
+        openPublishPicker(file: File, recent?: boolean): Promise<void>;
         openExport(
           file: File,
           choice?: ExportChoice,
@@ -174,6 +227,7 @@ function setup(bookMode = false) {
     require(name: string) {
       if (name.startsWith("node:") || builtinModules.includes(name))
         return nodeRequire(name);
+      if (name === "./ui/bookLivePreview") return { bookLivePreview: () => [] };
       if (name === "obsidian")
         return {
           Plugin,
@@ -235,6 +289,33 @@ function setup(bookMode = false) {
             open() {}
           },
         };
+      if (name === "./ui/noteModal")
+        return {
+          NoteTemplateModal: class {
+            constructor(
+              _app: unknown,
+              templates: NoteTemplate[],
+              choose: (template: NoteTemplate) => void,
+            ) {
+              notePickers.push({ templates, choose });
+            }
+            open() {}
+          },
+          NoteModal: class {
+            constructor(
+              _app: unknown,
+              template: NoteTemplate,
+              values: Record<string, string>,
+              _folder: string,
+              _filename: string,
+              editing: boolean,
+              save: (typeof noteForms)[number]["save"],
+            ) {
+              noteForms.push({ template, values, editing, save });
+            }
+            open() {}
+          },
+        };
       throw new Error(name);
     },
   });
@@ -253,6 +334,11 @@ function setup(bookMode = false) {
     stored,
     templateDialogs,
     firstReview,
+    notePickers,
+    noteForms,
+    createdNotes,
+    opened,
+    commands,
     changeBookNote() {
       bookSource += "\nChanged chapter.";
     },
@@ -292,16 +378,97 @@ function setup(bookMode = false) {
 }
 
 describe("review-to-export image workflow", () => {
-  it("Create recent falls back to a picker without exporting or reading images before selection", async () => {
+  it("creates a book draft without copying the active note or adding irrelevant date properties", async () => {
     const host = setup();
-    await host.plugin.openCreate(host.note, true);
+    await host.plugin.openNewNote();
+    host.notePickers[0]!.choose(
+      host.notePickers[0]!.templates.find((t) => t.kind === "book")!,
+    );
+    const form = host.noteForms[0]!;
+    await form.save("New Book.book.md", form.values, false);
+    const source = host.createdNotes.get("New Book.book.md")!;
+    assert.equal(noteProperties(source).document, "book");
+    assert.equal(noteProperties(source).date, undefined);
+    assert.ok(!source.includes(host.note.path));
+    assert.equal(host.renders.length, 0);
+  });
+  it("offers Create without an active file and prepares one note without exporting or changing the old source", async () => {
+    const host = setup();
+    await host.plugin.onload();
+    const create = host.commands.find((c) => c.id === "create")!;
+    assert.equal(typeof create.callback, "function");
+    assert.equal(create.checkCallback, undefined);
+    await host.plugin.openNewNote();
+    assert.equal(host.notePickers.length, 1);
+    host.notePickers[0]!.choose(
+      host.notePickers[0]!.templates.find((t) => t.kind === "letter")!,
+    );
+    const form = host.noteForms[0]!;
+    const before = host.source();
+    assert.equal(form.editing, false);
+    assert.equal(host.createdNotes.size, 0);
+    await form.save(
+      "New letter.md",
+      {
+        ...form.values,
+        "sender-name": "Alex Example",
+        "sender-address": "12 Sample Street\nExample Town",
+      },
+      false,
+    );
+    assert.equal(host.createdNotes.size, 1);
+    assert.equal(host.source(), before);
+    assert.deepEqual(host.opened, ["New letter.md"]);
+    assert.equal(host.saves.length, 0);
+    assert.equal(host.reviews.length, 0);
+    assert.equal(host.renders.length, 0);
+    assert.equal(
+      noteProperties(host.createdNotes.get("New letter.md")!)["sender-address"],
+      "12 Sample Street\nExample Town",
+    );
+    await host.plugin.openNewNote(true);
+    assert.deepEqual(
+      Array.from(host.notePickers[1]!.templates, (t) => t.id),
+      ["letter"],
+    );
+    assert.ok(!JSON.stringify(host.stored).includes("12 Sample Street"));
+  });
+  it("saves details explicitly, preserves prose and rejects a changed source", async () => {
+    const host = setup();
+    await host.plugin.openNoteDetails(host.note);
+    const form = host.noteForms[0]!,
+      before = host.source();
+    assert.equal(form.editing, true);
+    assert.equal(host.source(), before); // Opening or cancelling has no write callback.
+    await form.save(
+      host.note.path,
+      { ...form.values, title: "Saved title", author: "Alex Example" },
+      false,
+    );
+    assert.equal(noteProperties(host.source()).title, "Saved title");
+    assert.ok(host.source().endsWith(before));
+    await host.plugin.openNoteDetails(host.note);
+    host.changeNote();
+    const changed = host.source();
+    await assert.rejects(
+      () => host.noteForms[1]!.save(host.note.path, { title: "Stale" }, false),
+      /nothing was overwritten/,
+    );
+    assert.equal(host.source(), changed);
+    assert.equal(host.saves.length, 0);
+  });
+  it("Publish recent falls back to a picker without exporting or reading images before selection", async () => {
+    const host = setup();
+    await host.plugin.openPublishPicker(host.note, true);
     assert.equal(host.templateDialogs.length, 1);
     assert.equal(host.templateDialogs[0]!.templates.length, 20);
     assert.equal(host.saves.length, 0);
     assert.equal(host.reads.length, 0);
     assert.equal(host.reviews.length, 0);
     assert.ok(
-      host.notices.some((message) => message.includes("No recent templates")),
+      host.notices.some((message) =>
+        message.includes("No recent output presets"),
+      ),
     );
     host.templateDialogs[0]!.choose(
       host.templateDialogs[0]!.templates.find((t) => t.preset === "letter")!,
@@ -310,9 +477,9 @@ describe("review-to-export image workflow", () => {
     assert.equal(host.reviews.length, 1);
     assert.equal(host.saves.length, 0);
   });
-  it("Create recognises a book and excludes letter templates without reading chapters yet", async () => {
+  it("Publish recognises a book and excludes letter presets without reading chapters yet", async () => {
     const host = setup(true);
-    await host.plugin.openCreate(host.note);
+    await host.plugin.openPublishPicker(host.note);
     const templates = host.templateDialogs[0]!.templates;
     assert.equal(templates.length, 28);
     assert.ok(templates.some((t) => t.printOptions));

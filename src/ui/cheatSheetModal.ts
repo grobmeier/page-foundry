@@ -6,16 +6,20 @@ export class CheatSheetModal extends Modal {
     this.contentEl.createEl("h2", { text: "Page Foundry: Cheat Sheet" });
     for (const [title, text] of [
       [
-        "Create",
-        "Open a note or book plan. Run Create, choose a template, check the short form, then Create PDF, EPUB or DOCX. Your writing stays unchanged.",
+        "Create new note",
+        "Choose Letter, Manuscript, Book or another note template. Enter a filename and details, then Create note. It saves and opens an editable Markdown file, including its properties. Nothing is exported and your previous note stays unchanged. You do not need an open note to start.",
       ],
       [
         "Recent templates",
-        "Create recent lists templates you have used. Create puts your most-used choices first. Search by purpose, size or format. Export history does not reuse personal information.",
+        "Create recent lists your note templates. Publish recent lists output layouts. These are separate histories: neither stores addresses or manuscript text.",
+      ],
+      [
+        "Details and publishing",
+        "Edit document details saves title, author and letter names/addresses in your note. Draft fields can be blank. When ready, run Publish, choose an output preset and create PDF, EPUB or DOCX. Changes made only in the export form are temporary; publishing never edits your note.",
       ],
       [
         "Books",
-        "Use Set up book to choose and order opening pages, parts, chapters, scenes and closing pages. Enter exact note paths; only those notes and their images are included. Open the book plan and use Create.",
+        "Create a Book note, then Edit document details to add and order existing chapters using exact note paths. New book plans use readable headings and links. Older YAML plans still work: Convert to readable book plan offers an explicit review before saving. Only listed notes and their images are included. Use Publish for the whole book.",
       ],
       [
         "Formats",
@@ -27,11 +31,15 @@ export class CheatSheetModal extends Modal {
       ],
       [
         "Checks and paperback proofs",
-        "Missing required information or broken resources prevent Create. Details contains advice and reports. Paperback templates produce no-bleed black-ink proofs, not upload certification. Inspect every PDF page, use the retailer preview and order a physical proof.",
+        "Missing required publication information or broken resources prevent export, not draft-note creation. Details contains advice and reports. Paperback presets produce no-bleed black-ink proofs, not upload certification. Inspect every PDF page, use the retailer preview and order a physical proof.",
+      ],
+      [
+        "Make your own note template",
+        "Open a note and run Save as note template. Review the copied text and the Clear personal properties option, then save to an exact local Markdown path. It appears in Create new note. Edit that template file normally to change it. Optional placeholders are {{title}}, {{author}}, {{language}} and {{date}}; no code runs. Settings lists registered paths; removing one does not delete its file.",
       ],
       [
         "Your designs",
-        "Settings offers an output folder, default language and an optional private template-pack file. Private designs stay outside the project repository. Rendering is local: no Docker or rendering server.",
+        "Note templates supply starting text and properties. Output presets supply page layouts. Manage output presets creates or edits your local pack through a form; select a starting layout, give it a name and adjust supported typography. Keep private designs in explicitly configured vault files, outside the project repository; vault sync/backups have their own privacy rules. Rendering is local: no Docker or rendering server. Typst is the internal PDF typesetting engine, not Markdown or LaTeX.",
       ],
     ]) {
       this.contentEl.createEl("h3", { text: title });

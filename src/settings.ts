@@ -3,7 +3,7 @@
  * Licensed under the Apache License, Version 2.0.
  */
 
-import { App, PluginSettingTab, Setting } from "obsidian";
+import { App, Notice, PluginSettingTab, Setting } from "obsidian";
 import type PageFoundryPlugin from "./main";
 import type { OutputFormat, PageProfileId } from "./core/model";
 import type { TemplateUse } from "./templates/catalog";
@@ -18,6 +18,9 @@ export interface PageFoundrySettings {
   lastProfile: PageProfileId;
   defaultLanguage: string;
   templateHistory: TemplateUse[];
+  noteTemplateHistory: TemplateUse[];
+  noteFolder: string;
+  noteTemplatePaths: string[];
 }
 
 export const DEFAULT_SETTINGS: PageFoundrySettings = {
@@ -30,6 +33,9 @@ export const DEFAULT_SETTINGS: PageFoundrySettings = {
   defaultLanguage: "en",
   packManifestPath: "",
   templateHistory: [],
+  noteTemplateHistory: [],
+  noteFolder: "",
+  noteTemplatePaths: [],
 };
 
 export class PageFoundrySettingTab extends PluginSettingTab {
@@ -42,17 +48,61 @@ export class PageFoundrySettingTab extends PluginSettingTab {
 
   display(): void {
     this.containerEl.empty();
+    new Setting(this.containerEl)
+      .setName("Manage output presets")
+      .setDesc(
+        "Create or edit your private local layouts using a form, without writing JSON.",
+      )
+      .addButton((b) =>
+        b.setButtonText("Open preset editor").onClick(() => {
+          void this.plugin.openPresetEditor().catch((error) => {
+            new Notice(
+              error instanceof Error
+                ? error.message
+                : "Could not open presets.",
+            );
+          });
+        }),
+      );
 
     new Setting(this.containerEl)
-      .setName("Your template pack (optional)")
+      .setName("Your output preset pack (optional)")
       .setDesc(
-        "Path to your private design pack inside this vault, for example Designs/my-pack.json. Leave empty for built-in templates. No folders are scanned.",
+        "Exact path to your private output designs, for example Designs/my-pack.json. This controls layouts, not starting note text. No folders are scanned.",
       )
       .addText((text) =>
         text
           .setValue(this.plugin.settings.packManifestPath)
           .onChange(async (value) => {
             this.plugin.settings.packManifestPath = value.trim();
+            await this.plugin.saveSettings();
+          }),
+      );
+
+    new Setting(this.containerEl)
+      .setName("New-note folder")
+      .setDesc(
+        "Default folder for Create new note. Empty means the vault’s top level; generated files use the separate output folder.",
+      )
+      .addText((t) =>
+        t.setValue(this.plugin.settings.noteFolder).onChange(async (value) => {
+          this.plugin.settings.noteFolder = value.trim();
+          await this.plugin.saveSettings();
+        }),
+      );
+    new Setting(this.containerEl)
+      .setName("Private note templates")
+      .setDesc(
+        "One exact Markdown path per line, at most 30. Only these files are read. Edit their Markdown to change starting text and properties, or use Save as note template. Removing a path does not delete the file.",
+      )
+      .addTextArea((t) =>
+        t
+          .setValue(this.plugin.settings.noteTemplatePaths.join("\n"))
+          .onChange(async (value) => {
+            this.plugin.settings.noteTemplatePaths = value
+              .split(/\r?\n/)
+              .map((v) => v.trim())
+              .filter(Boolean);
             await this.plugin.saveSettings();
           }),
       );
@@ -92,6 +142,7 @@ export class PageFoundrySettingTab extends PluginSettingTab {
       .addButton((button) =>
         button.setButtonText("Clear history").onClick(async () => {
           this.plugin.settings.templateHistory = [];
+          this.plugin.settings.noteTemplateHistory = [];
           await this.plugin.saveSettings();
         }),
       );

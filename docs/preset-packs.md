@@ -7,6 +7,12 @@ does not scan folders, download packs, or upload their contents.
 
 ## Install and use
 
+For normal use, **Manage output presets** creates or edits the configured local
+pack through a form. **Save as note template** is a different operation: it
+saves starting Markdown and properties. See [note templates](note-templates.md).
+The contract below remains useful for advanced pack authors; hand-written JSON
+is not required to adjust supported layouts.
+
 1. Copy a pack into a vault folder, for example
    `Designs/page-foundry-pack.json`.
 2. Enter that exact path in **Settings → Page Foundry → Preset pack path**.
@@ -84,7 +90,8 @@ pack: choose their privacy settings independently.
 `required`, and optional `default`. Supported unique keys are:
 
 `title`, `author`, `language`, `identifier`, `surname`, `short-title`, `from`,
-`to`, `date`, `subject`, `closing`.
+`to`, `date`, `subject`, `closing`, `sender-name`, `sender-address`,
+`recipient-name`, `recipient-address`, `salutation`.
 
 Each entered/default value is at most 2,000 characters. Unsupported control
 characters are rejected. Sender/recipient controls accept multiline addresses.
@@ -94,13 +101,17 @@ always exposes a publication-language field and requires a language tag such as
 `en`, `en-GB`, or `de`. If the note and pack supply no language, the plugin's
 configured default publication language is used.
 
-Edits apply only to the current export: they do not rewrite the note or save
-metadata in plugin settings. Switching presets resets the form from the original
-note and new pack defaults, so values entered for another design do not leak
-into it. Clearing an optional field removes that frontmatter value from the
-export; recipe fallbacks may then apply. Metadata not listed by the preset
-remains the original note's metadata. An empty EPUB identifier generates a fresh
-local identifier.
+Edits in the publication form apply only to the current export: they do not
+rewrite the note or save metadata in plugin settings. Switching presets resets
+the form from the original note and new pack defaults, so values entered for
+another design do not leak into it. Clearing an optional field removes that
+frontmatter value from the export; recipe fallbacks may then apply. Metadata not
+listed by the preset remains the original note's metadata. An empty EPUB
+identifier generates a fresh local identifier.
+
+Use **Edit document details** to persist letter names/addresses and other source
+properties explicitly. **Create new note** generates them automatically in a new
+file. These authoring actions never run as a side effect of publishing.
 
 ## Built-in presets
 

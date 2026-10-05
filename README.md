@@ -49,10 +49,16 @@ The development build currently provides:
 
 - a built-in **Cheat Sheet**, friendly book-order labels, and collapsed layout,
   resource and report details; blocking problems remain visible on the form;
-- **Create** and **Create recent** with a searchable template picker: letters,
-  manuscripts, documents and ebooks, plus six paperback size/paper combinations
-  with right-hand or next-page chapter starts. Most-used layouts appear first;
-  recent history stores only layout choices and can be cleared in settings;
+- **Create new note** and **Create recent** prepare editable Markdown letters,
+  manuscripts, books and documents with saved properties; no active note or
+  export is needed. **Edit document details** saves names and multiline letter
+  addresses in the note;
+- **Publish** and **Publish recent** choose output layouts separately, including
+  six paperback size/paper combinations. Note-template and layout histories are
+  separate, contain no document text or addresses, and can be cleared;
+- **Save as note template** previews a private Markdown copy and registers only
+  its exact path. **Manage output presets** edits supported local layouts
+  through a form. See [custom templates](docs/note-templates.md);
 - **Set up book** to create or edit a book plan visually: add sections, choose
   their note paths, and move them into reading order. IDs are managed
   internally; saves reject changed plans and never rewrite chapter notes;
@@ -96,20 +102,26 @@ performance and sharing checks remain pending.
 
 ## Ordered books
 
-Start with the [short Create test plan](docs/testing/simple-create.md) to try
-letters, recent templates, visual book setup and paperback/EPUB output.
+Start with the [authoring test plan](docs/testing/authoring-templates.md) to try
+new letters, saved addresses, readable books and private templates.
 
-For the everyday workflow, run **Page Foundry: Set up book**. Add the notes in
-reading order and save the plan, then run **Create** to choose a book template.
-Open an existing plan and run **Set up book** to edit it. The form manages the
-technical fields below for you; editing YAML is optional, not required.
+Run **Create new note → Book**, then **Edit document details** to add existing
+chapter notes and put them in reading order. New plans have simple title/author/
+language properties and ordinary Markdown section headings and exact note links,
+not JSON entries in Properties. Hidden comments retain stable link destinations.
+Run **Publish** when ready. **Set up book** remains a compatible editor
+shortcut.
+
+Older YAML plans remain supported. **Convert to readable book plan** shows their
+order and offers **Convert and save**; Cancel leaves the source unchanged.
+Opening and publishing never migrate a plan automatically.
 
 Open a Markdown manifest and run **Page Foundry: Publish current book**. Its
-leading YAML contains `page-foundry-book: 1`, a book `title`, optional author/
-language/identifier metadata and an ordered `entries` list. Each entry has a
-unique lowercase hyphenated `id`, a `role` and an exact vault-relative Markdown
-`path`; a heading-only `part` may use `title` instead of a path. Roles are
-`front-matter`, `part`, `chapter`, `scene` and `back-matter`.
+legacy leading YAML contains `page-foundry-book: 1`, a book `title`, optional
+author/ language/identifier metadata and an ordered `entries` list. Each entry
+has a unique lowercase hyphenated `id`, a `role` and an exact vault-relative
+Markdown `path`; a heading-only `part` may use `title` instead of a path. Roles
+are `front-matter`, `part`, `chapter`, `scene` and `back-matter`.
 
 Only listed notes and their explicit images are included. Manifest prose and
 chapter metadata are not imported. PDF/DOCX have one book title page and new
