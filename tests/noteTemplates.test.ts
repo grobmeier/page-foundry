@@ -53,10 +53,11 @@ it("expands bounded Markdown templates as text, with safely serialised propertie
 });
 it("clears personal properties only after an explicit choice, leaving the body visible for review", () => {
   const source =
-    "---\ndocument: letter\nauthor: Alex Example\nsender-address: Secret street\nsubject: Private subject\n---\nBody still contains Alex Example.\n";
+    "---\ndocument: letter\nauthor: Alex Example\nsender-address: Secret street\nsubject: Private subject\nsalutation: Dear Alex,\n---\nBody still contains Alex Example.\n";
   const cleared = privateTemplateSource(source, true);
   assert.equal(noteProperties(cleared).author, "");
   assert.equal(noteProperties(cleared)["sender-address"], "");
+  assert.equal(noteProperties(cleared).salutation, "");
   assert.ok(cleared.includes("Body still contains Alex Example."));
   assert.ok(privateTemplateSource(source, false).includes("Secret street"));
 });

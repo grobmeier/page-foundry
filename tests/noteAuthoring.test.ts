@@ -41,6 +41,10 @@ it("creates a letter with persistent literal addresses and escaped scalar proper
   ])
     assert.ok(rendered.includes(value));
   assert.equal(details.document, "letter");
+  assert.ok(
+    rendered.includes('#text("Alex Example")\\\n#text("12 Sample Street")'),
+  );
+  assert.ok(!rendered.includes('#text("Alex Example")\\\\\n'));
 });
 it("updates known details while preserving comments, arbitrary properties and exact prose", () => {
   const source =
@@ -74,6 +78,29 @@ it("keeps note history separate, bounded and free of personal values", () => {
     h,
   );
   assert.equal(rememberNoteTemplate(h, "letter", 124)[0]!.uses, 2);
+});
+it("converts legacy address blocks only on explicit details save", () => {
+  const source =
+    "---\nfrom: Alex Example\nto: Jamie Example\n---\nUnchanged body.\n";
+  const values = {
+    title: "Letter",
+    "sender-name": "Alex Example",
+    "sender-address": "12 Example Street",
+    "recipient-name": "Jamie Example",
+    "recipient-address": "40 Sample Road",
+  };
+  assert.equal(
+    noteProperties(updateNoteDetails(source, "letter", values)).from,
+    "Alex Example",
+  );
+  const converted = updateNoteDetails(source, "letter", values, true);
+  assert.equal(noteProperties(converted).from, undefined);
+  assert.equal(noteProperties(converted).to, undefined);
+  assert.equal(
+    noteProperties(converted)["sender-address"],
+    "12 Example Street",
+  );
+  assert.ok(converted.endsWith("Unchanged body.\n"));
 });
 it("creates only the named note, requires explicit folders and guards stale or renamed saves", async () => {
   const files = new Map<string, any>(),

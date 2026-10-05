@@ -81,11 +81,13 @@ function renderLetterOpening(document: FoundryDocument): string {
     "";
   const date = document.metadata.date ?? "";
   const subject = document.metadata.subject ?? document.title;
+  const addressBlock = (value: string) =>
+    value.split(/\r?\n/).map(renderText).join("\\\n");
   return [
-    from ? `#align(right)[${renderText(from)}]` : "",
+    from ? `#align(right)[${addressBlock(from)}]` : "",
     date ? `#align(right)[${renderText(date)}]` : "",
     "#v(8mm)",
-    to ? `${renderText(to)}\\` : "",
+    to ? `${addressBlock(to)}\\` : "",
     "#v(6mm)",
     subject ? `#strong[${renderText(subject)}]` : "",
     "#v(5mm)",

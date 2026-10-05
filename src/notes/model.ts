@@ -154,6 +154,7 @@ export function updateNoteDetails(
   source: string,
   kind: string,
   values: Record<string, string>,
+  convertLegacy = false,
 ): string {
   const { yaml, body } = splitNote(source);
   const doc = propertyDocument(yaml);
@@ -174,6 +175,10 @@ export function updateNoteDetails(
     }
   }
   doc.set("document", kind);
+  if (convertLegacy && kind.includes("letter")) {
+    doc.delete("from");
+    doc.delete("to");
+  }
   return `---\n${doc.toString()}---\n${body}`;
 }
 export function createNoteSource(
