@@ -12,7 +12,24 @@ import { assembleBook } from "../src/books/assemble";
 import { parseMarkdown } from "../src/core/markdown";
 import { EpubRenderer } from "../src/epub/renderer";
 import { strFromU8, unzipSync } from "fflate";
+import { bookControlComments } from "../src/books/controlComments";
 const manual = `---\ndocument: book\ntitle: A Neutral Book\nauthor: Alex Example\ncustom: kept\n---\nNotes for the author.\n\n## Opening pages\n- [[Book/Preface.md|Preface]]\n\n## Part: First steps\n\n## Chapter: Arrival\n- [[Book/One.md|Arrival]]\n\n## Closing pages\n- [[Book/Afterword.md|Afterword]]\n`;
+it("hides only internal book control comments outside fenced examples", () => {
+  const source = serializeBookPlan(editableBook(manual), manual);
+  const ranges = bookControlComments(source);
+  assert.equal(ranges.length, 6);
+  assert.ok(ranges.every((r) => source.slice(r.from, r.to).startsWith("%% ")));
+  const shown =
+    source +
+    "\n%% ordinary author comment %%\n```\n%% foundry-section: example %%\n```\n";
+  assert.equal(bookControlComments(shown).length, ranges.length);
+  assert.equal(
+    bookControlComments(
+      "---\ndocument: plain\n---\n%% foundry-section: not-a-book %%",
+    ).length,
+    0,
+  );
+});
 it("reads an ordinary Markdown outline with flat properties and exact ordered links", () => {
   assert.equal(isBookPlan(manual, "Ordinary name"), true);
   const book = parseBookManifest(manual);
