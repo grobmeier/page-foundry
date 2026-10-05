@@ -1,5 +1,5 @@
 /* Copyright 2026 Christian Grobmeier. Licensed under Apache-2.0. */
-import { parseDocument, stringify } from "yaml";
+import { isMap, parseDocument, stringify } from "yaml";
 import {
   parseBookManifest,
   type BookEntry,
@@ -86,6 +86,7 @@ export function serializeBookPlan(
       /^\uFEFF?---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/,
     )?.[1];
     const doc = parseDocument(yaml || "{}");
+    if (isMap(doc.contents)) doc.contents.flow = false;
     doc.delete("entries");
     doc.delete("page-foundry-book");
     doc.set("document", "book");

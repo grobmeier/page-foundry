@@ -1,10 +1,13 @@
 /* Copyright 2026 Christian Grobmeier. Licensed under Apache-2.0. */
+import { parseDocument } from "yaml";
 export function bookControlComments(
   source: string,
 ): { from: number; to: number }[] {
   if (source.length > 128 * 1024) return [];
   const front = /^\uFEFF?---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/.exec(source);
-  if (!front || !/^document:\s*(?:book|"book"|'book')\s*$/m.test(front[1]!))
+  if (!front) return [];
+  const properties = parseDocument(front[1]!);
+  if (properties.errors.length || properties.get("document") !== "book")
     return [];
   const body = source.slice(front[0].length);
   const result: { from: number; to: number }[] = [];

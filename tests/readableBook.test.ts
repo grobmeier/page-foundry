@@ -18,6 +18,13 @@ it("hides only internal book control comments outside fenced examples", () => {
   const source = serializeBookPlan(editableBook(manual), manual);
   const ranges = bookControlComments(source);
   assert.equal(ranges.length, 6);
+  const flow = source.replace(
+    /---\n[\s\S]*?\n---/,
+    "---\n{document: book, title: Example}\n---",
+  );
+  assert.equal(bookControlComments(flow).length, ranges.length);
+  const fresh = serializeBookPlan(editableBook(manual));
+  assert.match(fresh, /^---\ndocument: book\n/);
   assert.ok(ranges.every((r) => source.slice(r.from, r.to).startsWith("%% ")));
   const shown =
     source +
