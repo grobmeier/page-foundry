@@ -18,6 +18,7 @@ export class BookModal extends Modal {
     private path: string,
     private readonly editing: boolean,
     private readonly save: (path: string, book: BookManifest) => Promise<void>,
+    private readonly converting = false,
   ) {
     super(app);
   }
@@ -34,6 +35,10 @@ export class BookModal extends Modal {
     this.contentEl.createEl("p", {
       text: "Choose the notes to include and put them in reading order. Saving changes only the book plan, never your chapter notes.",
     });
+    if (this.converting)
+      this.contentEl.createEl("p", {
+        text: `Convert ${this.path}: replace its YAML entries with readable Markdown headings and note links. All ${this.book.entries.length} sections, their order, stable links and existing prose are retained. Review below, then Convert and save; Cancel leaves it unchanged.`,
+      });
     const status = this.contentEl.createEl("p", {
       text: "",
       cls: "page-foundry-check-summary",
@@ -177,7 +182,9 @@ export class BookModal extends Modal {
       .addButton((button) => {
         saveButton = button;
         return button
-          .setButtonText("Save book plan")
+          .setButtonText(
+            this.converting ? "Convert and save" : "Save book plan",
+          )
           .setCta()
           .onClick(async () => {
             if (this.busy) return;
