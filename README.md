@@ -43,6 +43,10 @@ License 2.0.
 
 No production-ready plugin has been released yet.
 
+Private beta testing is available through BRAT. See the
+[private beta setup guide](docs/testing/private-brat.md) for installation,
+permissions and updates.
+
 ## Current feasibility build
 
 The development build currently provides:

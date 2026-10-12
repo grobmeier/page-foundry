@@ -6,6 +6,7 @@
   "main": "main.js",
   "scripts": {
     "build": "tsc --noEmit --skipLibCheck && node esbuild.config.mjs production",
+    "release:prepare": "npm run verify && node scripts/prepare-beta.mjs",
     "build:browser-smoke": "node scripts/build-browser-smoke.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check .",

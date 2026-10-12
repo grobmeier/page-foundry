@@ -19,6 +19,13 @@ The exact versions are recorded in `package-lock.json`. Release preparation must
 preserve the applicable licence texts and review this inventory after every
 dependency change.
 
+Beta packaging collects the installed non-development dependency licence texts
+and bundled-font licence into `THIRD_PARTY_LICENSES.txt`, also retained as a
+comment in the distributed plugin so BRAT installations receive them. This
+inventory includes transitive dependency notices; it is not a replacement for
+reviewing newly bundled components. The Libertinus licence source is pinned in
+`licenses/Libertinus-OFL.txt`.
+
 The Live Preview extension uses CodeMirror's MIT-licensed view API provided by
 Obsidian. It is a pinned development dependency and is external to the generated
 plugin bundle; the plugin does not ship a second editor runtime.
