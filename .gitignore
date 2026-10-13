@@ -11,3 +11,11 @@ target/
 .test-vault/
 .test-browser/
 .local-template-packs/
+
+# Credentials and private vault configuration never belong in source archives
+.env
+.env.*
+*.pem
+*.p12
+*.pfx
+.obsidian/

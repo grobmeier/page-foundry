@@ -2,8 +2,9 @@
 
 ## Supported versions
 
-Page Foundry has not released a supported version yet. This policy will be
-updated before the first public release.
+Page Foundry has no stable release yet. Report vulnerabilities against the
+latest beta or main. Earlier beta releases are not maintained independently;
+update through BRAT when a corrected beta becomes available.
 
 ## Reporting a vulnerability
 

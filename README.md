@@ -37,15 +37,15 @@ explicitly configures.
 
 ## Status
 
-Page Foundry is private while its foundations are developed, with the intention
-of becoming an open source project. Its source is licensed under the Apache
-License 2.0.
+Page Foundry is an open source project in beta development. Its source is
+licensed under the Apache License 2.0. It is not listed in the Obsidian
+community plugin directory yet; public source and beta assets are nevertheless
+discoverable.
 
 No production-ready plugin has been released yet.
 
-Private beta testing is available through BRAT. See the
-[private beta setup guide](docs/testing/private-brat.md) for installation,
-permissions and updates.
+Beta testing is available through BRAT without a GitHub token. See the
+[BRAT setup guide](docs/testing/brat.md) for installation and updates.
 
 ## Current feasibility build
 

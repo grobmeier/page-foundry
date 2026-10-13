@@ -1,5 +1,9 @@
 # Private BRAT testing
 
+Historical private-repository instructions. For the now-public repository, use
+[BRAT setup](brat.md): no repository token is needed. The historical beta
+release notes remain valid for when that release was first prepared.
+
 Page Foundry remains a private GitHub repository. Its prereleases are visible
 only to accounts with repository access. Installing through BRAT does not make
 the repository, your notes, or your local custom designs public.
@@ -74,8 +78,10 @@ assets, and SHA-256 checksums. No vault, output, settings, source maps or custom
 design directory is packaged. Review the files, commit/push the related source
 with owner authority, and record the exact pushed commit in the release.
 
-Check that the repository is still private before creating a GitHub prerelease.
-Use a tag and title exactly matching the release manifest version, attach the
-staged assets, and set prerelease true/latest false. Download the assets again
-and compare `SHA256SUMS` before handing off. GitHub source archives contain only
-tracked neutral source; private designs must never enter Git in the first place.
+Check the intended repository visibility before creating a GitHub prerelease;
+private tests require a private repository, while public beta tests use the
+current [BRAT setup](brat.md). Use a tag and title exactly matching the release
+manifest version, attach the staged assets, and set prerelease true/latest
+false. Download the assets again and compare `SHA256SUMS` before handing off.
+GitHub source archives contain only tracked neutral source; private designs must
+never enter Git in the first place.

@@ -21,11 +21,16 @@ or transmit them elsewhere.
 
 ## Local layout history
 
-Create remembers up to 50 template/layout identifiers, use counts and last-used
-times in this plugin’s local settings. It does not store manuscript text, source
-paths, output filenames, author details, addresses or export-only metadata in
-that history. **Clear history** in settings removes those layout records.
-History is never sent to a service or used for analytics.
+Create and Publish each remember up to 50 template/layout identifiers, use
+counts and last-used times in this plugin’s local settings. It does not store
+manuscript text, source paths, output filenames, author details, addresses or
+export-only metadata in that history. **Clear history** in settings removes
+those layout records. History is never sent to a service or used for analytics.
+
+Registered custom-template paths and output-preset pack paths are separate
+explicit configuration stored in local plugin settings. Do not share those
+settings or a synced vault if they contain private information. Public source
+and beta releases do not publish your local templates or vault files.
 
 ## Future network features
 
