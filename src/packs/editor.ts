@@ -62,10 +62,10 @@ export function updatedPack(
     throw new Error(
       "Core presets cannot be edited. Save a local custom pack instead.",
     );
-  if (pack.compatibility.minEngine > 1 || pack.compatibility.maxEngine < 1)
-    throw new Error(
-      "This pack targets a different engine. Its contents were not changed.",
-    );
+  if (preset.outputs.pdf?.book) {
+    pack.schemaVersion = 2;
+    pack.compatibility = { minEngine: 2, maxEngine: 2 };
+  }
   const index = pack.presets.findIndex((p) => p.id === preset.id);
   if (index === -1) pack.presets.push(preset);
   else pack.presets[index] = preset;

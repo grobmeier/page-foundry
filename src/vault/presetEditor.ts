@@ -37,11 +37,7 @@ export async function readEditablePack(
     throw new Error("This output pack exceeds 128 KiB.");
   const source = await vault.read(note),
     pack = parsePack(source);
-  if (
-    pack.id === "core" ||
-    pack.compatibility.minEngine > 1 ||
-    pack.compatibility.maxEngine < 1
-  )
+  if (pack.id === "core")
     throw new Error(
       "This pack cannot be edited by this engine. Its contents were not changed.",
     );

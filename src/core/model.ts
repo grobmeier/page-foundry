@@ -50,6 +50,7 @@ export interface FoundryDocument {
   resourceErrors?: string[];
   sourceWarnings?: string[];
   style?: RenderStyle;
+  bookDesign?: import("../books/design").BookDesign;
   paperback?: {
     widthIn: number;
     heightIn: number;

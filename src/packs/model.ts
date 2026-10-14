@@ -10,8 +10,9 @@ import type {
   PdfPresetId,
   RenderStyle,
 } from "../core/model";
+import { parseBookDesign, type BookDesign } from "../books/design";
 
-export const PACK_ENGINE_VERSION = 1;
+export const PACK_ENGINE_VERSION = 2;
 export const PACK_MAX_BYTES = 128 * 1024;
 export const METADATA_KEYS = [
   "title",
@@ -30,6 +31,8 @@ export const METADATA_KEYS = [
   "recipient-name",
   "recipient-address",
   "salutation",
+  "subtitle",
+  "imprint",
 ] as const;
 export interface MetadataField {
   key: string;
@@ -40,6 +43,7 @@ export interface MetadataField {
 export interface PackOutput {
   recipe: PdfPresetId | DocxPresetId | "reflowable-ebook";
   style?: RenderStyle;
+  book?: BookDesign;
 }
 export interface PackPreset {
   id: string;
@@ -49,7 +53,7 @@ export interface PackPreset {
   metadata: MetadataField[];
 }
 export interface PresetPack {
-  schemaVersion: 1;
+  schemaVersion: 1 | 2;
   id: string;
   name: string;
   version: string;
@@ -167,8 +171,9 @@ export function parsePack(source: string): PresetPack {
     ["schemaVersion", "id", "name", "version", "compatibility", "presets"],
     "Pack",
   );
-  if (root.schemaVersion !== 1)
-    throw new Error("Only preset pack schema version 1 is supported.");
+  if (root.schemaVersion !== 1 && root.schemaVersion !== 2)
+    throw new Error("Only preset pack schema versions 1 and 2 are supported.");
+  const engine = root.schemaVersion === 1 ? 1 : PACK_ENGINE_VERSION;
   const packId = id(root.id, "Pack ID");
   const name = text(root.name, "Pack name");
   const version = text(root.version, "Pack version", 32);
@@ -188,8 +193,8 @@ export function parsePack(source: string): PresetPack {
     !Number.isSafeInteger(maxEngine) ||
     minEngine < 1 ||
     maxEngine < minEngine ||
-    PACK_ENGINE_VERSION < minEngine ||
-    PACK_ENGINE_VERSION > maxEngine
+    engine < minEngine ||
+    engine > maxEngine
   )
     throw new Error(
       "This pack is not compatible with the current publishing engine.",
@@ -222,14 +227,31 @@ export function parsePack(source: string): PresetPack {
     for (const format of Object.keys(outputsObject) as OutputFormat[]) {
       const output = record(
         outputsObject[format],
-        ["recipe", "style"],
+        root.schemaVersion === 2
+          ? ["recipe", "style", "book"]
+          : ["recipe", "style"],
         "Output",
       );
       if (!RECIPES[format].includes(String(output.recipe)))
         throw new Error(`The recipe does not support ${format.toUpperCase()}.`);
+      if (
+        output.book !== undefined &&
+        (format !== "pdf" ||
+          !["plain-document", "paperback-interior"].includes(
+            String(output.recipe),
+          ))
+      )
+        throw new Error(
+          "Book designs require a Book PDF or Paperback proof recipe.",
+        );
+      const bookDesign =
+        output.book === undefined ? undefined : parseBookDesign(output.book);
+      if (bookDesign?.printDefaults && output.recipe !== "paperback-interior")
+        throw new Error("Print defaults require a Paperback proof recipe.");
       outputs[format] = {
         recipe: output.recipe as PackOutput["recipe"],
         style: style(output.style, format),
+        ...(bookDesign ? { book: bookDesign } : {}),
       };
     }
     if (
@@ -272,7 +294,7 @@ export function parsePack(source: string): PresetPack {
     };
   });
   return {
-    schemaVersion: 1,
+    schemaVersion: root.schemaVersion,
     id: packId,
     name,
     version,
@@ -399,6 +421,10 @@ export function applyPreset(
   if (errors.length) throw new Error(errors.join(" "));
   const output = preset.outputs[format];
   if (!output) throw new Error("The preset does not support this format.");
+  if (output.book && !document.book?.entries.length)
+    throw new Error(
+      "This book design needs an ordered book. Open a book plan before publishing.",
+    );
   const metadata = { ...document.metadata };
   const legacyLetter =
     output.recipe === "letter" &&
@@ -422,5 +448,6 @@ export function applyPreset(
     metadata,
     title: metadata.title?.trim() || document.title,
     style: output.style,
+    bookDesign: output.book ? structuredClone(output.book) : undefined,
   };
 }
