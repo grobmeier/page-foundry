@@ -3,7 +3,12 @@
  * Licensed under the Apache License, Version 2.0.
  */
 
-import { cp, mkdir, writeFile } from "node:fs/promises";
+import { cp as replacePluginFile, mkdir } from "node:fs/promises";
+import {
+  copyMissing as cp,
+  writeMissing as writeFile,
+  enableFoundry,
+} from "./test-vault-files.mjs";
 import { resolve } from "node:path";
 import { fixtureJpeg, fixturePng } from "../tests/fixtures/images.ts";
 import { bookManifest, bookNotes } from "../tests/fixtures/book.ts";
@@ -13,6 +18,7 @@ const root = resolve(".test-vault");
 const pluginDirectory = resolve(root, ".obsidian/plugins/page-foundry");
 await mkdir(pluginDirectory, { recursive: true });
 await mkdir(resolve(root, "Book"), { recursive: true });
+await cp(resolve("docs/start-here.md"), resolve(root, "Start here.md"));
 await writeFile(resolve(root, "A Neutral Journey.book.md"), bookManifest);
 await writeFile(
   resolve(root, "Readable Journey.book.md"),
@@ -42,13 +48,10 @@ await cp(
 );
 await Promise.all(
   ["main.js", "manifest.json", "styles.css"].map((file) =>
-    cp(resolve(file), resolve(pluginDirectory, file)),
+    replacePluginFile(resolve(file), resolve(pluginDirectory, file)),
   ),
 );
-await writeFile(
-  resolve(root, ".obsidian/community-plugins.json"),
-  '["page-foundry"]\n',
-);
+await enableFoundry(resolve(root, ".obsidian/community-plugins.json"));
 await writeFile(
   resolve(root, "Portable letter.md"),
   `---
