@@ -15,7 +15,7 @@ export function configuredTemplates(value: unknown): string[] {
     throw new Error("A note template is registered twice.");
   return paths;
 }
-const keys = ["title", "author", "language", "date"];
+const keys = ["title", "author", "language", "date", "sender-name"];
 function replaceTokens(
   value: string,
   fields: Record<string, string>,
@@ -24,7 +24,7 @@ function replaceTokens(
   return value.replace(/\{\{([^{}]+)\}\}/g, (_match, key: string) => {
     if (!keys.includes(key.trim()))
       throw new Error(
-        `Unsupported template placeholder: ${key}. Use title, author, language or date.`,
+        `Unsupported template placeholder: ${key}. Use title, author, language, date or sender-name.`,
       );
     const text = fields[key.trim()] ?? "";
     return body ? text.replace(/([\\`*_{}\[\]<>#!|])/g, "\\$1") : text;

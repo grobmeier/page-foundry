@@ -73,3 +73,12 @@
   max-height: 18rem;
   overflow-y: auto;
 }
+
+.page-foundry-writing-field,
+.page-foundry-writing-field .setting-item-control {
+  display: block;
+}
+.page-foundry-writing-field textarea {
+  width: 100%;
+  min-height: 18em;
+}

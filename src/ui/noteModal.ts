@@ -1,6 +1,12 @@
 /* Copyright 2026 Christian Grobmeier. Licensed under Apache-2.0. */
 import { App, Modal, Notice, Setting, SuggestModal } from "obsidian";
-import { newNotePath, noteFields, type NoteTemplate } from "../notes/model";
+import {
+  newNotePath,
+  noteFields,
+  advancedNoteFields,
+  type NoteTemplate,
+} from "../notes/model";
+import { disclosure } from "./disclosure";
 export class NoteTemplateModal extends SuggestModal<NoteTemplate> {
   constructor(
     app: App,
@@ -94,8 +100,14 @@ export class NoteModal extends Modal {
           }),
         );
     }
-    for (const field of noteFields(this.template.kind)) {
-      const setting = new Setting(this.contentEl).setName(field.label);
+    const advanced = advancedNoteFields(this.template.kind, this.values);
+    let more: HTMLElement | undefined;
+    for (const field of [...noteFields(this.template.kind), ...advanced]) {
+      const setting = new Setting(
+        advanced.includes(field)
+          ? (more ??= disclosure(this.contentEl, "More details"))
+          : this.contentEl,
+      ).setName(field.label);
       const change = (v: string) => {
         this.values[field.key] = v;
       };

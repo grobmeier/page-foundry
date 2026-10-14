@@ -116,7 +116,7 @@ export class ExportModal extends Modal {
     });
     if (this.onTemplates)
       new Setting(this.contentEl).addButton((button) =>
-        button.setButtonText("Change output preset").onClick(() => {
+        button.setButtonText("Change layout").onClick(() => {
           this.close();
           this.onTemplates!();
         }),
@@ -162,20 +162,22 @@ export class ExportModal extends Modal {
     }
 
     const layout = disclosure(this.contentEl, "Layout options");
-    new Setting(layout).setName("Output format").addDropdown((dropdown) =>
-      dropdown
-        .addOption("pdf", "PDF")
-        .addOption("epub", "EPUB")
-        .addOption("docx", "DOCX")
-        .setValue(this.choice.format)
-        .onChange((value) => {
-          this.choice.format = value as OutputFormat;
-          this.selectPreset(true);
-          this.render();
-        }),
-    );
+    new Setting(this.contentEl)
+      .setName("Output format")
+      .addDropdown((dropdown) =>
+        dropdown
+          .addOption("pdf", "PDF")
+          .addOption("epub", "EPUB")
+          .addOption("docx", "DOCX")
+          .setValue(this.choice.format)
+          .onChange((value) => {
+            this.choice.format = value as OutputFormat;
+            this.selectPreset(true);
+            this.render();
+          }),
+      );
 
-    new Setting(layout).setName("Preset").addDropdown((dropdown) => {
+    new Setting(layout).setName("Layout").addDropdown((dropdown) => {
       for (const preset of this.catalog.presets.filter(
         (p) =>
           p.outputs[this.choice.format] &&
@@ -327,7 +329,33 @@ export class ExportModal extends Modal {
       createButton?.setDisabled(blockers.length > 0);
     };
     updateChecks();
-    const fields = [...preset.metadata];
+    const bodyLetter =
+      output.recipe === "letter" &&
+      ["letter", "submission-letter"].includes(
+        this.review.document.metadata.document ?? "",
+      ) &&
+      !Object.hasOwn(this.review.document.metadata, "closing") &&
+      !Object.hasOwn(this.review.document.metadata, "salutation") &&
+      !this.review.document.metadata.from &&
+      !this.review.document.metadata.to;
+    const fields = [...preset.metadata].filter(
+      (field) =>
+        !bodyLetter || !["author", "salutation", "closing"].includes(field.key),
+    );
+    const metadataDetails = disclosure(
+      this.contentEl,
+      "Document details (export only)",
+    );
+    if (this.errors().length) metadataDetails.setAttribute("open", "");
+    if (
+      ["letter", "submission-letter"].includes(
+        this.review.document.metadata.document ?? "",
+      ) &&
+      this.choice.format !== "pdf"
+    )
+      this.contentEl.createEl("p", {
+        text: "Letter address formatting is PDF-only. This format exports your writing using the selected layout.",
+      });
     if (
       this.choice.format === "epub" &&
       !fields.some((field) => field.key === "language")
@@ -338,7 +366,7 @@ export class ExportModal extends Modal {
         required: true,
       });
     for (const field of fields) {
-      const setting = new Setting(this.contentEl)
+      const setting = new Setting(metadataDetails)
         .setName(field.label)
         .setDesc(
           field.required

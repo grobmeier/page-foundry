@@ -143,7 +143,10 @@ export function preflight(
   const author = options.preset.metadata.some((field) => field.key === "author")
     ? options.metadata.author
     : (document.metadata.author ?? document.metadata.creator);
-  if (!author?.trim())
+  if (
+    !author?.trim() &&
+    options.preset.outputs[options.format]?.recipe !== "letter"
+  )
     add(
       "author",
       "advice",

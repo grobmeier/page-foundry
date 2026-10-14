@@ -204,7 +204,7 @@ function setup(
 describe("image review dialog", () => {
   it("offers print controls only for the book PDF recipe and keeps options export-only", () => {
     const host = setup([], "A neutral chapter.", undefined, true);
-    host.controls.get("Preset")!("paperback-interior");
+    host.controls.get("Layout")!("paperback-interior");
     assert.ok(host.controls.has("Paperback trim"));
     host.controls.get("Paperback trim")!("5x8");
     host.controls.get("Paper (black ink)")!("cream");
@@ -276,22 +276,22 @@ describe("image review dialog", () => {
   });
   it("requires submission metadata and resets export-only values when changing preset", () => {
     const host = setup();
-    host.controls.get("Preset")!("submission-letter");
+    host.controls.get("Layout")!("submission-letter");
     assert.equal(host.button("Create PDF").disabled, true);
-    host.controls.get("Author")!("Alex Example");
+    host.controls.get("Sender name")!("Alex Example");
     host.controls.get("Recipient name")!("Jamie Example");
     host.controls.get("Subject")!("Export only subject");
     assert.equal(host.button("Create PDF").disabled, false);
-    host.controls.get("Preset")!("letter");
+    host.controls.get("Layout")!("letter");
     host.button("Create PDF").click();
     assert.equal(host.published[0]!.metadata!.subject, "");
-    assert.equal(host.published[0]!.metadata!.author, "");
+    assert.equal(host.published[0]!.metadata!.author, undefined);
   });
   it("does not carry an edited language to another preset and updates the page-size review", () => {
     const host = setup();
-    host.controls.get("Preset")!("readable-plain");
+    host.controls.get("Layout")!("readable-plain");
     host.controls.get("Publication language")!("de");
-    host.controls.get("Preset")!("plain-document");
+    host.controls.get("Layout")!("plain-document");
     host.controls.get("Page size")!("us-letter");
     assert.ok(host.text.some((value) => value.startsWith("US Letter;")));
     host.controls.get("Output format")!("epub");

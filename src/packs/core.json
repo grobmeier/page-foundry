@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "core",
   "name": "Page Foundry Core",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "compatibility": { "minEngine": 1, "maxEngine": 1 },
   "presets": [
     {
@@ -33,7 +33,7 @@
     {
       "id": "letter",
       "name": "Letter",
-      "description": "A simple letter with sender, recipient and closing metadata.",
+      "description": "A simple letter with readable addresses. Write the greeting and sign-off in the note body; older letter properties remain supported.",
       "outputs": { "pdf": { "recipe": "letter" } },
       "metadata": [
         { "key": "author", "label": "Author" },
@@ -44,7 +44,7 @@
         { "key": "date", "label": "Date" },
         { "key": "subject", "label": "Subject" },
         { "key": "salutation", "label": "Salutation" },
-        { "key": "closing", "label": "Closing", "default": "Yours sincerely," }
+        { "key": "closing", "label": "Legacy closing" }
       ]
     },
     {
@@ -58,8 +58,8 @@
         }
       },
       "metadata": [
-        { "key": "author", "label": "Author", "required": true },
-        { "key": "sender-name", "label": "Sender name" },
+        { "key": "author", "label": "Legacy signature name" },
+        { "key": "sender-name", "label": "Sender name", "required": true },
         { "key": "sender-address", "label": "Sender address" },
         {
           "key": "recipient-name",
@@ -70,7 +70,7 @@
         { "key": "salutation", "label": "Salutation" },
         { "key": "subject", "label": "Subject", "required": true },
         { "key": "date", "label": "Date" },
-        { "key": "closing", "label": "Closing", "default": "Yours sincerely," }
+        { "key": "closing", "label": "Legacy closing" }
       ]
     },
     {

@@ -80,7 +80,10 @@ function renderLetterOpening(document: FoundryDocument): string {
     document.metadata.to ||
     "";
   const date = document.metadata.date ?? "";
-  const subject = document.metadata.subject ?? document.title;
+  const typed = ["letter", "submission-letter"].includes(
+    document.metadata.document ?? "",
+  );
+  const subject = document.metadata.subject ?? (typed ? "" : document.title);
   const addressBlock = (value: string) =>
     value.split(/\r?\n/).map(renderText).join("\\\n");
   return [
@@ -100,6 +103,16 @@ function renderLetterOpening(document: FoundryDocument): string {
 }
 
 function renderLetterClosing(document: FoundryDocument): string {
+  if (
+    ["letter", "submission-letter"].includes(
+      document.metadata.document ?? "",
+    ) &&
+    !Object.hasOwn(document.metadata, "closing") &&
+    !Object.hasOwn(document.metadata, "salutation") &&
+    !document.metadata.from &&
+    !document.metadata.to
+  )
+    return "";
   const closing = document.metadata.closing ?? "Yours sincerely,";
   const author = document.metadata.author ?? document.metadata.from ?? "";
   return `\n#v(8mm)\n${renderText(closing)}\n\n#v(8mm)\n${renderText(author)}`;

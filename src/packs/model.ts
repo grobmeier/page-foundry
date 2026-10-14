@@ -325,18 +325,39 @@ export function initialMetadata(
   preset: ResolvedPreset,
 ): Record<string, string> {
   return Object.fromEntries(
-    preset.metadata.map((field) => [
-      field.key,
-      document.metadata[field.key] ??
-        (field.key === "recipient-name" ? document.metadata.to : undefined) ??
-        (field.key === "title"
-          ? document.title
-          : field.key === "language"
-            ? document.metadata.lang
+    preset.metadata
+      .filter(
+        (field) =>
+          !["salutation", "closing", "author"].includes(field.key) ||
+          preset.outputs.pdf?.recipe !== "letter" ||
+          Object.hasOwn(document.metadata, field.key) ||
+          (field.key === "closing" &&
+            !["letter", "submission-letter"].includes(
+              document.metadata.document ?? "",
+            )),
+      )
+      .map((field) => [
+        field.key,
+        document.metadata[field.key] ??
+          (field.key === "closing" &&
+          preset.outputs.pdf?.recipe === "letter" &&
+          !["letter", "submission-letter"].includes(
+            document.metadata.document ?? "",
+          )
+            ? "Yours sincerely,"
             : undefined) ??
-        field.default ??
-        "",
-    ]),
+          (field.key === "sender-name"
+            ? document.metadata.author
+            : undefined) ??
+          (field.key === "recipient-name" ? document.metadata.to : undefined) ??
+          (field.key === "title"
+            ? document.title
+            : field.key === "language"
+              ? document.metadata.lang
+              : undefined) ??
+          field.default ??
+          "",
+      ]),
   );
 }
 

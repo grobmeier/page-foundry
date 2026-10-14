@@ -68,12 +68,10 @@ export const LETTER_FIELDS: NoteField[] = [
   { key: "recipient-address", label: "Recipient address", multiline: true },
   { key: "date", label: "Date" },
   { key: "subject", label: "Subject" },
-  { key: "salutation", label: "Salutation" },
-  { key: "closing", label: "Closing" },
 ];
 export function noteFields(kind: string): NoteField[] {
   return [
-    ...common,
+    ...(kind.includes("letter") ? common.slice(0, 1) : common),
     ...(kind.includes("letter")
       ? LETTER_FIELDS
       : kind === "manuscript"
@@ -84,20 +82,35 @@ export function noteFields(kind: string): NoteField[] {
         : []),
   ];
 }
+export function advancedNoteFields(
+  kind: string,
+  values: Record<string, string>,
+): NoteField[] {
+  if (!kind.includes("letter")) return [];
+  return [
+    common[2]!,
+    ...["author", "salutation", "closing"]
+      .filter((key) => Object.hasOwn(values, key))
+      .map((key) => ({
+        key,
+        label: key === "author" ? "Legacy signature name" : `Legacy ${key}`,
+      })),
+  ];
+}
 export const NOTE_TEMPLATES: NoteTemplate[] = [
   {
     id: "letter",
     name: "Letter",
     kind: "letter",
-    body: "Write your letter here.\n",
-    defaults: { closing: "Yours sincerely,", salutation: "Dear …," },
+    body: "Dear …,\n\nWrite your letter here.\n\nYours sincerely,\n\n{{sender-name}}\n",
+    defaults: {},
   },
   {
     id: "submission-letter",
     name: "Submission letter",
     kind: "submission-letter",
-    body: "Introduce your manuscript here.\n",
-    defaults: { closing: "Yours sincerely,", salutation: "Dear Editor," },
+    body: "Dear Editor,\n\nIntroduce your manuscript here.\n\nYours sincerely,\n\n{{sender-name}}\n",
+    defaults: {},
   },
   {
     id: "manuscript",
@@ -158,7 +171,11 @@ export function updateNoteDetails(
 ): string {
   const { yaml, body } = splitNote(source);
   const doc = propertyDocument(yaml);
-  for (const field of noteFields(kind)) {
+  for (const field of [
+    ...noteFields(kind),
+    ...advancedNoteFields(kind, values),
+  ]) {
+    if (!Object.hasOwn(values, field.key)) continue;
     const value = values[field.key] ?? "";
     if (
       value.length > 2000 ||
@@ -167,6 +184,10 @@ export function updateNoteDetails(
       throw new Error(
         `${field.label} must be at most 2000 characters and contain no control characters.`,
       );
+    if (!value.trim()) {
+      doc.delete(field.key);
+      continue;
+    }
     doc.set(field.key, value);
     if (field.multiline && value.includes("\n")) {
       const node = doc.get(field.key, true);
