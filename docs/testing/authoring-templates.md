@@ -3,6 +3,15 @@
 Use the isolated test vault and invented names/addresses. Do not copy private
 designs or personal manuscript text into development fixtures.
 
+Start with [the short guide](../start-here.md). On beta.3 and later, greet/sign
+off in the letter body. Publish opens the kind-aware layout directly; Change
+layout is optional. Check that a new letter omits
+author/language/greeting/closing properties unless explicitly supplied by a
+custom starter. Test an old letter's conversion by cancelling first, then
+reviewing and saving; its addresses and unrelated properties must survive. A
+newer edit while the review is open must block Save. Check two different notes
+retain independent successful layouts.
+
 1. Run **Create new note → Letter**, name it **Authoring letter**, and fill
    sender and recipient names and two-line addresses. Create it. Expect an
    opened Markdown file with saved properties and no new PDF. The previously
@@ -13,10 +22,11 @@ designs or personal manuscript text into development fixtures.
    survive. Change its subject and save; cancel another edit and check nothing
    changed. If you edit the source elsewhere while the form is open, its Save
    must refuse to overwrite the newer note.
-3. **Publish → Letter · A4 · PDF**. Expect names and address lines, subject,
-   salutation and closing exactly once. Publishing must not modify the note.
-   Check the actual saved path in the result, then open the PDF. Try DOCX/EPUB
-   from a manuscript; those are different output layouts, not new-note creation.
+3. **Publish**, defaulting to Letter · A4 · PDF. Expect names and address lines,
+   subject, salutation and closing exactly once. Publishing must not modify the
+   note. Check the actual saved path in the result, then open the PDF. Try
+   DOCX/EPUB from a manuscript; those are different output layouts, not new-note
+   creation.
 4. **Create new note → Book**, then **Edit document details**. Add existing
    `Book/Preface.md` and `Book/Chapter One.md`, choose roles and reorder. Save.
    Expect readable headings/links and no JSON entries in Properties. Publish

@@ -44,6 +44,10 @@ discoverable.
 
 No production-ready plugin has been released yet.
 
+Start with [the short everyday guide](docs/start-here.md): create a note, write,
+then Publish. Typed notes open a suitable layout directly. New letters keep the
+greeting, sign-off and signature in the Markdown body instead of properties.
+
 Beta testing is available through BRAT without a GitHub token. See the
 [BRAT setup guide](docs/testing/brat.md) for installation and updates.
 
@@ -218,7 +222,10 @@ npm run verify
 npm run test-vault
 ```
 
-`npm run test-vault` creates an ignored, disposable vault at `.test-vault/`.
+`npm run test-vault` creates an ignored vault at `.test-vault/`. Fixture notes,
+artwork and packs are additive: existing files are not replaced, and enabled
+community plugins (including BRAT) are preserved. This developer command still
+replaces Page Foundry's plugin bundle; use BRAT updates for normal beta testing.
 Open that folder as a separate Obsidian vault and never use a personal vault for
 development tests. See
 [`docs/architecture/mobile-rendering.md`](docs/architecture/mobile-rendering.md)

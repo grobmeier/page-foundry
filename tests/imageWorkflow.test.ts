@@ -17,6 +17,7 @@ import type { PresetCatalog } from "../src/packs/model";
 import type { Template } from "../src/templates/catalog";
 import type { NoteTemplate } from "../src/notes/model";
 import { noteProperties } from "../src/notes/model";
+import { noteLayoutKey } from "../src/templates/preferred";
 
 const code = buildSync({
   entryPoints: ["src/main.ts"],
@@ -33,6 +34,7 @@ const code = buildSync({
     "./ui/resultModal",
     "./ui/templateModal",
     "./ui/noteModal",
+    "./ui/letterWritingModal",
     "./ui/bookLivePreview",
   ],
 }).outputFiles[0]!.text;
@@ -77,6 +79,7 @@ function setup(bookMode = false) {
     notices: string[] = [];
   const reviews: ImageReview[] = [];
   const catalogs: PresetCatalog[] = [];
+  const exportChoices: ExportChoice[] = [];
   const lookups: string[] = [];
   const stored: unknown[] = [];
   const renders: FoundryDocument[] = [];
@@ -103,6 +106,10 @@ function setup(bookMode = false) {
     ): Promise<void>;
   }[] = [];
   const createdNotes = new Map<string, string>();
+  const letterReviews: {
+    writing: string;
+    save(writing: string): Promise<void>;
+  }[] = [];
   const opened: string[] = [];
   const commands: {
     id: string;
@@ -187,11 +194,16 @@ function setup(bookMode = false) {
   const module = {
     exports: {} as {
       default: new () => {
-        settings: { packManifestPath: string };
+        settings: {
+          packManifestPath: string;
+          noteLayouts: { noteKey: string; layoutKey: string }[];
+        };
         onload(): Promise<void>;
         openNewNote(recent?: boolean): Promise<void>;
         openNoteDetails(file: File): Promise<void>;
         openPublishPicker(file: File, recent?: boolean): Promise<void>;
+        openPublish(file: File): Promise<void>;
+        openLetterWriting(file: File): Promise<void>;
         openExport(
           file: File,
           choice?: ExportChoice,
@@ -228,6 +240,19 @@ function setup(bookMode = false) {
       if (name.startsWith("node:") || builtinModules.includes(name))
         return nodeRequire(name);
       if (name === "./ui/bookLivePreview") return { bookLivePreview: () => [] };
+      if (name === "./ui/letterWritingModal")
+        return {
+          LetterWritingModal: class {
+            constructor(
+              _app: unknown,
+              writing: string,
+              save: (writing: string) => Promise<void>,
+            ) {
+              letterReviews.push({ writing, save });
+            }
+            open() {}
+          },
+        };
       if (name === "obsidian")
         return {
           Plugin,
@@ -257,13 +282,14 @@ function setup(bookMode = false) {
           ExportModal: class {
             constructor(
               _app: unknown,
-              _choice: unknown,
+              _choice: ExportChoice,
               _publish: unknown,
               review: ImageReview,
               _refresh: unknown,
               catalog: PresetCatalog,
             ) {
               reviews.push(review);
+              exportChoices.push(_choice);
               reviewReady();
               catalogs.push(catalog);
             }
@@ -330,6 +356,7 @@ function setup(bookMode = false) {
     reviews,
     renders,
     catalogs,
+    exportChoices,
     lookups,
     stored,
     templateDialogs,
@@ -339,6 +366,7 @@ function setup(bookMode = false) {
     createdNotes,
     opened,
     commands,
+    letterReviews,
     changeBookNote() {
       bookSource += "\nChanged chapter.";
     },
@@ -358,6 +386,9 @@ function setup(bookMode = false) {
       pack.stat.size = 128 * 1024 + 1;
     },
     source: () => markdown,
+    setSource(value: string) {
+      markdown = value;
+    },
     changeNote() {
       markdown += "\n\nA changed paragraph.";
     },
@@ -378,6 +409,69 @@ function setup(bookMode = false) {
 }
 
 describe("review-to-export image workflow", () => {
+  it("reviews legacy letter conversion and refuses a stale save before accepting a fresh review", async () => {
+    const host = setup();
+    host.setSource(
+      "---\ndocument: letter\nsalutation: Dear Jamie,\nclosing: Kind regards,\nauthor: Alex Example\ncustom: retained\n---\nOriginal writing.",
+    );
+    const original = host.source();
+    await host.plugin.openLetterWriting(host.note);
+    assert.equal(host.source(), original);
+    assert.ok(host.letterReviews[0]!.writing.includes("Dear Jamie,"));
+    host.changeNote();
+    const edited = host.source();
+    await assert.rejects(
+      host.letterReviews[0]!.save(host.letterReviews[0]!.writing),
+      /changed/,
+    );
+    assert.equal(host.source(), edited);
+    await host.plugin.openLetterWriting(host.note);
+    await host.letterReviews[1]!.save(host.letterReviews[1]!.writing);
+    assert.equal(noteProperties(host.source()).custom, "retained");
+    assert.equal(noteProperties(host.source()).closing, undefined);
+    assert.ok(host.source().includes("A changed paragraph."));
+  });
+  it("opens a typed letter directly and remembers its published layout without a second picker", async () => {
+    const host = setup();
+    host.setSource(
+      "---\ndocument: letter\ntitle: Enquiry\nsender-name: Alex Example\n---\nDear Jamie,\n\nMy writing.\n\nKind regards,\n\nAlex Example.",
+    );
+    await host.plugin.openPublish(host.note);
+    assert.equal(host.templateDialogs.length, 0);
+    assert.equal(host.exportChoices[0]!.preset, "letter");
+    assert.equal(host.saves.length, 0);
+    const selected = {
+      ...host.exportChoices[0]!,
+      profile: "us-letter" as const,
+    };
+    await host.plugin.publish(
+      host.note,
+      selected,
+      host.reviews[0]!,
+      host.source(),
+      host.catalogs[0],
+    );
+    assert.equal(host.saves.length, 1);
+    await host.plugin.openPublish(host.note);
+    assert.equal(host.exportChoices.at(-1)!.profile, "us-letter");
+    const data = JSON.stringify(host.plugin.settings.noteLayouts);
+    assert.ok(!data.includes("Alex Example") && !data.includes("Notes/Images"));
+  });
+  it("visibly falls back when an explicitly remembered layout disappears", async () => {
+    const host = setup();
+    host.plugin.settings.noteLayouts = [
+      {
+        noteKey: await noteLayoutKey(host.note.path),
+        layoutKey: "missing:layout|pdf|a4|-|-|-",
+      },
+    ];
+    await host.plugin.openPublish(host.note);
+    assert.equal(host.exportChoices[0]!.preset, "plain-document");
+    assert.ok(
+      host.notices.some((t) => t.includes("previous layout is unavailable")),
+    );
+    assert.equal(host.saves.length, 0);
+  });
   it("creates a book draft without copying the active note or adding irrelevant date properties", async () => {
     const host = setup();
     await host.plugin.openNewNote();

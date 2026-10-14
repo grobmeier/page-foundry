@@ -73,6 +73,14 @@ import { SaveTemplateModal } from "./ui/saveTemplateModal";
 import { PresetEditorModal } from "./ui/presetEditorModal";
 import { readEditablePack, saveEditablePack } from "./vault/presetEditor";
 import { bookLivePreview } from "./ui/bookLivePreview";
+import {
+  cleanNoteLayouts,
+  defaultLayout,
+  noteLayoutKey,
+  rememberNoteLayout,
+} from "./templates/preferred";
+import { letterWriting, convertLetterWriting } from "./notes/letter";
+import { LetterWritingModal } from "./ui/letterWritingModal";
 
 export default class PageFoundryPlugin extends Plugin {
   settings: PageFoundrySettings = { ...DEFAULT_SETTINGS };
@@ -81,6 +89,27 @@ export default class PageFoundryPlugin extends Plugin {
   async onload(): Promise<void> {
     await this.loadSettings();
     this.registerEditorExtension(bookLivePreview());
+    if (this.app.vault.on) {
+      this.registerEvent(
+        this.app.vault.on("rename", (file, oldPath) => {
+          void (async () => {
+            const oldKey = await noteLayoutKey(oldPath),
+              key = await noteLayoutKey(file.path);
+            this.settings.noteLayouts = cleanNoteLayouts(
+              this.settings.noteLayouts.map((row) =>
+                row.noteKey === oldKey ? { ...row, noteKey: key } : row,
+              ),
+            );
+            await this.saveSettings();
+          })().catch(
+            () =>
+              new Notice(
+                "Could not update this note's layout preference after renaming.",
+              ),
+          );
+        }),
+      );
+    }
     this.addSettingTab(new PageFoundrySettingTab(this.app, this));
     this.addCommand({
       id: "set-up-book",
@@ -104,7 +133,11 @@ export default class PageFoundryPlugin extends Plugin {
           const file = this.app.workspace.getActiveFile();
           if (file?.extension !== "md") return false;
           if (!checking)
-            void this.openPublishPicker(file, recent).catch(
+            void (
+              recent
+                ? this.openPublishPicker(file, true)
+                : this.openPublish(file)
+            ).catch(
               (error) =>
                 new Notice(
                   error instanceof Error
@@ -130,6 +163,24 @@ export default class PageFoundryPlugin extends Plugin {
           );
         },
       });
+    this.addCommand({
+      id: "move-letter-writing",
+      name: "Move letter greeting and sign-off into writing",
+      checkCallback: (checking) => {
+        const file = this.app.workspace.getActiveFile();
+        if (file?.extension !== "md") return false;
+        if (!checking)
+          void this.openLetterWriting(file).catch(
+            (e) =>
+              new Notice(
+                e instanceof Error
+                  ? e.message
+                  : "Could not review this letter.",
+              ),
+          );
+        return true;
+      },
+    });
     this.addCommand({
       id: "edit-document-details",
       name: "Edit document details",
@@ -190,6 +241,11 @@ export default class PageFoundryPlugin extends Plugin {
       callback: () => new CheatSheetModal(this.app).open(),
     });
     this.addCommand({
+      id: "start-here",
+      name: "Start here",
+      callback: () => new CheatSheetModal(this.app).open(),
+    });
+    this.addCommand({
       id: "manage-output-presets",
       name: "Manage output presets",
       callback: () => {
@@ -210,7 +266,7 @@ export default class PageFoundryPlugin extends Plugin {
         const file = this.app.workspace.getActiveFile();
         if (file?.extension !== "md") return false;
         if (!checking)
-          void this.openExport(file, undefined, true).catch(
+          void this.openPublish(file, true).catch(
             (error) =>
               new Notice(
                 error instanceof Error
@@ -229,7 +285,7 @@ export default class PageFoundryPlugin extends Plugin {
         const file = this.app.workspace.getActiveFile();
         const available = Boolean(file?.extension === "md");
         if (available && !checking && file) {
-          void this.openExport(file).catch(() => {
+          void this.openPublish(file).catch(() => {
             console.error("Page Foundry could not read the active note");
             new Notice("Page Foundry could not read the active note.");
           });
@@ -248,6 +304,7 @@ export default class PageFoundryPlugin extends Plugin {
       ...stored,
       templateHistory: cleanTemplateHistory(stored?.templateHistory),
       noteTemplateHistory: cleanNoteHistory(stored?.noteTemplateHistory),
+      noteLayouts: cleanNoteLayouts(stored?.noteLayouts),
       noteTemplatePaths: Array.isArray(stored?.noteTemplatePaths)
         ? stored.noteTemplatePaths
         : [],
@@ -313,7 +370,17 @@ export default class PageFoundryPlugin extends Plugin {
       if (filtered.length) templates = filtered;
       else new Notice("No recent note templates yet. Choose one to begin.");
     }
-    new NoteTemplateModal(this.app, templates, (template) => {
+    const choose = (template: (typeof NOTE_TEMPLATES)[number]) => {
+      if (template.id === "more") {
+        new NoteTemplateModal(
+          this.app,
+          templates.filter((t) =>
+            ["plain", "submission-letter"].includes(t.id),
+          ),
+          choose,
+        ).open();
+        return;
+      }
       const title =
         template.defaults.title && !template.defaults.title.includes("{{")
           ? template.defaults.title
@@ -337,6 +404,11 @@ export default class PageFoundryPlugin extends Plugin {
         ...expandNoteTemplate(template, fields).defaults,
         ...fields,
       };
+      if (template.kind.includes("letter")) {
+        if (!Object.hasOwn(template.defaults, "author")) delete initial.author;
+        if (!Object.hasOwn(template.defaults, "language"))
+          initial.language = "";
+      }
       if (
         !template.kind.includes("letter") &&
         !Object.hasOwn(template.defaults, "date")
@@ -362,7 +434,11 @@ export default class PageFoundryPlugin extends Plugin {
             this.app.vault,
             path,
             createNoteSource(
-              expandNoteTemplate(template, { date: fields.date, ...values }),
+              expandNoteTemplate(template, {
+                date: fields.date,
+                ...values,
+                language: values.language || fields.language,
+              }),
               values,
             ),
             folders,
@@ -388,7 +464,28 @@ export default class PageFoundryPlugin extends Plugin {
           }
         },
       ).open();
-    }).open();
+    };
+    const basics = templates.filter(
+      (t) =>
+        ["letter", "manuscript", "book"].includes(t.id) ||
+        custom.some((c) => c.template.id === t.id),
+    );
+    new NoteTemplateModal(
+      this.app,
+      recent
+        ? templates
+        : [
+            ...basics,
+            {
+              id: "more",
+              kind: "more",
+              name: "More starters…",
+              body: "",
+              defaults: {},
+            },
+          ],
+      choose,
+    ).open();
   }
 
   private async openSaveTemplate(file: TFile): Promise<void> {
@@ -492,6 +589,73 @@ export default class PageFoundryPlugin extends Plugin {
     ).open();
   }
 
+  private async openLetterWriting(file: TFile): Promise<void> {
+    const path = file.path,
+      source = await this.app.vault.read(file);
+    const properties = noteProperties(source);
+    if (
+      properties.document &&
+      !["letter", "submission-letter"].includes(properties.document)
+    )
+      throw new Error(
+        "Open a letter, not another document type, before converting.",
+      );
+    if (
+      !["letter", "submission-letter"].includes(properties.document ?? "") &&
+      !properties.from &&
+      !properties.to &&
+      !properties.closing
+    )
+      throw new Error(
+        "Open a letter with greeting or closing properties first.",
+      );
+    new LetterWritingModal(this.app, letterWriting(source), async (writing) => {
+      await saveNoteDetails(
+        this.app.vault,
+        file,
+        path,
+        source,
+        convertLetterWriting(source, writing),
+      );
+      new Notice("Greeting and sign-off are now part of your writing.");
+    }).open();
+  }
+
+  private async openPublish(file: TFile, expectedBook = false): Promise<void> {
+    const source = await this.app.vault.cachedRead(file),
+      book = isBookPlan(source, file.basename);
+    if (expectedBook && !book)
+      throw new Error("Open a book plan before using Publish current book.");
+    const catalog = await loadVaultPacks(
+      this.app,
+      this.settings.packManifestPath,
+    );
+    const library = templateLibrary(catalog, book);
+    const key = await noteLayoutKey(file.path);
+    const saved = this.settings.noteLayouts.find((row) => row.noteKey === key);
+    let layout = saved
+      ? library.find((t) => t.key === saved.layoutKey)
+      : undefined;
+    if (saved && !layout)
+      new Notice(
+        "This note's previous layout is unavailable. Review the default or choose Change layout.",
+      );
+    layout ??= defaultLayout(
+      library,
+      book ? "book" : (noteProperties(source).document ?? "plain"),
+    );
+    await this.openExport(
+      file,
+      {
+        ...layout,
+        outputName: file.basename,
+        language: this.settings.defaultLanguage,
+        destination: "vault",
+      },
+      book,
+    );
+  }
+
   private async openPublishPicker(file: TFile, recent = false): Promise<void> {
     const source = await this.app.vault.cachedRead(file);
     const book = isBookPlan(source, file.basename);
@@ -539,6 +703,7 @@ export default class PageFoundryPlugin extends Plugin {
         );
       },
       recent,
+      book ? "book" : (noteProperties(source).document ?? "plain"),
     ).open();
   }
 
@@ -730,14 +895,11 @@ export default class PageFoundryPlugin extends Plugin {
       });
       const filename = safeOutputName(choice.outputName, output.extension);
 
-      this.rememberChoice(
-        choice,
-        preset.outputs[choice.format]?.recipe === "paperback-interior",
-      );
-      await this.saveSettings();
-
+      const isPrint =
+        preset.outputs[choice.format]?.recipe === "paperback-interior";
       if (choice.destination === "vault") {
         const path = await this.saveToVault(filename, output);
+        await this.rememberPublishedNote(file, choice, isPrint);
         new ResultModal(
           this.app,
           filename,
@@ -746,6 +908,7 @@ export default class PageFoundryPlugin extends Plugin {
           path,
         ).open();
       } else {
+        await this.rememberPublishedNote(file, choice, isPrint);
         new ResultModal(this.app, filename, output, () =>
           this.saveToVault(filename, output),
         ).open();
@@ -759,6 +922,30 @@ export default class PageFoundryPlugin extends Plugin {
       );
     } finally {
       progress.hide();
+    }
+  }
+
+  private async rememberPublishedNote(
+    file: TFile,
+    choice: ExportChoice,
+    isPrint: boolean,
+  ): Promise<void> {
+    try {
+      this.rememberChoice(choice, isPrint);
+      this.settings.noteLayouts = rememberNoteLayout(
+        this.settings.noteLayouts,
+        await noteLayoutKey(file.path),
+        {
+          ...choice,
+          profile: choice.format === "epub" || isPrint ? "a4" : choice.profile,
+          printOptions: isPrint ? choice.printOptions : undefined,
+        },
+      );
+      await this.saveSettings();
+    } catch {
+      new Notice(
+        "Output created, but its layout preference could not be saved.",
+      );
     }
   }
 

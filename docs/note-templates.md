@@ -11,21 +11,26 @@ opens it. It does not publish, copy the active note or overwrite an existing
 file. Incomplete publication fields are allowed in drafts. Missing folders are
 only created if you explicitly enable **Create missing folders**.
 
-Use **Edit document details** to save properties later. Letters have separate
-sender/recipient names and multiline addresses, subject, salutation and closing.
-The form saves readable YAML strings, not nested address objects. Write only the
-letter body in the note: the letter PDF adds its salutation and closing.
-Publishing supports the old `from` and `to` blocks too. Fields edited only in
-the export form are temporary and do not change the source note.
+Use **Edit document details** to save properties later. New letters have
+separate sender/recipient names and multiline addresses, date and optional
+subject. The greeting, sign-off and signature are ordinary writing in the body.
+Empty optional fields are omitted; language overrides live under More details.
+The form saves readable YAML strings, not nested address objects. Older letters
+still render their greeting and closing properties. The explicit **Move letter
+greeting and sign-off into writing** command previews a conversion before
+saving. Publishing supports the old `from` and `to` blocks too. Fields edited
+only in the export form are temporary and do not change the source note.
 
 For a legacy letter, Edit document details shows the first line of each old
 block as its name and the remaining lines as its address. Review those fields;
 Save explicitly replaces the old blocks, while Cancel leaves them intact.
 
-**Publish** and **Publish recent** choose PDF, EPUB, DOCX and compatible output
-layouts. **Create recent** remembers note templates separately. Histories
-contain only template/layout keys and usage, not addresses, manuscript text or
-filenames.
+**Publish** opens a suitable layout directly and remembers successful choices
+per note. **Change layout** and **More layouts** offer other designs; **Publish
+recent** remains an optional picker. **Create recent** remembers note templates
+separately. Histories contain only template/layout keys and usage, not
+addresses, manuscript text or filenames. Per-note preferences use bounded opaque
+path hashes and layout keys, not source paths, addresses or writing.
 
 ## Readable book plans
 

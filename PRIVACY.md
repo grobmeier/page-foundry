@@ -27,6 +27,12 @@ manuscript text, source paths, output filenames, author details, addresses or
 export-only metadata in that history. **Clear history** in settings removes
 those layout records. History is never sent to a service or used for analytics.
 
+Publish also remembers up to 100 per-note layout choices using SHA-256 hashes of
+vault-relative note paths and validated layout identifiers. It does not store
+the paths, text, addresses or export-form values in those records. Clearing
+history clears these choices too. A path hash is local pseudonymous metadata,
+not encryption or a guarantee that a predictable path cannot be guessed.
+
 Registered custom-template paths and output-preset pack paths are separate
 explicit configuration stored in local plugin settings. Do not share those
 settings or a synced vault if they contain private information. Public source

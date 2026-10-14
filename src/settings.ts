@@ -7,6 +7,7 @@ import { App, Notice, PluginSettingTab, Setting } from "obsidian";
 import type PageFoundryPlugin from "./main";
 import type { OutputFormat, PageProfileId } from "./core/model";
 import type { TemplateUse } from "./templates/catalog";
+import type { NoteLayout } from "./templates/preferred";
 
 export interface PageFoundrySettings {
   outputFolder: string;
@@ -21,6 +22,7 @@ export interface PageFoundrySettings {
   noteTemplateHistory: TemplateUse[];
   noteFolder: string;
   noteTemplatePaths: string[];
+  noteLayouts: NoteLayout[];
 }
 
 export const DEFAULT_SETTINGS: PageFoundrySettings = {
@@ -36,6 +38,7 @@ export const DEFAULT_SETTINGS: PageFoundrySettings = {
   noteTemplateHistory: [],
   noteFolder: "",
   noteTemplatePaths: [],
+  noteLayouts: [],
 };
 
 export class PageFoundrySettingTab extends PluginSettingTab {
@@ -137,12 +140,13 @@ export class PageFoundrySettingTab extends PluginSettingTab {
     new Setting(this.containerEl)
       .setName("Recent and most-used templates")
       .setDesc(
-        "Only layout choices are remembered, never publication details or manuscript text.",
+        "Clears recent starters/layouts and each note’s saved layout choice. No writing or address information is stored in these choices.",
       )
       .addButton((button) =>
         button.setButtonText("Clear history").onClick(async () => {
           this.plugin.settings.templateHistory = [];
           this.plugin.settings.noteTemplateHistory = [];
+          this.plugin.settings.noteLayouts = [];
           await this.plugin.saveSettings();
         }),
       );
