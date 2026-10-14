@@ -6,6 +6,8 @@ import { TypstPdfRenderer } from "../src/pdf/renderer";
 import { parseMarkdown } from "../src/core/markdown";
 import { assembleBook } from "../src/books/assemble";
 import { DEFAULT_BOOK_DESIGN } from "../src/books/design";
+import { bookManifest, bookNotes } from "./fixtures/book";
+import { parseBookManifest } from "../src/books/manifest";
 
 const entries = Array.from({ length: 50 }, (_, i) => ({
   id: `chapter-${i + 1}`,
@@ -48,4 +50,40 @@ const print = await renderer.renderPrint(document, {
 assert.ok(print.proofReport?.includes("chapter chapter-50:"));
 await writeFile(join(output, "paperback.pdf"), print.bytes);
 await writeFile(join(output, "paperback-proof.txt"), print.proofReport!);
+const mixed = assembleBook(
+  parseBookManifest(bookManifest),
+  new Map(
+    Object.entries(bookNotes).map(([path, raw]) => [
+      path,
+      parseMarkdown(raw, path),
+    ]),
+  ),
+);
+mixed.bookDesign = { ...DEFAULT_BOOK_DESIGN, chapterRule: true };
+const roles = await renderer.renderPrint(mixed, {
+  trim: "6x9",
+  paper: "white",
+  recto: true,
+});
+assert.ok(roles.proofReport?.includes("scene scene-one:"));
+assert.ok(roles.proofReport?.includes("part first-part:"));
+await writeFile(join(output, "mixed-roles.pdf"), roles.bytes);
+await writeFile(join(output, "mixed-roles-proof.txt"), roles.proofReport!);
+mixed.bookDesign = {
+  ...DEFAULT_BOOK_DESIGN,
+  titlePage: false,
+  contents: false,
+  imprintPage: false,
+  header: "none",
+};
+const simple = await renderer.renderPrint(mixed, {
+  trim: "6x9",
+  paper: "white",
+  recto: false,
+});
+await writeFile(join(output, "no-opening-pages.pdf"), simple.bytes);
+await writeFile(
+  join(output, "no-opening-pages-proof.txt"),
+  simple.proofReport!,
+);
 console.log(output);
