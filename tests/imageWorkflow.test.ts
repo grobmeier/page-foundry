@@ -18,6 +18,9 @@ import type { Template } from "../src/templates/catalog";
 import type { NoteTemplate } from "../src/notes/model";
 import { noteProperties } from "../src/notes/model";
 import { noteLayoutKey } from "../src/templates/preferred";
+import type { PackPreset } from "../src/packs/model";
+import { newBookDesign } from "../src/books/designEditor";
+import { updatedPack } from "../src/packs/editor";
 
 const code = buildSync({
   entryPoints: ["src/main.ts"],
@@ -36,6 +39,7 @@ const code = buildSync({
     "./ui/noteModal",
     "./ui/letterWritingModal",
     "./ui/bookLivePreview",
+    "./ui/bookDesignModal",
   ],
 }).outputFiles[0]!.text;
 
@@ -48,6 +52,56 @@ const choice: ExportChoice = {
   destination: "vault",
 };
 const nodeRequire = createRequire(import.meta.url);
+
+it("rejects changed original packs when saving an upgraded copy and moved proof sources", async () => {
+  const h = setup(true);
+  h.activateBook();
+  h.setPackPath("Designs/pack.json");
+  await h.plugin.openBookDesigns();
+  h.changePack();
+  await assert.rejects(
+    () =>
+      h.designForms[0]!.save(
+        "Copy.json",
+        updatedPack(undefined, newBookDesign("neutral")),
+      ),
+    /pack changed/,
+  );
+  assert.equal(h.createdNotes.size, 0);
+  const moved = setup(true);
+  moved.activateBook();
+  await moved.plugin.openBookDesigns();
+  moved.note.path = "Moved.md";
+  await assert.rejects(
+    () => moved.designForms[0]!.proof!(newBookDesign("neutral")),
+    /moved/,
+  );
+  assert.equal(moved.saves.length, 0);
+});
+
+it("guards unsaved book proofs and pack copies without remembering a draft layout or changing sources", async () => {
+  const h = setup(true);
+  h.activateBook();
+  await h.plugin.openBookDesigns();
+  const form = h.designForms[0]!;
+  assert.ok(form.proof);
+  await form.proof!(newBookDesign("neutral"));
+  assert.equal(h.saves.length, 1);
+  assert.equal(h.stored.length, 0);
+  assert.equal(h.plugin.settings.noteLayouts.length, 0);
+  h.changeBookNote();
+  await assert.rejects(() => form.proof!(newBookDesign("neutral")), /changed/);
+  assert.equal(h.saves.length, 1);
+  await h.plugin.openBookDesigns();
+  h.plugin.settings.packManifestPath = "Designs/pack.json";
+  await assert.rejects(
+    () =>
+      h.designForms
+        .at(-1)!
+        .save("New.json", updatedPack(undefined, newBookDesign("neutral"))),
+    /configured pack changed/,
+  );
+});
 
 function setup(bookMode = false) {
   class File {
@@ -111,6 +165,10 @@ function setup(bookMode = false) {
     save(writing: string): Promise<void>;
   }[] = [];
   const opened: string[] = [];
+  const designForms: {
+    save(path: string, source: string): Promise<void>;
+    proof?: (preset: PackPreset) => Promise<void>;
+  }[] = [];
   const commands: {
     id: string;
     callback?: () => void;
@@ -204,6 +262,7 @@ function setup(bookMode = false) {
         openPublishPicker(file: File, recent?: boolean): Promise<void>;
         openPublish(file: File): Promise<void>;
         openLetterWriting(file: File): Promise<void>;
+        openBookDesigns(): Promise<void>;
         openExport(
           file: File,
           choice?: ExportChoice,
@@ -240,6 +299,21 @@ function setup(bookMode = false) {
       if (name.startsWith("node:") || builtinModules.includes(name))
         return nodeRequire(name);
       if (name === "./ui/bookLivePreview") return { bookLivePreview: () => [] };
+      if (name === "./ui/bookDesignModal")
+        return {
+          BookDesignModal: class {
+            constructor(
+              _app: unknown,
+              _pack: unknown,
+              _path: string,
+              save: (path: string, source: string) => Promise<void>,
+              proof?: (preset: PackPreset) => Promise<void>,
+            ) {
+              designForms.push({ save, proof });
+            }
+            open() {}
+          },
+        };
       if (name === "./ui/letterWritingModal")
         return {
           LetterWritingModal: class {
@@ -367,6 +441,10 @@ function setup(bookMode = false) {
     opened,
     commands,
     letterReviews,
+    designForms,
+    activateBook() {
+      app.workspace.getActiveFile = () => note as any;
+    },
     changeBookNote() {
       bookSource += "\nChanged chapter.";
     },

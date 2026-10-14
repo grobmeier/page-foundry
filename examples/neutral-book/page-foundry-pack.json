@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 2,
+  "id": "neutral-books",
+  "name": "Neutral book designs",
+  "version": "1.0.0",
+  "compatibility": { "minEngine": 2, "maxEngine": 2 },
+  "presets": [
+    {
+      "id": "quiet-book",
+      "name": "Quiet book",
+      "description": "A neutral reusable PDF book design with a contents page.",
+      "metadata": [
+        { "key": "title", "label": "Book title", "required": true },
+        { "key": "author", "label": "Author" },
+        { "key": "subtitle", "label": "Subtitle" },
+        { "key": "imprint", "label": "Imprint" }
+      ],
+      "outputs": {
+        "pdf": {
+          "recipe": "plain-document",
+          "style": { "bodySizePt": 11, "lineSpacing": 1.35 },
+          "book": { "chapterRule": true }
+        }
+      }
+    }
+  ]
+}

@@ -131,6 +131,9 @@ function setup(
     addText(fn: (field: unknown) => unknown) {
       return this.field("input", fn);
     }
+    addTextArea(fn: (field: unknown) => unknown) {
+      return this.field("textarea", fn);
+    }
     addDropdown(fn: (field: unknown) => unknown) {
       return this.field("select", fn);
     }

@@ -12,6 +12,8 @@ import { assembleBook } from "../src/books/assemble";
 import { bookManifest, bookNotes } from "./fixtures/book";
 import { parseBookManifest } from "../src/books/manifest";
 import { editableBook, serializeBookPlan } from "../src/books/editor";
+import neutralBook from "../examples/neutral-book/page-foundry-pack.json";
+import { templateLibrary } from "../src/templates/catalog";
 
 it("keeps version-one packs readable and upgrades only designs needing book controls", () => {
   assert.deepEqual(parsePack(JSON.stringify(CORE_PACK)), CORE_PACK);
@@ -41,6 +43,27 @@ it("keeps version-one packs readable and upgrades only designs needing book cont
   assert.throws(
     () => applyPreset(parseMarkdown("Writing", "Note"), preset, "pdf", {}),
     /ordered book/,
+  );
+});
+it("offers book-only presets and their print defaults without affecting ordinary notes", () => {
+  const pack = parsePack(JSON.stringify(neutralBook));
+  const print = structuredClone(pack.presets[0]!);
+  print.id = "print";
+  print.outputs.pdf!.recipe = "paperback-interior";
+  print.outputs.pdf!.book!.printDefaults = {
+    trim: "5x8",
+    paper: "cream",
+    recto: false,
+  };
+  const catalog = catalogue([parsePack(updatedPack(pack, print))], "neutral");
+  assert.equal(templateLibrary(catalog, false).length, 0);
+  const variants = templateLibrary(catalog, true).filter((t) =>
+    t.preset.endsWith(":print"),
+  );
+  assert.equal(variants.length, 1);
+  assert.deepEqual(
+    variants[0]!.printOptions,
+    print.outputs.pdf!.book!.printDefaults,
   );
 });
 it("validates bounded non-executable book designs and format mappings", () => {

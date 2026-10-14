@@ -48,6 +48,7 @@ export function updatedPack(
   preset: PackPreset,
   packId = "local-designs",
 ): string {
+  if (original) parsePack(JSON.stringify(original));
   const pack: PresetPack = original
     ? structuredClone(original)
     : {

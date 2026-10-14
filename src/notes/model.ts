@@ -74,12 +74,17 @@ export function noteFields(kind: string): NoteField[] {
     ...(kind.includes("letter") ? common.slice(0, 1) : common),
     ...(kind.includes("letter")
       ? LETTER_FIELDS
-      : kind === "manuscript"
+      : kind === "book"
         ? [
-            { key: "surname", label: "Header surname" },
-            { key: "short-title", label: "Short title" },
+            { key: "subtitle", label: "Subtitle (optional)" },
+            { key: "imprint", label: "Imprint (optional)", multiline: true },
           ]
-        : []),
+        : kind === "manuscript"
+          ? [
+              { key: "surname", label: "Header surname" },
+              { key: "short-title", label: "Short title" },
+            ]
+          : []),
   ];
 }
 export function advancedNoteFields(

@@ -40,7 +40,7 @@ export function templateLibrary(
       const output = preset.outputs[format];
       if (
         !output ||
-        (!book && output.recipe === "paperback-interior") ||
+        (!book && (output.recipe === "paperback-interior" || output.book)) ||
         (book && output.recipe === "letter")
       )
         continue;
@@ -62,6 +62,19 @@ export function templateLibrary(
         });
       };
       if (output.recipe === "paperback-interior") {
+        if (output.book?.printDefaults) {
+          const defaults = output.book.printDefaults;
+          add(
+            {
+              format,
+              preset: preset.selectionId,
+              profile: "a4",
+              printOptions: { ...defaults },
+            },
+            `${PRINT_TRIMS[defaults.trim].label} · ${defaults.paper}${defaults.recto ? "" : " · next-page chapters"}`,
+          );
+          continue;
+        }
         for (const trim of Object.keys(
           PRINT_TRIMS,
         ) as (keyof typeof PRINT_TRIMS)[])

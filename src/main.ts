@@ -28,6 +28,8 @@ import {
   choosePreset,
   initialMetadata,
   type PresetCatalog,
+  catalogue,
+  parsePack,
 } from "./packs/model";
 import { loadVaultPacks } from "./vault/packs";
 import { safeOutputName } from "./core/naming";
@@ -71,6 +73,8 @@ import { loadNoteTemplates, confirmNoteTemplate } from "./vault/noteTemplates";
 import { expandNoteTemplate } from "./notes/templates";
 import { SaveTemplateModal } from "./ui/saveTemplateModal";
 import { PresetEditorModal } from "./ui/presetEditorModal";
+import { BookDesignModal } from "./ui/bookDesignModal";
+import { updatedPack } from "./packs/editor";
 import { readEditablePack, saveEditablePack } from "./vault/presetEditor";
 import { bookLivePreview } from "./ui/bookLivePreview";
 import {
@@ -294,6 +298,20 @@ export default class PageFoundryPlugin extends Plugin {
       },
     });
     this.addCommand({
+      id: "manage-book-designs",
+      name: "Manage book designs",
+      callback: () => {
+        void this.openBookDesigns().catch(
+          (error) =>
+            new Notice(
+              error instanceof Error
+                ? error.message
+                : "Could not open book designs.",
+            ),
+        );
+      },
+    });
+    this.addCommand({
       id: "publish-current-book",
       name: "Publish current book",
       checkCallback: (checking) => {
@@ -378,6 +396,141 @@ export default class PageFoundryPlugin extends Plugin {
           );
         }
       },
+    ).open();
+  }
+
+  async openBookDesigns(): Promise<void> {
+    const configuredPath = this.settings.packManifestPath.trim();
+    const snapshot = configuredPath
+      ? await readEditablePack(this.app.vault, configuredPath)
+      : undefined;
+    const active = this.app.workspace.getActiveFile();
+    const reviewed =
+      active?.extension === "md" &&
+      isBookPlan(await this.app.vault.read(active), active.basename)
+        ? await reviewVaultBook(this.app, active)
+        : undefined;
+    const reviewedPath = active?.path;
+    const checkBookPath = () => {
+      if (
+        !active ||
+        active.path !== reviewedPath ||
+        this.app.vault.getAbstractFileByPath(reviewedPath!) !== active
+      )
+        throw new Error(
+          "The book was moved or removed. Reopen the design editor.",
+        );
+    };
+    const current = async () => {
+      if (this.settings.packManifestPath.trim() !== configuredPath)
+        throw new Error(
+          "The configured pack changed. Reopen Manage book designs.",
+        );
+      if (snapshot) {
+        const fresh = await readEditablePack(this.app.vault, configuredPath);
+        if (fresh.file !== snapshot.file || fresh.source !== snapshot.source)
+          throw new Error(
+            "The pack changed while the editor was open. Reopen Manage book designs; nothing was overwritten.",
+          );
+      }
+    };
+    new BookDesignModal(
+      this.app,
+      snapshot?.pack,
+      configuredPath || "My book designs.json",
+      async (path, source) => {
+        await current();
+        await saveEditablePack(
+          this.app.vault,
+          path,
+          source,
+          path.trim() === configuredPath ? snapshot : undefined,
+        );
+        this.settings.packManifestPath = path.trim();
+        try {
+          await this.saveSettings();
+          new Notice(
+            "Book design saved. Choose it with Publish → Change layout.",
+          );
+        } catch {
+          new Notice(
+            `Design saved at ${path}, but configuration could not be saved. Set that pack path in settings.`,
+          );
+        }
+      },
+      reviewed && active
+        ? async (draft) => {
+            const progress = new Notice(
+              "Creating an unsaved book-design proof…",
+              0,
+            );
+            try {
+              await current();
+              checkBookPath();
+              const fresh = await reviewVaultBook(this.app, active);
+              if (fresh.signature !== reviewed.signature || fresh.errors.length)
+                throw new Error(
+                  "The book or its included files changed. Reopen the design editor before creating a proof.",
+                );
+              const pack = parsePack(updatedPack(snapshot?.pack, draft));
+              const preset = catalogue([pack], "draft").presets.find(
+                (p) => p.id === draft.id,
+              )!;
+              const values = initialMetadata(fresh.document, preset);
+              const findings = preflight(fresh.document, {
+                format: "pdf",
+                profile: "a4",
+                preset,
+                metadata: values,
+                resourceErrors: fresh.errors,
+                resourceWarnings: fresh.warnings,
+                printOptions: preset.outputs.pdf?.book?.printDefaults,
+              }).findings.filter((f) => f.severity === "blocker");
+              if (findings.length)
+                throw new Error(findings.map((f) => f.message).join(" "));
+              const document = applyPreset(
+                fresh.document,
+                preset,
+                "pdf",
+                values,
+              );
+              const output = await this.render(document, {
+                format: "pdf",
+                preset: preset.outputs.pdf!.recipe,
+                profile: "a4",
+                outputName: active.basename,
+                language:
+                  document.metadata.language ?? this.settings.defaultLanguage,
+                destination: "vault",
+                printOptions: document.bookDesign?.printDefaults,
+              });
+              await current();
+              checkBookPath();
+              const latest = await reviewVaultBook(this.app, active);
+              if (
+                latest.signature !== reviewed.signature ||
+                latest.errors.length
+              )
+                throw new Error(
+                  "The book changed during rendering. No proof was saved. Reopen the design editor.",
+                );
+              const filename = safeOutputName(
+                `${active.basename} - unsaved design proof`,
+                "pdf",
+              );
+              const path = await this.saveToVault(filename, output);
+              new ResultModal(
+                this.app,
+                filename,
+                output,
+                () => this.saveToVault(filename, output),
+                path,
+              ).open();
+            } finally {
+              progress.hide();
+            }
+          }
+        : undefined,
     ).open();
   }
 

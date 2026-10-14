@@ -73,6 +73,27 @@ export class BookModal extends Modal {
             validate();
           }),
         );
+    const publishingDetails = disclosure(
+      this.contentEl,
+      "Opening page details (optional)",
+    );
+    new Setting(publishingDetails).setName("Subtitle").addText((t) =>
+      t.setValue(this.book.metadata.subtitle ?? "").onChange((value) => {
+        this.book.metadata.subtitle = value;
+        validate();
+      }),
+    );
+    new Setting(publishingDetails)
+      .setName("Imprint")
+      .setDesc(
+        "Optional publication text. Printed only by a design with an imprint page.",
+      )
+      .addTextArea((t) =>
+        t.setValue(this.book.metadata.imprint ?? "").onChange((value) => {
+          this.book.metadata.imprint = value;
+          validate();
+        }),
+      );
     new Setting(this.contentEl)
       .setName("Book plan file")
       .setDesc(

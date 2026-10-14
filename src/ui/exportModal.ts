@@ -43,7 +43,12 @@ export class ExportModal extends Modal {
     super(app);
     this.choice = {
       ...initial,
-      printOptions: { ...(initial.printOptions ?? DEFAULT_PRINT_OPTIONS) },
+      printOptions: {
+        ...(initial.printOptions ??
+          choosePreset(this.catalog, initial.preset, initial.format).outputs.pdf
+            ?.book?.printDefaults ??
+          DEFAULT_PRINT_OPTIONS),
+      },
       metadata: initial.metadata ? { ...initial.metadata } : undefined,
     };
     this.selectPreset(false);
@@ -54,7 +59,8 @@ export class ExportModal extends Modal {
       (p) =>
         p.outputs[this.choice.format] &&
         (this.review.document.book ||
-          p.outputs[this.choice.format]?.recipe !== "paperback-interior") &&
+          (p.outputs[this.choice.format]?.recipe !== "paperback-interior" &&
+            !p.outputs[this.choice.format]?.book)) &&
         (!this.review.document.book ||
           p.outputs[this.choice.format]?.recipe !== "letter"),
     );
@@ -69,6 +75,10 @@ export class ExportModal extends Modal {
     );
     if (reset || !this.choice.metadata)
       this.choice.metadata = initialMetadata(this.review.document, preset);
+    if (reset)
+      this.choice.printOptions = {
+        ...(preset.outputs.pdf?.book?.printDefaults ?? DEFAULT_PRINT_OPTIONS),
+      };
     if (!this.choice.metadata.language)
       this.choice.metadata.language =
         this.review.document.metadata.language ??

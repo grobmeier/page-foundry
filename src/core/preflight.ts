@@ -55,6 +55,15 @@ export function preflight(
       findings.push({ code, severity, message });
   };
   if (options.packError) add("pack", "blocker", options.packError);
+  if (
+    options.preset.outputs[options.format]?.book &&
+    !document.book?.entries.length
+  )
+    add(
+      "book-design",
+      "blocker",
+      "This design needs an ordered book. Open a book plan before publishing.",
+    );
   for (const message of metadataErrors(
     options.preset,
     options.metadata,
