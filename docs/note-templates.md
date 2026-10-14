@@ -95,11 +95,11 @@ Missing or changed templates are explained rather than silently replaced.
 Removing a registration does not delete its file. No unrelated vault folders are
 scanned.
 
-The optional placeholders are `{{title}}`, `{{author}}`, `{{sender-name}}`, `{{language}}` and
-`{{date}}`. They are replaced as text with YAML-safe serialization and Markdown
-escaping; arbitrary expressions are rejected. Unknown scalar properties are
-retained as template defaults, but the details form exposes the supported
-fields.
+The optional placeholders are `{{title}}`, `{{author}}`, `{{sender-name}}`,
+`{{language}}` and `{{date}}`. They are replaced as text with YAML-safe
+serialization and Markdown escaping; arbitrary expressions are rejected. Unknown
+scalar properties are retained as template defaults, but the details form
+exposes the supported fields.
 
 ```markdown
 ---
