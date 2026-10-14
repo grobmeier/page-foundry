@@ -171,6 +171,10 @@ export function updateNoteDetails(
 ): string {
   const { yaml, body } = splitNote(source);
   const doc = propertyDocument(yaml);
+  const legacyGreeting =
+    kind.includes("letter") &&
+    ["salutation", "closing", "from", "to"].some((key) => doc.has(key));
+  const oldSender = doc.get("from");
   for (const field of [
     ...noteFields(kind),
     ...advancedNoteFields(kind, values),
@@ -185,7 +189,12 @@ export function updateNoteDetails(
         `${field.label} must be at most 2000 characters and contain no control characters.`,
       );
     if (!value.trim()) {
-      doc.delete(field.key);
+      if (
+        legacyGreeting &&
+        ["salutation", "closing", "author"].includes(field.key)
+      )
+        doc.set(field.key, value);
+      else doc.delete(field.key);
       continue;
     }
     doc.set(field.key, value);
@@ -197,6 +206,10 @@ export function updateNoteDetails(
   }
   doc.set("document", kind);
   if (convertLegacy && kind.includes("letter")) {
+    if (legacyGreeting && !doc.has("closing"))
+      doc.set("closing", "Yours sincerely,");
+    if (typeof oldSender === "string" && !doc.has("author"))
+      doc.set("author", oldSender);
     doc.delete("from");
     doc.delete("to");
   }

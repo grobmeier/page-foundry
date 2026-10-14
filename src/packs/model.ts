@@ -400,9 +400,20 @@ export function applyPreset(
   const output = preset.outputs[format];
   if (!output) throw new Error("The preset does not support this format.");
   const metadata = { ...document.metadata };
+  const legacyLetter =
+    output.recipe === "letter" &&
+    ["salutation", "closing", "from", "to"].some((key) =>
+      Object.hasOwn(document.metadata, key),
+    );
   for (const field of preset.metadata) {
     const value = values[field.key] ?? "";
     if (value.trim()) metadata[field.key] = value;
+    else if (
+      legacyLetter &&
+      ["salutation", "closing", "author"].includes(field.key) &&
+      Object.hasOwn(values, field.key)
+    )
+      metadata[field.key] = value;
     else delete metadata[field.key];
   }
   if (format === "epub") metadata.language = (values.language ?? "").trim();

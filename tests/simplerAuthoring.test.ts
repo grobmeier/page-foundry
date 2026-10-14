@@ -4,6 +4,7 @@ import { it } from "node:test";
 import {
   NOTE_TEMPLATES,
   createNoteSource,
+  updateNoteDetails,
   noteProperties,
 } from "../src/notes/model";
 import { expandNoteTemplate } from "../src/notes/templates";
@@ -56,6 +57,35 @@ it("creates a body-only letter without duplicated signature properties or empty 
   assert.equal((typst.match(/Dear …,/g) ?? []).length, 1);
   assert.equal((typst.match(/Alex Example/g) ?? []).length, 2); // Address and body signature only.
   assert.ok(!typst.includes("{{sender-name}}"));
+});
+it("keeps explicit blank legacy sign-offs and default legacy address-block output when editing details", () => {
+  const source =
+    "---\ndocument: letter\nclosing: ''\nsalutation: Dear Jamie,\nauthor: Alex Example\n---\nExisting writing.";
+  const edited = updateNoteDetails(source, "letter", {
+    ...noteProperties(source),
+    "sender-address": "A changed address",
+  });
+  assert.equal(noteProperties(edited).closing, "");
+  const preset = choosePreset(CORE_CATALOG, "letter", "pdf");
+  const document = parseMarkdown(edited, "Letter");
+  assert.ok(
+    !createTypstSource(
+      applyPreset(document, preset, "pdf", initialMetadata(document, preset)),
+      "letter",
+      "a4",
+    ).includes("Yours sincerely,"),
+  );
+  const old =
+    "---\nfrom: Alex Example\nto: Jamie Example\n---\nExisting writing.";
+  const converted = updateNoteDetails(
+    old,
+    "letter",
+    { "sender-name": "Alex Example", "recipient-name": "Jamie Example" },
+    true,
+  );
+  assert.equal(noteProperties(converted).closing, "Yours sincerely,");
+  assert.equal(noteProperties(converted).author, "Alex Example");
+  assert.ok(converted.endsWith("Existing writing."));
 });
 it("previews and explicitly converts legacy writing while retaining addresses and unrelated metadata", () => {
   const original =
