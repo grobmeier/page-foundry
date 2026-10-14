@@ -33,6 +33,12 @@ override typography; DOCX fonts depend on the editor/device.
 
 ## Contract, schema version 1
 
+Version-1 packs remain readable without migration. Version-2 packs add bounded
+PDF book controls; see [Make your own book design](book-designs.md). Their
+`compatibility` range must include engine `2`; unchanged version-1 declarations
+still use engine `1`. The form defaults to saving a copy when an upgrade is
+needed. Handwritten JSON is optional, not the everyday editing workflow.
+
 Start from
 [the neutral example](../examples/neutral-pack/page-foundry-pack.json). Unknown
 fields are rejected at every level. There is no code execution: JavaScript, CSS,
@@ -126,3 +132,29 @@ Those checks remain later roadmap work.
 
 Only neutral packs belong in this repository. Keep real designs, branding,
 manuscripts, fonts, artwork and metadata in separately configured private packs.
+
+## Version 2 book controls
+
+On PDF `plain-document` or `paperback-interior` outputs, an optional `book`
+object supplies the design below. Only explicit ordered books can use it. Other
+formats/recipes reject that object. Version-1 outputs reject it too. Missing
+keys use the safe defaults shown in `src/books/design.ts`; unknown keys are
+rejected. `subtitle` and `imprint` are supported metadata keys for designs.
+
+| Fields                                                | Accepted values                                            |
+| ----------------------------------------------------- | ---------------------------------------------------------- |
+| `titlePage`, `imprintPage`, `contents`, `chapterRule` | Booleans                                                   |
+| `titleAlign`, `chapterAlign`                          | `left`, `center`                                           |
+| `titleSizePt`, `chapterSizePt`                        | 8–48                                                       |
+| `titleTopMm`, `chapterTopMm`                          | 0–80                                                       |
+| `ruleWidthPercent`                                    | 5–80                                                       |
+| `ruleWeightPt`                                        | 0.1–2                                                      |
+| `indentMm`, `paragraphSpaceMm`                        | 0–12                                                       |
+| `header`                                              | `none`, `book-title`, `chapter-title`                      |
+| `pageNumbers`                                         | `center`, `outside`                                        |
+| `printDefaults`                                       | Paperback only: supported `trim`, `paper`, boolean `recto` |
+
+The controls do not include filenames, code, font imports, raw stylesheets or
+asset hooks. Title/imprint text comes from the selected book, not generated
+defaults in the public engine. Print rules still enforce mirrored margins and
+black ink. Explicit source strings are escaped, never evaluated.

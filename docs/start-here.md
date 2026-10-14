@@ -48,8 +48,13 @@ Markdown locally. **Manage output presets** controls page appearance, not
 starting text. Keep private designs outside the public engine repository.
 
 Export-form detail changes are temporary; **Edit document details** saves them.
-Use the result's actual path if Obsidian hides EPUB/DOCX in its sidebar. On
-supported mobile devices, sharing can save to Files or installed storage apps.
+For a reusable book appearance, run **Manage book designs**, adjust the form and
+**Create proof** before saving. Choose the saved design once through **Publish →
+Change layout**; Publish then remembers it for that book. See
+[Make your own book design](book-designs.md) for private storage and upgrade
+copies. Use the result's actual path if Obsidian hides EPUB/DOCX in its sidebar.
+On supported mobile devices, sharing can save to Files or installed storage
+apps.
 
 For focused tests see [the authoring checklist](testing/authoring-templates.md).
 On the test vault, older developer checks live under **Archive**; your writing

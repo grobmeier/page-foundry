@@ -115,6 +115,7 @@ function setup(bookMode = false) {
   const note = new File("Notes/Images.md", "Images");
   const attachment = new File("Artwork/photo.png", "photo");
   const pack = new File("Designs/pack.json", "pack");
+  pack.extension = "json";
   const bookNote = new File("Book/Chapter.md", "Chapter");
   let bookSource = "# Chapter\n\nA neutral chapter.";
   let bookManifest =

@@ -83,6 +83,9 @@ The development build currently provides:
   presets;
 - a semantic reflowable EPUB with package metadata and heading navigation;
 - plain editable and general manuscript DOCX presets;
+- form-edited local book designs with title/imprint/contents pages, chapter
+  styles, running headers and protected paperback defaults;
+  [book design guide](docs/book-designs.md);
 - versioned, opt-in JSON preset packs with bounded styles, export-only metadata
   forms, required-field validation and a layout review;
 - local author preflight with blockers, advice, unchecked limitations, optional

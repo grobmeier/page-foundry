@@ -41,7 +41,7 @@ export class CheatSheetModal extends Modal {
       ],
       [
         "Your designs",
-        "Note templates supply starting text and properties. Output presets supply page layouts. Manage output presets creates or edits your local pack through a form; select a starting layout, give it a name and adjust supported typography. Keep private designs in explicitly configured vault files, outside the project repository; vault sync/backups have their own privacy rules. Rendering is local: no Docker or rendering server. Typst is the internal PDF typesetting engine, not Markdown or LaTeX.",
+        "Note templates supply starting text; output presets supply appearance. Manage book designs edits opening pages, chapters and running headers through a form. Open a book first to Create proof without saving the draft, then Save book design and choose it once with Publish → Change layout. Older packs default to Save a copy. Manage output presets handles other layouts. Keep private designs outside the public checkout; vault sync/backups have separate privacy rules. No Docker or rendering server is needed.",
       ],
     ].entries()) {
       const parent =
