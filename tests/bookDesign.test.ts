@@ -6,6 +6,12 @@ import { CORE_PACK } from "../src/packs/core";
 import { updatedPack } from "../src/packs/editor";
 import { parsePack, catalogue, applyPreset } from "../src/packs/model";
 import { parseMarkdown } from "../src/core/markdown";
+import { createTypstSource } from "../src/pdf/typstSource";
+import { createPrintSource } from "../src/pdf/printSource";
+import { assembleBook } from "../src/books/assemble";
+import { bookManifest, bookNotes } from "./fixtures/book";
+import { parseBookManifest } from "../src/books/manifest";
+import { editableBook, serializeBookPlan } from "../src/books/editor";
 
 it("keeps version-one packs readable and upgrades only designs needing book controls", () => {
   assert.deepEqual(parsePack(JSON.stringify(CORE_PACK)), CORE_PACK);
@@ -69,4 +75,53 @@ it("validates bounded non-executable book designs and format mappings", () => {
   assert.throws(() => parsePack(JSON.stringify(pack)), /Book PDF/);
   pack.presets[0].outputs = { epub: { recipe: "reflowable-ebook", book: {} } };
   assert.throws(() => parsePack(JSON.stringify(pack)), /Book PDF/);
+});
+it("renders only structural chapter designs, safe opening text, measured print markers and contents links", () => {
+  const book = assembleBook(
+    parseBookManifest(bookManifest),
+    new Map(
+      Object.entries(bookNotes).map(([path, raw]) => [
+        path,
+        parseMarkdown(raw, path),
+      ]),
+    ),
+  );
+  book.metadata.subtitle = '#include("private")';
+  book.metadata.imprint = "Example Press\nNeutral proof";
+  book.bookDesign = { ...DEFAULT_BOOK_DESIGN, chapterRule: true };
+  const before = structuredClone(book);
+  const source = createTypstSource(book, "plain-document", "a4");
+  assert.match(source, /#text\("#include/);
+  assert.match(source, /#link\(target\)/);
+  assert.match(source, /query\(<foundry-section>\)/);
+  assert.match(source, /#line\(length: 25%, stroke: 0.5pt\)/);
+  assert.equal(
+    (source.match(/#v\(18mm\)/g) ?? []).length,
+    book.book!.entries.filter((e) => e.role === "chapter").length,
+  );
+  assert.doesNotMatch(source, /foundry-proof/);
+  const print = createPrintSource(
+    book,
+    { trim: "5x8", paper: "cream", recto: true },
+    0.625,
+  );
+  assert.match(print, /inside: 0.625in, outside: 0.5in/);
+  assert.match(print, /fill: black/);
+  assert.match(print, /foundry-proof/);
+  assert.match(print, /foundry-blanks/);
+  assert.deepEqual(book, before);
+  assert.throws(() => createTypstSource(book, "letter", "a4"), /Book PDF/);
+});
+it("round-trips subtitle and readable multiline imprint without changing outline or unrelated prose", () => {
+  const source = serializeBookPlan(parseBookManifest(bookManifest));
+  const draft = editableBook(source);
+  draft.metadata.subtitle = "A neutral subtitle";
+  draft.metadata.imprint = "Example Press\nDevelopment edition";
+  const saved = serializeBookPlan(draft, source);
+  assert.match(saved, /imprint: \|/);
+  assert.equal(
+    parseBookManifest(saved).metadata.imprint,
+    draft.metadata.imprint,
+  );
+  assert.deepEqual(parseBookManifest(saved).entries, draft.entries);
 });

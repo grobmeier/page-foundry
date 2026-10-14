@@ -12,12 +12,18 @@ import type {
 } from "../core/model";
 import { imageSize, requireImage } from "../core/images";
 import { safeExternalHref } from "../core/headings";
+import { createBookSource } from "./bookSource";
 
 export function createTypstSource(
   document: FoundryDocument,
   preset: PdfPresetId,
   profile: PageProfileId,
 ): string {
+  if (document.bookDesign) {
+    if (preset !== "plain-document")
+      throw new Error("Book designs require a Book PDF recipe.");
+    return createBookSource(document, profile);
+  }
   const paper = profile === "a4" ? "a4" : "us-letter";
   const style = document.style ?? {};
   const manuscript = preset === "manuscript";

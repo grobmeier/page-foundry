@@ -97,9 +97,17 @@ export function serializeBookPlan(
       "identifier",
       "surname",
       "short-title",
+      "subtitle",
+      "imprint",
     ]) {
-      if (metadata[key]) doc.set(key, metadata[key]);
-      else doc.delete(key);
+      if (metadata[key]) {
+        doc.set(key, metadata[key]);
+        if (key === "imprint" && metadata[key].includes("\n")) {
+          const node = doc.get(key, true);
+          if (node && typeof node === "object" && "type" in node)
+            node.type = "BLOCK_LITERAL";
+        }
+      } else doc.delete(key);
     }
     const labels = {
       "front-matter": "Opening pages",

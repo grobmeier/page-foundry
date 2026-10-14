@@ -6,12 +6,15 @@ import {
   type PrintOptions,
 } from "../print/model";
 import { renderBlock, renderText } from "./typstSource";
+import { createBookSource } from "./bookSource";
 
 export function createPrintSource(
   document: FoundryDocument,
   options: PrintOptions,
   insideIn: number,
 ): string {
+  if (document.bookDesign)
+    return createBookSource(document, "a4", options, insideIn);
   validatePrintOptions(options);
   if (!document.book?.entries.length)
     throw new Error("Paperback interior requires an ordered book.");

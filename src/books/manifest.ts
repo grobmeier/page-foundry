@@ -50,6 +50,8 @@ export function parseBookManifest(
     "identifier",
     "surname",
     "short-title",
+    "subtitle",
+    "imprint",
   ];
   for (const key of Object.keys(root))
     if (
@@ -63,7 +65,8 @@ export function parseBookManifest(
     if (
       typeof root[field] !== "string" ||
       (!root[field].trim() && field === "title") ||
-      root[field].length > 2000
+      root[field].length > 2000 ||
+      /[\u0000-\u0008\u000b\u000c\u000e-\u001f]/u.test(root[field])
     )
       throw new Error(
         `Book ${field} must be non-empty text, at most 2000 characters.`,

@@ -11,6 +11,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test": "node --import tsx --test tests/**/*.test.ts",
+    "test:book-pdf": "node scripts/check-book-designs.mjs",
     "verify": "npm run format:check && npm test && npm run build",
     "test-vault": "npm run build && node --import tsx scripts/install-test-vault.mjs",
     "test-outputs": "node --import tsx scripts/generate-test-outputs.ts"
