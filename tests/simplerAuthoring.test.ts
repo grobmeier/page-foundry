@@ -73,6 +73,14 @@ it("previews and explicitly converts legacy writing while retaining addresses an
   assert.equal(values.salutation, undefined);
   assert.equal(values.author, undefined);
   assert.throws(() => letterWriting(converted), /already keeps/);
+  assert.throws(
+    () =>
+      convertLetterWriting(
+        "---\nfrom: 42\nclosing: Regards\n---\nBody.",
+        "Reviewed writing.",
+      ),
+    /plain text/,
+  );
   assert.equal(
     (
       createTypstSource(

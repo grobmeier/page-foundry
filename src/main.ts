@@ -92,9 +92,19 @@ export default class PageFoundryPlugin extends Plugin {
     if (this.app.vault.on) {
       this.registerEvent(
         this.app.vault.on("rename", (file, oldPath) => {
+          if (
+            !("extension" in file) ||
+            file.extension !== "md" ||
+            !this.settings.noteLayouts.length
+          )
+            return;
           void (async () => {
             const oldKey = await noteLayoutKey(oldPath),
               key = await noteLayoutKey(file.path);
+            if (
+              !this.settings.noteLayouts.some((row) => row.noteKey === oldKey)
+            )
+              return;
             this.settings.noteLayouts = cleanNoteLayouts(
               this.settings.noteLayouts.map((row) =>
                 row.noteKey === oldKey ? { ...row, noteKey: key } : row,
@@ -105,6 +115,30 @@ export default class PageFoundryPlugin extends Plugin {
             () =>
               new Notice(
                 "Could not update this note's layout preference after renaming.",
+              ),
+          );
+        }),
+      );
+      this.registerEvent(
+        this.app.vault.on("delete", (file) => {
+          if (
+            !("extension" in file) ||
+            file.extension !== "md" ||
+            !this.settings.noteLayouts.length
+          )
+            return;
+          void (async () => {
+            const key = await noteLayoutKey(file.path);
+            if (!this.settings.noteLayouts.some((row) => row.noteKey === key))
+              return;
+            this.settings.noteLayouts = this.settings.noteLayouts.filter(
+              (row) => row.noteKey !== key,
+            );
+            await this.saveSettings();
+          })().catch(
+            () =>
+              new Notice(
+                "Could not clear the deleted note’s layout preference.",
               ),
           );
         }),
@@ -631,7 +665,14 @@ export default class PageFoundryPlugin extends Plugin {
       this.settings.packManifestPath,
     );
     const library = templateLibrary(catalog, book);
-    const key = await noteLayoutKey(file.path);
+    let key: string | undefined;
+    try {
+      key = await noteLayoutKey(file.path);
+    } catch {
+      new Notice(
+        "Saved layout choices are unavailable on this device. Review the default or choose Change layout.",
+      );
+    }
     const saved = this.settings.noteLayouts.find((row) => row.noteKey === key);
     let layout = saved
       ? library.find((t) => t.key === saved.layoutKey)
