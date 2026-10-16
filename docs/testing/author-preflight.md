@@ -13,10 +13,11 @@ submission rules, print compliance or KDP readiness.
    Select EPUB. **Publication checks** should show no blockers. Export, use the
    final result's **Show in folder**, and open the EPUB in your reader. The
    **Return to Chapter One** link must navigate to that section.
-3. Open **Preflight advice**. Missing author, heading hierarchy, literal HTML/
-   code formatting and an other-note link should produce advice. Create should
-   remain enabled. Export PDF/DOCX and confirm unsupported links appear as text,
-   the label/content remains present, and the original note is unchanged.
+3. Open **Preflight advice**. Missing author, heading hierarchy, literal HTML
+   formatting and an other-note link should produce advice. Code blocks retain
+   their formatting and no longer produce that warning. Create should remain
+   enabled. Export PDF/DOCX and confirm unsupported links appear as text, the
+   label/content remains present, and the original note is unchanged.
 4. Open **Preflight broken link**, select EPUB: Create must be disabled with a
    missing-destination explanation. Select PDF or DOCX: that same fragment is
    advice and becomes plain text. Open **Preflight empty**: every format should

@@ -12,7 +12,7 @@ format-neutral output result. The PDF adapter contains:
 1. a portable Markdown document model;
 2. a Typst source generator;
 3. the Typst WebAssembly compiler; and
-4. the Libertinus Serif OpenType faces required by the initial presets.
+4. the Libertinus Serif faces and DejaVu Sans Mono font for literal code.
 
 The compiler and fonts are compressed during the build and encoded inside the
 single `main.js` file accepted by Obsidian's community-plugin installation. They
@@ -39,6 +39,15 @@ portable document model
 Only the selected note, or the selected book's explicitly listed notes, and
 their explicit resources belong in this flow. The renderer performs no runtime
 network request.
+
+The parser enables GFM pipe tables only, not unrelated GFM extensions. Table
+cells remain inline document nodes, so resource review, link preflight and book
+image/link remapping traverse them just like paragraphs. PDF uses breakable
+tables with repeating headings and a stacked label/value fallback when columns
+would be too narrow. Images use the available layout width, including inside
+cells, quotes and lists. Code is escaped literal text, never executable Typst.
+`npm run test:markdown-pdf` compiles neutral A4, US Letter and 5×8 proofs with
+the same bundled WebAssembly renderer; inspect the reported temporary directory.
 
 ## Ordered book snapshots
 

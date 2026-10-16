@@ -92,6 +92,8 @@ The development build currently provides:
   report copying and validated EPUB heading links;
 - local PNG/JPEG images in all three formats, with resource review and safety
   checks before export;
+- Markdown pipe tables, aligned cells, repeated PDF headings and readable
+  narrow-page layouts; fenced code with preserved indentation and wrapping;
 - A4 and US Letter page profiles;
 - an embedded, lazily initialised Typst WebAssembly compiler;
 - a configurable vault-relative output folder with collision-safe names; and
@@ -172,7 +174,11 @@ Use Markdown images (`![Description](Artwork/panel.png)`), reference-style
 images, or Obsidian embeds (`![[Artwork/panel.png|300]]`). A numeric embed alias
 sets a maximum width in pixels; a text alias supplies alt text. Aspect ratio is
 preserved and images are not upscaled. The publish dialog lists unique resolved
-images and explains blocking errors or non-blocking alt-text advice.
+images and explains blocking errors or non-blocking alt-text advice. Use
+`![[Artwork/panel.png|300x200]]` to fit an image inside a width/height box
+without stretching it. In a table cell, escape the alias separator as
+`![[Artwork/panel.png\|300x200]]`. PDF images also fit their actual cell/list
+width.
 
 Only referenced PNG/JPEG vault attachments are read. Remote URLs, absolute
 filesystem paths, parent traversal, HTML images and other media types are
@@ -186,6 +192,25 @@ See the
 The test-vault installer includes **Portable images.md**, PNG/JPEG artwork,
 safety-case notes, and **Page Foundry test plan.md** for convenient testing.
 
+### Tables and literal code
+
+Ordinary Markdown pipe tables support left, centre and right alignment, inline
+formatting, links, empty cells and local images. Escape literal pipes with `\|`
+(including pipes in inline code). PDF tables wrap text, repeat header rows on
+later pages and allow tall rows to continue across pages. More than six columns,
+or columns narrower than 60 points, become stacked label/value rows; content is
+not shrunk to unreadable type. EPUB/DOCX retain native tables. Tables are
+bounded to 20 columns and 1,000 body rows; extra cells beyond the header block
+publishing instead of silently losing data. Merged cells and rendered HTML
+tables are not supported.
+
+Fenced and indented code remains literal, with whitespace and line breaks in all
+formats. PDF uses a bundled monospace font and wraps long lines. Code does not
+execute, import files or request embedded-looking images. HTML remains literal;
+SVG, remote images, mathematics and diagram rendering are not added by this fix.
+See the
+[PDF edge-case checklist](docs/testing/local-images-and-mobile.md#tables-code-and-narrow-pdf-pages).
+
 ## Development
 
 ### Author preflight
@@ -193,9 +218,9 @@ safety-case notes, and **Page Foundry test plan.md** for convenient testing.
 The publish dialog checks the current note, selected preset and reviewed
 resources. Empty content, required metadata and broken/ambiguous EPUB heading
 links block creation. Missing author/descriptions, heading gaps, stripped links
-and literal HTML/code formatting are advice. Other notes and external targets
-are not read or tested. Named EPUB heading links resolve to the same IDs used by
-the table of contents; PDF/DOCX heading links are currently plain labels.
+and literal HTML formatting are advice. Other notes and external targets are not
+read or tested. Named EPUB heading links resolve to the same IDs used by the
+table of contents; PDF/DOCX heading links are currently plain labels.
 
 The report explicitly lists checks it did not perform. It does not certify KDP,
 publisher rules, rendered-page layout or accessibility. Copying is an optional,

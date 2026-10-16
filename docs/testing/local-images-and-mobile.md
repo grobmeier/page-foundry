@@ -125,6 +125,45 @@ that is separate from offline generation. Repeat an image export and a text-only
 export three times, watching for increasing delays, freezes, or stale images.
 Record approximate duration rather than inventing a memory measurement.
 
+## Tables, code and narrow PDF pages
+
+Use a neutral note in the test vault, not your manuscript. After installing the
+candidate build, reload Page Foundry. BRAT needs a published beta; updating main
+alone does not update the installed plugin.
+
+1. Add a three-column table with left/centre/right alignment, a blank cell,
+   **bold**, `inline code`, a link, and an escaped literal pipe (`\|`). Export
+   PDF. Check borders, alignment and wrapping; no raw pipe-table source should
+   appear. Without a valid separator row, pipe-containing prose stays prose.
+2. Add a local PNG/JPEG inside a cell. For a wiki embed with dimensions use
+   `![[Artwork/panel.png\|300x200]]`. Check it fits its cell without stretching.
+   Also try an ordinary wide image, a portrait image and the same image twice.
+3. Duplicate table rows until the table spans pages. Headings must repeat and
+   the last row must remain present. Put several paragraphs' worth of text in
+   one cell to check a row can continue across pages.
+4. Try seven columns, then include the note in a 5×8 book. Wide tables should
+   become readable label/value rows, with every original column represented.
+   Ordinary small tables should remain grids. Check a table in a quote/list.
+5. Add a fenced code block with blank lines, indentation, punctuation and a long
+   identifier. PDF should use monospace text and wrap within the page.
+   `#image("remote.png")` inside code must print literally, never fetch a file.
+   Start a numbered list at 3; the PDF must start at 3, including nested lists.
+6. Export the note as EPUB and DOCX too: tables and code must remain present. A
+   missing/remote/SVG image inside a cell must still block export with a useful
+   explanation. A row with more cells than the header must also block, not lose
+   the extra cell silently. Original Markdown and attachments must be unchanged.
+
+Repeat PDF export offline on iPad/iPhone when available, then save in the vault
+and use Files/share for another destination. Physical-device performance is not
+established by desktop proofs. Mathematics, diagrams, merged cells and rendered
+HTML tables are outside these fixes.
+
+For maintainers, `npm run test:markdown-pdf` generates neutral A4, US Letter and
+5×8 proofs in a fresh temporary directory. Check all record numbers, the final
+`END OF TALL ROW` / `END OF PROOF` markers, repeated headings, image bounds and
+code wrapping. Render representative pages for visual inspection. Also run
+`npm run test:book-pdf` to retain the existing custom-design/print checks.
+
 ## Report back
 
 Send device/versions, fixture note, format/preset, destination, approximate
