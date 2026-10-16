@@ -85,6 +85,9 @@ function styles(document: FoundryDocument): string {
 .book-title { text-align: center; margin-block: 2em; }
 blockquote { border-inline-start: 0.2em solid currentColor; margin-inline: 1em; padding-inline-start: 1em; }
 pre, code { font-family: monospace; }
+pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+th, td { border: 1px solid currentColor; padding: 0.4em; overflow-wrap: anywhere; }
 hr { border: 0; text-align: center; }
 hr::after { content: "* * *"; }
 img { max-width: 100%; height: auto; }
@@ -205,8 +208,23 @@ function renderBlock(
             `${indent}  <li>\n${renderBlocks(item, document, index, `${indent}    `)}\n${indent}  </li>`,
         )
         .join("\n");
-      return `${indent}<${tag}>\n${items}\n${indent}</${tag}>`;
+      return `${indent}<${tag}${block.ordered && block.start !== undefined ? ` start="${block.start}"` : ""}>\n${items}\n${indent}</${tag}>`;
     }
+    case "table": {
+      const row = (cells: InlineNode[][], header: boolean) =>
+        `<tr>${cells
+          .map((nodes, i) => {
+            const tag = header ? "th" : "td";
+            return `<${tag}${header ? ' scope="col"' : ""}${block.align[i] ? ` style="text-align: ${block.align[i]}"` : ""}>${renderInline(nodes, document, index)}</${tag}>`;
+          })
+          .join("")}</tr>`;
+      return `${indent}<table><thead>${row(block.rows[0]!, true)}</thead><tbody>${block.rows
+        .slice(1)
+        .map((cells) => row(cells, false))
+        .join("")}</tbody></table>`;
+    }
+    case "code":
+      return `${indent}<pre><code>${escapeXml(block.value)}</code></pre>`;
     case "thematic-break":
       return `${indent}<hr/>`;
     case "page-break":
@@ -245,7 +263,13 @@ function renderInline(
           return "<br/>";
         case "image": {
           const image = requireImage(document, node);
-          const size = imageSize(image, node.width, image.width, image.height);
+          const size = imageSize(
+            image,
+            node.width,
+            image.width,
+            image.height,
+            node.height,
+          );
           return `<img src="images/${image.id}.${image.extension}" alt="${escapeXml(node.alt)}" width="${Math.round(size.width)}" height="${Math.round(size.height)}"/>`;
         }
       }

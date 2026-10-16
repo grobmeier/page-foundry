@@ -17,10 +17,12 @@ import { unified } from "unified";
 import { parse as parseYaml } from "yaml";
 import type { BlockNode, FoundryDocument, InlineNode } from "./model";
 import { wikiImages } from "./wikiImages";
+import { markdownTables } from "./tables";
 
 const parser = unified()
   .use(remarkParse)
   .use(remarkFrontmatter, ["yaml"])
+  .use(markdownTables)
   .use(wikiImages);
 type Definitions = Map<string, { url: string }>;
 
@@ -112,13 +114,45 @@ function toBlock(
         {
           type: "list",
           ordered: Boolean(node.ordered),
+          ...(node.ordered &&
+          node.start !== null &&
+          node.start !== undefined &&
+          node.start !== 1
+            ? { start: node.start }
+            : {}),
           items: node.children.map((item) => toListItem(item, definitions)),
         },
       ];
     case "thematicBreak":
       return [{ type: "thematic-break" }];
-    case "html":
+    case "table": {
+      const columns = node.children[0]?.children.length ?? 0;
+      return [
+        {
+          type: "table",
+          align: Array.from(
+            { length: columns },
+            (_, i) => node.align?.[i] ?? null,
+          ),
+          rows: node.children.map((row) =>
+            Array.from(
+              { length: Math.max(columns, row.children.length) },
+              (_, i) =>
+                toInlineList(row.children[i]?.children ?? [], definitions),
+            ),
+          ),
+        },
+      ];
+    }
     case "code":
+      return [
+        {
+          type: "code",
+          value: node.value,
+          ...(node.lang ? { language: node.lang } : {}),
+        },
+      ];
+    case "html":
       return [
         { type: "paragraph", children: [{ type: "text", value: node.value }] },
       ];
@@ -168,13 +202,16 @@ function toInline(node: Content, definitions: Definitions): InlineNode[] {
     case "image":
       if (node.data?.foundryEmbed) {
         const [url, alias, extra] = node.url.split("|");
-        const width = alias && /^\d+$/u.test(alias) ? Number(alias) : undefined;
+        const dimensions = alias && /^(\d+)(?:x(\d+))?$/iu.exec(alias);
+        const width = dimensions ? Number(dimensions[1]) : undefined;
+        const height = dimensions?.[2] ? Number(dimensions[2]) : undefined;
         return [
           {
             type: "image",
             url: extra !== undefined ? node.url : url!,
-            alt: width ? "" : (alias ?? ""),
+            alt: dimensions ? "" : (alias ?? ""),
             width,
+            ...(height !== undefined ? { height } : {}),
           },
         ];
       }
@@ -205,15 +242,22 @@ function findWarnings(node: Root | Content): string[] {
     warnings.push(
       "HTML is printed as literal text, not rendered markup. Review its appearance in the generated document.",
     );
-  if (node.type === "code")
-    warnings.push(
-      "Code blocks are printed as ordinary text; their original block formatting is not preserved.",
-    );
   if ("children" in node) warnings.push(...node.children.flatMap(findWarnings));
   return warnings;
 }
 
 function findUnsupported(node: Root | Content): string[] {
+  if (node.type === "table") {
+    const columns = node.children[0]?.children.length ?? 0;
+    if (columns > 20 || node.children.length > 1001)
+      return [
+        "Tables support at most 20 columns and 1000 body rows. Split this table before exporting.",
+      ];
+    if (node.children.some((row) => row.children.length > columns))
+      return [
+        "A table row has more cells than its header. Escape literal pipes with \\| or add the missing column heading.",
+      ];
+  }
   if (node.type === "html" && /<img\b/iu.test(node.value))
     return [
       "HTML images are not supported. Use Markdown image syntax instead.",

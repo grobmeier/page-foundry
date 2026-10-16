@@ -28,3 +28,8 @@ declare module "*.otf" {
   const compressedBase64: string;
   export default compressedBase64;
 }
+
+declare module "*.ttf" {
+  const compressedBase64: string;
+  export default compressedBase64;
+}

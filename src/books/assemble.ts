@@ -176,6 +176,8 @@ export function assembleBook(
           return { ...block, blocks: blocks(block.blocks) };
         if (block.type === "list")
           return { ...block, items: block.items.map(blocks) };
+        if (block.type === "table")
+          return { ...block, rows: block.rows.map((row) => row.map(inlines)) };
         return { ...block };
       });
     }

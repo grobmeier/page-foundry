@@ -66,7 +66,9 @@ const mdast: Extension = {
     foundryEmbed(token) {
       const node = this.stack.at(-1);
       if (node?.type === "image")
-        node.url = this.sliceSerialize(token).slice(3, -2);
+        node.url = this.sliceSerialize(token)
+          .slice(3, -2)
+          .replace(/\\\|/gu, "|");
       this.exit(token);
     },
   },

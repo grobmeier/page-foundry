@@ -18,6 +18,10 @@ import {
   Paragraph,
   SectionType,
   TextRun,
+  Table,
+  TableCell,
+  TableRow,
+  WidthType,
   type ISectionOptions,
   type ParagraphChild,
 } from "docx";
@@ -225,8 +229,69 @@ function renderBlock(
   block: BlockNode,
   manuscript: boolean,
   source: FoundryDocument,
-): Paragraph[] {
+): (Paragraph | Table)[] {
   switch (block.type) {
+    case "table":
+      return [
+        new Table({
+          width: { size: 100, type: WidthType.PERCENTAGE },
+          rows: block.rows.map(
+            (row, rowIndex) =>
+              new TableRow({
+                tableHeader: rowIndex === 0,
+                children: row.map(
+                  (nodes, i) =>
+                    new TableCell({
+                      width: {
+                        size: 100 / block.align.length,
+                        type: WidthType.PERCENTAGE,
+                      },
+                      children: [
+                        new Paragraph({
+                          alignment:
+                            block.align[i] === "right"
+                              ? AlignmentType.RIGHT
+                              : block.align[i] === "center"
+                                ? AlignmentType.CENTER
+                                : AlignmentType.LEFT,
+                          children: renderInline(
+                            nodes,
+                            { bold: rowIndex === 0 },
+                            manuscript,
+                            source,
+                            Math.max(
+                              16,
+                              Math.min(
+                                560,
+                                ((210 - 2 * (source.style?.marginXmm ?? 25.4)) *
+                                  96) /
+                                  25.4,
+                              ) /
+                                block.align.length -
+                                16,
+                            ),
+                          ),
+                        }),
+                      ],
+                    }),
+                ),
+              }),
+          ),
+        }),
+      ];
+    case "code":
+      return [
+        new Paragraph({
+          children: block.value.split("\n").map(
+            (line, i) =>
+              new TextRun({
+                text: line,
+                break: i ? 1 : 0,
+                font: "Courier New",
+              }),
+          ),
+        }),
+      ];
     case "heading":
       return [
         new Paragraph({
@@ -297,7 +362,7 @@ function renderListItem(
   manuscript: boolean,
   ordered: boolean,
   source: FoundryDocument,
-): Paragraph[] {
+): (Paragraph | Table)[] {
   if (block.type !== "paragraph") return renderBlock(block, manuscript, source);
   return [
     new Paragraph({
@@ -315,6 +380,7 @@ function renderInline(
   style: TextStyle,
   manuscript: boolean,
   source: FoundryDocument,
+  maxImageWidth = 480,
 ): ParagraphChild[] {
   return nodes.flatMap((node): ParagraphChild[] => {
     switch (node.type) {
@@ -326,6 +392,7 @@ function renderInline(
           { ...style, italics: true },
           manuscript,
           source,
+          maxImageWidth,
         );
       case "strong":
         return renderInline(
@@ -333,6 +400,7 @@ function renderInline(
           { ...style, bold: true },
           manuscript,
           source,
+          maxImageWidth,
         );
       case "inline-code":
         return [
@@ -344,7 +412,13 @@ function renderInline(
           ),
         ];
       case "link": {
-        const children = renderInline(node.children, style, manuscript, source);
+        const children = renderInline(
+          node.children,
+          style,
+          manuscript,
+          source,
+          maxImageWidth,
+        );
         return safeExternalHref(node.url)
           ? [new ExternalHyperlink({ link: node.url, children })]
           : children;
@@ -367,7 +441,7 @@ function renderInline(
               image,
               node.width,
               Math.min(
-                480,
+                maxImageWidth,
                 ((210 - 2 * (source.style?.marginXmm ?? 25.4) - 25) * 96) /
                   25.4,
               ),
@@ -376,6 +450,7 @@ function renderInline(
                 ((279.4 - 2 * (source.style?.marginYmm ?? 25.4) - 25) * 96) /
                   25.4,
               ),
+              node.height,
             ),
             altText: { name: image.id, description: node.alt, title: node.alt },
           }),

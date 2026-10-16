@@ -30,6 +30,7 @@ export async function prepareBeta(root, version) {
   // Installed public dependency files only; never inspect any vault/template directory.
   const licences = [
     await readFile(resolve(root, "licenses/Libertinus-OFL.txt"), "utf8"),
+    await readFile(resolve(root, "licenses/DejaVu-LICENSE.txt"), "utf8"),
   ];
   for (const [path, dependency] of Object.entries(lock.packages).sort()) {
     if (!path || dependency.dev) continue;

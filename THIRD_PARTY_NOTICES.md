@@ -9,8 +9,11 @@ Page Foundry bundles the following components into its generated plugin file:
   packaged copy of the standard Typst font assets without its installer or
   renderer runtime.
 - **Libertinus Serif** — SIL Open Font License 1.1.
+- **DejaVu Sans Mono** — Bitstream Vera / Arev font licences; DejaVu changes are
+  public domain. Bundled locally for code formatting.
 - **fflate**, **unified**, **remark-parse**, and **remark-frontmatter** — MIT
   License.
+- **mdast-util-gfm-table** and **micromark-extension-gfm-table** — MIT License.
 - **docx** — MIT License. Page Foundry uses its browser packer to create
   editable Office Open XML documents locally.
 - **yaml** — ISC License.
@@ -24,7 +27,8 @@ and bundled-font licence into `THIRD_PARTY_LICENSES.txt`, also retained as a
 comment in the distributed plugin so BRAT installations receive them. This
 inventory includes transitive dependency notices; it is not a replacement for
 reviewing newly bundled components. The Libertinus licence source is pinned in
-`licenses/Libertinus-OFL.txt`.
+`licenses/Libertinus-OFL.txt`. The DejaVu font licence is retained in
+`licenses/DejaVu-LICENSE.txt`.
 
 The Live Preview extension uses CodeMirror's MIT-licensed view API provided by
 Obsidian. It is a pinned development dependency and is external to the generated

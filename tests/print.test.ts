@@ -202,9 +202,10 @@ it("bounds image dimensions against the actual print content area", () => {
     { ...DEFAULT_PRINT_OPTIONS, trim: "5x8" },
     0.875,
   );
-  const image = /#image\([^\n]*width: ([\d.]+)pt, height: ([\d.]+)pt/.exec(
-    source,
-  )!;
+  const image =
+    /image\([^\n]*width: ([\d.]+)pt \* scale, height: ([\d.]+)pt \* scale/.exec(
+      source,
+    )!;
   assert.ok(Number(image[1]) <= (5 - 0.875 - 0.5) * 72);
   assert.ok(Number(image[2]) <= (8 - 1.5) * 72);
 });

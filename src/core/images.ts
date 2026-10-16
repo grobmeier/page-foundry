@@ -74,6 +74,8 @@ export function imageNodes(
       else if (block.type === "blockquote") blocks(block.blocks);
       else if (block.type === "list")
         for (const item of block.items) blocks(item);
+      else if (block.type === "table")
+        for (const row of block.rows) for (const cell of row) inline(cell);
     }
   }
   blocks(document.blocks);
@@ -100,6 +102,13 @@ export async function resolveImages(
         (!Number.isFinite(node.width) || node.width < 1 || node.width > 10000)
       )
         throw new Error("Image width must be between 1 and 10000 pixels.");
+      if (
+        node.height !== undefined &&
+        (!Number.isFinite(node.height) ||
+          node.height < 1 ||
+          node.height > 10000)
+      )
+        throw new Error("Image height must be between 1 and 10000 pixels.");
       const entry = host.resolve(path);
       if (!entry)
         throw new Error("Image not found. Check its attachment path.");
@@ -264,14 +273,16 @@ export function requireImage(
 }
 
 export function imageSize(
-  image: ImageAsset,
+  image: Pick<ImageAsset, "width" | "height">,
   requested: number | undefined,
   maxWidth: number,
   maxHeight: number,
+  requestedHeight?: number,
 ): { width: number; height: number } {
   const scale = Math.min(
     1,
     (requested ?? image.width) / image.width,
+    (requestedHeight ?? image.height) / image.height,
     maxWidth / image.width,
     maxHeight / image.height,
   );

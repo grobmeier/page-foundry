@@ -14,6 +14,7 @@ import fontBold from "@file-viewer/assets-typst/viewer/wasm/typst/fonts/Libertin
 import fontBoldItalic from "@file-viewer/assets-typst/viewer/wasm/typst/fonts/LibertinusSerif-BoldItalic.otf";
 import fontItalic from "@file-viewer/assets-typst/viewer/wasm/typst/fonts/LibertinusSerif-Italic.otf";
 import fontRegular from "@file-viewer/assets-typst/viewer/wasm/typst/fonts/LibertinusSerif-Regular.otf";
+import fontMono from "@file-viewer/assets-typst/viewer/wasm/typst/fonts/DejaVuSansMono.ttf";
 import type {
   FoundryDocument,
   PageProfileId,
@@ -166,9 +167,13 @@ export class TypstPdfRenderer {
 
   private async createCompiler(): Promise<TypstCompiler> {
     const compiler = createTypstCompiler();
-    const fonts = [fontRegular, fontItalic, fontBold, fontBoldItalic].map(
-      decodeCompressedBase64,
-    );
+    const fonts = [
+      fontRegular,
+      fontItalic,
+      fontBold,
+      fontBoldItalic,
+      fontMono,
+    ].map(decodeCompressedBase64);
     await compiler.init({
       getModule: () =>
         ({

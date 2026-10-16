@@ -322,7 +322,8 @@ describe("local images", () => {
     );
     const typst = createTypstSource(document, "plain-document", "a4");
     assert.match(typst, /\/assets\/image-1.png/u);
-    assert.match(typst, /width: 225pt, height: 112.5pt/u);
+    assert.match(typst, /width: 225pt \* scale, height: 112.5pt \* scale/u);
+    assert.match(typst, /calc.min\(1, size.width \/ 225pt\)/u);
     assert.throws(
       () => createTypstSource(source, "plain-document", "a4"),
       /resolve/u,

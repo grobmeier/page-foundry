@@ -9,7 +9,7 @@ import { gzipSync } from "node:zlib";
 export const compressedBinaryPlugin = {
   name: "compressed-binary",
   setup(build) {
-    build.onLoad({ filter: /\.(?:otf|wasm|woff2)$/ }, async ({ path }) => {
+    build.onLoad({ filter: /\.(?:otf|ttf|wasm|woff2)$/ }, async ({ path }) => {
       const bytes = await readFile(path);
       const compressed = gzipSync(bytes, { level: 9 });
       return {

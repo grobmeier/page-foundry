@@ -46,6 +46,7 @@ it("stages only explicit beta assets, retains the root manifest and refuses repl
       NOTICE: "Fixture notice",
       "THIRD_PARTY_NOTICES.md": "Fixture dependency notice",
       "licenses/Libertinus-OFL.txt": "Fixture font licence",
+      "licenses/DejaVu-LICENSE.txt": "Fixture monospace font licence",
       "private-template.md": "This must never be included",
     };
     for (const [path, bytes] of Object.entries(fixtures))

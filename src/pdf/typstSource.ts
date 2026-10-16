@@ -140,11 +140,16 @@ export function renderBlock(
       const items = block.items
         .map(
           (item) =>
-            `[${item.map((child) => renderBlock(child, document)).join("\n")}]`,
+            `[${item.map((child) => renderBlock(child, document)).join("\n\n")}]`,
         )
         .join(",\n");
-      return `#${functionName}(\n${items}\n)`;
+      return `#${functionName}(${block.ordered ? `start: ${block.start ?? 1},` : ""}\n${items}\n)`;
     }
+    case "table":
+      return renderTable(block, document);
+    case "code":
+      // No user-supplied language, code or filenames are evaluated by Typst.
+      return `#block(width: 100%, breakable: true, inset: 8pt, fill: luma(96%))[#set par(first-line-indent: 0pt, justify: false)\n${renderCode(block.value)}]`;
     case "thematic-break":
       return "#align(center)[* * *]";
     case "page-break":
@@ -152,22 +157,79 @@ export function renderBlock(
   }
 }
 
-function renderInline(nodes: InlineNode[], document: FoundryDocument): string {
+function renderTable(
+  table: Extract<BlockNode, { type: "table" }>,
+  document: FoundryDocument,
+): string {
+  const columns = table.align.length;
+  const cell = (nodes: InlineNode[], header = false, align = "left") =>
+    `table.cell(breakable: true, align: ${align}, ${header ? "fill: luma(94%), " : ""})[${header ? "#strong[" : ""}${renderInline(nodes, document, true)}${header ? "]" : ""}]`;
+  const regular = `table(columns: (${Array(columns).fill("1fr").join(",")},), inset: 6pt, stroke: 0.4pt + luma(70%),\n table.header(repeat: true, ${table.rows[0]!.map((nodes, i) => cell(nodes, true, table.align[i] ?? "left")).join(",")}),\n${table.rows
+    .slice(1)
+    .flatMap((row) =>
+      row.map((nodes, i) => cell(nodes, false, table.align[i] ?? "left")),
+    )
+    .join(",\n")})`;
+  // Keep every value readable rather than shrinking many columns to tiny type.
+  // A layout callback also works in quotes/lists and with custom print margins.
+  const stacked =
+    table.rows
+      .slice(1)
+      .map(
+        (row, rowIndex) =>
+          `table(columns: (1fr, 2fr), inset: 6pt, stroke: 0.4pt + luma(70%), table.header(repeat: true, table.cell(colspan: 2, fill: luma(94%))[#strong[${renderText(`Row ${rowIndex + 1}`)}]]), ${row.flatMap((nodes, i) => [cell(table.rows[0]![i]!, true), cell(nodes)]).join(",")})`,
+      )
+      .join("; v(8pt); ") ||
+    `table(columns: (1fr,), inset: 6pt, stroke: 0.4pt + luma(70%), ${table.rows[0]!.map((nodes) => cell(nodes, true)).join(",")})`;
+  return `#block(width: 100%, breakable: true)[#set par(first-line-indent: 0pt, justify: false, leading: 0.5em)\n#layout(size => { if ${columns} > 6 or size.width / ${columns} < 60pt { ${stacked} } else { ${regular} } })]`;
+}
+
+/** Invisible break opportunities for long identifiers/URLs, not source edits. */
+function wrapLongTokens(value: string): string {
+  const segmenter = new Intl.Segmenter("en", { granularity: "grapheme" });
+  return value.replace(/\S{17,}/gu, (word) => {
+    const chars = [...segmenter.segment(word)].map((part) => part.segment);
+    return chars
+      .map((char, i) => (i && i % 8 === 0 ? `\u200b${char}` : char))
+      .join("");
+  });
+}
+
+function renderCode(value: string): string {
+  // Literal text rather than raw's intrinsic-width layout: long lines wrap
+  // inside narrow cells/pages. Non-breaking spaces preserve code indentation.
+  const lines = value
+    .split("\n")
+    .map((line) => {
+      const expanded = line.replace(/\t/gu, "  ");
+      return renderText(
+        wrapLongTokens(expanded).replace(/ /gu, "\u00a0\u200b"),
+      );
+    })
+    .join("#linebreak()\n");
+  return `#[#set text(font: "DejaVu Sans Mono", size: 0.8em, hyphenate: false, overhang: false, ligatures: false)\n#set smartquote(enabled: false)\n${lines}]`;
+}
+
+function renderInline(
+  nodes: InlineNode[],
+  document: FoundryDocument,
+  inCell = false,
+): string {
   return nodes
     .map((node) => {
       switch (node.type) {
         case "text":
-          return renderText(node.value);
+          return renderText(inCell ? wrapLongTokens(node.value) : node.value);
         case "emphasis":
-          return `#emph[${renderInline(node.children, document)}]`;
+          return `#emph[${renderInline(node.children, document, inCell)}]`;
         case "strong":
-          return `#strong[${renderInline(node.children, document)}]`;
+          return `#strong[${renderInline(node.children, document, inCell)}]`;
         case "inline-code":
-          return `#raw(${stringLiteral(node.value)})`;
+          return renderCode(node.value);
         case "link":
           return safeExternalHref(node.url)
-            ? `#link(${stringLiteral(node.url)})[${renderInline(node.children, document)}]`
-            : renderInline(node.children, document);
+            ? `#link(${stringLiteral(node.url)})[${renderInline(node.children, document, inCell)}]`
+            : renderInline(node.children, document, inCell);
         case "image": {
           const image = requireImage(document, node);
           const size = imageSize(
@@ -196,8 +258,11 @@ function renderInline(nodes: InlineNode[], document: FoundryDocument): string {
                 96) /
                 25.4,
             ),
+            node.height,
           );
-          return `#image("/assets/${image.id}.${image.extension}", width: ${size.width * 0.75}pt, height: ${size.height * 0.75}pt, fit: "contain", alt: ${stringLiteral(node.alt)})`;
+          const width = size.width * 0.75;
+          const height = size.height * 0.75;
+          return `#layout(size => { let scale = calc.min(1, size.width / ${width}pt); image("/assets/${image.id}.${image.extension}", width: ${width}pt * scale, height: ${height}pt * scale, fit: "contain", alt: ${stringLiteral(node.alt)}) })`;
         }
         case "break":
           return "\\";

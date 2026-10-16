@@ -140,6 +140,16 @@ export function preflight(
       if ("children" in node) inline(node.children);
       else if (node.type === "blockquote") blocks(node.blocks);
       else if (node.type === "list") node.items.forEach(blocks);
+      else if (node.type === "table") {
+        for (const row of node.rows) for (const cell of row) inline(cell);
+        if (options.format === "pdf" && node.align.length > 6)
+          add(
+            "wide-table",
+            "advice",
+            "Wide tables use stacked label/value rows in PDF to stay readable. Review the generated PDF.",
+          );
+      } else if (node.type === "code")
+        inline([{ type: "text", value: node.value }]);
     }
   }
   blocks(document.blocks);

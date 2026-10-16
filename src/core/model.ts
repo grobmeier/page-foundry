@@ -30,6 +30,7 @@ export type InlineNode =
       url: string;
       alt: string;
       width?: number;
+      height?: number;
       resourceId?: string;
     }
   | { type: "break" };
@@ -38,7 +39,13 @@ export type BlockNode =
   | { type: "heading"; depth: number; children: InlineNode[]; anchor?: string }
   | { type: "paragraph"; children: InlineNode[] }
   | { type: "blockquote"; blocks: BlockNode[] }
-  | { type: "list"; ordered: boolean; items: BlockNode[][] }
+  | { type: "list"; ordered: boolean; start?: number; items: BlockNode[][] }
+  | {
+      type: "table";
+      align: ("left" | "center" | "right" | null)[];
+      rows: InlineNode[][][];
+    }
+  | { type: "code"; value: string; language?: string }
   | { type: "thematic-break" }
   | { type: "page-break" };
 
