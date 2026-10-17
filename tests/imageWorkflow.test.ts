@@ -137,6 +137,7 @@ function setup(bookMode = false) {
   const exportChoices: ExportChoice[] = [];
   const lookups: string[] = [];
   const stored: unknown[] = [];
+  let settingsFail = false;
   const renders: FoundryDocument[] = [];
   let reviewReady!: () => void;
   const firstReview = new Promise<void>((resolve) => {
@@ -248,6 +249,7 @@ function setup(bookMode = false) {
       commands.push(command);
     }
     async saveData(value: unknown) {
+      if (settingsFail) throw new Error("Settings could not be saved");
       stored.push(structuredClone(value));
     }
   }
@@ -444,6 +446,9 @@ function setup(bookMode = false) {
     commands,
     letterReviews,
     designForms,
+    failSettings() {
+      settingsFail = true;
+    },
     activateBook() {
       app.workspace.getActiveFile = () => note as any;
     },
@@ -489,6 +494,27 @@ function setup(bookMode = false) {
 }
 
 describe("review-to-export image workflow", () => {
+  it("reports a preference-persistence failure without pretending the saved type failed", async () => {
+    const host = setup();
+    host.plugin.settings.noteLayouts = [
+      {
+        noteKey: await noteLayoutKey(host.note.path),
+        layoutKey: "letter|pdf|a4|-|-|-",
+      },
+    ];
+    await host.plugin.openNoteDetails(host.note);
+    host.failSettings();
+    await host.noteForms[0]!.save(host.note.path, {}, false, "manuscript");
+    assert.equal(noteProperties(host.source()).document, "manuscript");
+    assert.equal(host.plugin.settings.noteLayouts.length, 0);
+    assert.ok(
+      host.notices.some((notice) =>
+        notice.includes("reset output choice could not be saved"),
+      ),
+    );
+    await host.plugin.openPublish(host.note);
+    assert.equal(host.exportChoices[0]!.preset, "general-manuscript");
+  });
   it("exposes one author workflow without migration and duplicate commands", async () => {
     const host = setup();
     await host.plugin.onload();
