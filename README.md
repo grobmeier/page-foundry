@@ -166,7 +166,7 @@ It is not upload certification: bleed, covers/spines, greyscale image
 conversion, image DPI, accessibility and retailer/physical proof acceptance are
 excluded. Short books may be exported for inspection but are labelled **Proof
 only**. See the [paperback proof test plan](docs/testing/paperback-proof.md),
-also installed as `Paperback proof test plan.md` in the isolated vault.
+also covered by the paperback section in the test vault's `Start here.md`.
 
 ### Local images
 
@@ -189,8 +189,9 @@ review. No manuscript or image is uploaded by the plugin.
 
 See the
 [combined desktop/mobile test plan](docs/testing/local-images-and-mobile.md).
-The test-vault installer includes **Portable images.md**, PNG/JPEG artwork,
-safety-case notes, and **Page Foundry test plan.md** for convenient testing.
+The test-vault setup includes **Examples/Formatting/Tables and images.md**,
+PNG/JPEG artwork, expected-error notes and a single **Start here.md**
+walkthrough.
 
 ### Tables and literal code
 
@@ -250,11 +251,20 @@ npm run verify
 npm run test-vault
 ```
 
-`npm run test-vault` creates an ignored vault at `.test-vault/`. Fixture notes,
-artwork and packs are additive: existing files are not replaced, and enabled
-community plugins (including BRAT) are preserved. This developer command still
-replaces Page Foundry's plugin bundle; use BRAT updates for normal beta testing.
-Open that folder as a separate Obsidian vault and never use a personal vault for
+`npm run test-vault` adds neutral examples to the ignored `.test-vault/` without
+replacing edited notes, plugin files, BRAT or settings. Install/update the
+plugin through [BRAT](docs/testing/brat.md); fixture setup does not install a
+second development bundle over it. Open **Start here.md** for a guided author
+workflow and the option checklist. It covers all five starters, PDF/EPUB/DOCX,
+supported paperback variants, local designs, formatting, destinations and
+expected errors.
+
+For an explicitly requested fresh test workspace only,
+`npm run test-vault:fresh` moves old test content into a private timestamped
+recovery directory alongside the checkout, verifies checksums, and installs the
+new examples. It preserves BRAT/settings, registered templates/designs and
+referenced resource folders. Recovery instructions are saved in `recovery.json`.
+This is not a personal-vault reset command. Never use a personal vault for
 development tests. See
 [`docs/architecture/mobile-rendering.md`](docs/architecture/mobile-rendering.md)
 for the renderer boundary and current evidence.
