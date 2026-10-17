@@ -41,7 +41,9 @@ export async function authorTestExamples(
             ([key]) =>
               !key.startsWith("sender-") &&
               !key.startsWith("recipient-") &&
-              !["date", "subject"].includes(key),
+              !["date", "subject"].includes(key) &&
+              (template.kind === "manuscript" ||
+                !["surname", "short-title"].includes(key)),
           ),
         );
     const expanded = expandNoteTemplate(template, applicable);

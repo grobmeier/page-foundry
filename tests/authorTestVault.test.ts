@@ -31,6 +31,10 @@ it("provides all note types, book roles, valid packs and local image targets wit
     "Plain document",
   ])
     assert.ok(files.has(`Examples/Writing/${name}.md`));
+  assert.doesNotMatch(
+    String(files.get("Examples/Writing/Plain document.md")),
+    /^(surname|short-title):/mu,
+  );
   const book = parseBookManifest(
     String(files.get("Examples/Book/Reading order.book.md")),
   );
