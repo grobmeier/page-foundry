@@ -241,6 +241,7 @@ describe("image review dialog", () => {
   });
   it("updates the report while typing and blocks broken heading links only in EPUB", () => {
     const host = setup([], "# Chapter\n\n[Jump](#missing)");
+    host.controls.get("Layout")!("plain-document");
     assert.equal(host.button("Create PDF").disabled, false);
     host.controls.get("Author")!("Alex Example");
     assert.ok(

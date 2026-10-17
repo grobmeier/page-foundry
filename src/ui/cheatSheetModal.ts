@@ -21,15 +21,15 @@ export class CheatSheetModal extends Modal {
       ],
       [
         "Books",
-        "Create a Book note, then Edit document details to add and order existing chapters using exact note paths. New book plans use readable headings and links. Older YAML plans still work: Convert to readable book plan offers an explicit review before saving. Only listed notes and their images are included. Use Publish for the whole book.",
+        "Create a Book note, then Edit document details to add and order existing chapters using exact note paths. Book plans use readable headings and links. Only listed notes and their images are included. Use Publish for the whole book. Books have a separate reading-order editor, not a prose type switch.",
       ],
       [
         "Formats",
         "PDF has fixed pages. EPUB adapts to your reading app. DOCX stays editable in a word processor. Manuscript layouts are starting points: check your publisher’s requirements.",
       ],
       [
-        "Older letters and recent choices",
-        "Older greeting/closing properties still work. Move letter greeting and sign-off into writing lets you review the complete body before explicitly saving a simpler letter. Create recent lists note starters; Publish recent is an optional layout picker. Neither history stores writing or addresses.",
+        "Change document type",
+        "Open Edit document details and choose Plain document, Letter, Submission letter or Manuscript. Save details changes the type and resets the remembered output design, but preserves writing and other properties. Cancel changes nothing. Create recent lists your used note templates, not output designs.",
       ],
       [
         "Checks and paperback proofs",
@@ -41,7 +41,7 @@ export class CheatSheetModal extends Modal {
       ],
       [
         "Your designs",
-        "Note templates supply starting text; output presets supply appearance. Manage book designs edits opening pages, chapters and running headers through a form. Open a book first to Create proof without saving the draft, then Save book design and choose it once with Publish → Change layout. Older packs default to Save a copy. Manage output presets handles other layouts. Keep private designs outside the public checkout; vault sync/backups have separate privacy rules. No Docker or rendering server is needed.",
+        "Note templates supply starting text; designs supply output appearance. Manage designs groups Book designs and Document designs. For books, adjust opening pages, chapters and running headers through a form. Open a book first to Create proof without saving the draft, then Save book design and choose it once with Publish → Change layout. Keep private designs outside the public checkout; vault sync/backups have separate privacy rules. No Docker or rendering server is needed.",
       ],
     ].entries()) {
       const parent =

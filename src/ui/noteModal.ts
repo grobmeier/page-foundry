@@ -4,6 +4,7 @@ import {
   newNotePath,
   noteFields,
   advancedNoteFields,
+  DOCUMENT_TYPES,
   type NoteTemplate,
 } from "../notes/model";
 import { disclosure } from "./disclosure";
@@ -30,6 +31,7 @@ export class NoteTemplateModal extends SuggestModal<NoteTemplate> {
 }
 export class NoteModal extends Modal {
   private busy = false;
+  private readonly changed: Record<string, string> = {};
   constructor(
     app: App,
     private template: NoteTemplate,
@@ -41,8 +43,9 @@ export class NoteModal extends Modal {
       path: string,
       values: Record<string, string>,
       createFolders: boolean,
+      kind?: string,
     ) => Promise<void>,
-    private readonly legacyLetter = false,
+    private kind = template.kind,
   ) {
     super(app);
   }
@@ -58,10 +61,6 @@ export class NoteModal extends Modal {
         ? "Save these details in your note. Publishing is a separate action. Unrelated properties and writing are preserved."
         : "Prepare an editable Markdown note. Nothing is published, and your open note stays unchanged.",
     });
-    if (this.legacyLetter)
-      this.contentEl.createEl("p", {
-        text: "This letter uses older sender/recipient blocks. Review the split names and addresses below. Save details replaces those blocks with these readable properties; Cancel leaves the note unchanged.",
-      });
     let createFolders = false;
     const status = this.contentEl.createEl("p");
     status.setAttribute("aria-live", "polite");
@@ -100,26 +99,60 @@ export class NoteModal extends Modal {
           }),
         );
     }
-    const advanced = advancedNoteFields(this.template.kind, this.values);
-    let more: HTMLElement | undefined;
-    for (const field of [...noteFields(this.template.kind), ...advanced]) {
-      const setting = new Setting(
-        advanced.includes(field)
-          ? (more ??= disclosure(this.contentEl, "More details"))
-          : this.contentEl,
-      ).setName(field.label);
-      const change = (v: string) => {
-        this.values[field.key] = v;
-      };
-      if (field.multiline)
-        setting.addTextArea((t) =>
-          t.setValue(this.values[field.key] ?? "").onChange(change),
-        );
-      else
-        setting.addText((t) =>
-          t.setValue(this.values[field.key] ?? "").onChange(change),
-        );
+    if (this.editing) {
+      new Setting(this.contentEl)
+        .setName("Document type")
+        .setDesc(
+          "Changes saved details and suggested output, not your writing. Books have a separate reading-order plan: use Create new note → Book.",
+        )
+        .addDropdown((dropdown) => {
+          if (!DOCUMENT_TYPES.some((type) => type.id === this.kind))
+            dropdown.addOption(this.kind, "Choose a type…");
+          for (const type of DOCUMENT_TYPES)
+            dropdown.addOption(type.id, type.name);
+          dropdown.setValue(this.kind).onChange((kind) => {
+            this.kind = kind;
+            renderFields();
+            status.textContent =
+              "Unsaved details. Save details applies your changes; your writing is kept.";
+          });
+        });
     }
+    const fields = this.contentEl.createDiv();
+    const renderFields = () => {
+      fields.empty();
+      const advanced = advancedNoteFields(this.kind, this.values);
+      let more: HTMLElement | undefined;
+      if (
+        this.editing &&
+        !DOCUMENT_TYPES.some((type) => type.id === this.kind)
+      ) {
+        fields.createEl("p", {
+          text: "This note has an unrecognised document type. Choose a type above to correct it; nothing changes until you save.",
+        });
+        return;
+      }
+      for (const field of [...noteFields(this.kind), ...advanced]) {
+        const setting = new Setting(
+          advanced.includes(field)
+            ? (more ??= disclosure(fields, "More details"))
+            : fields,
+        ).setName(field.label);
+        const change = (v: string) => {
+          this.values[field.key] = v;
+          this.changed[field.key] = v;
+        };
+        if (field.multiline)
+          setting.addTextArea((t) =>
+            t.setValue(this.values[field.key] ?? "").onChange(change),
+          );
+        else
+          setting.addText((t) =>
+            t.setValue(this.values[field.key] ?? "").onChange(change),
+          );
+      }
+    };
+    renderFields();
     new Setting(this.contentEl)
       .addButton((b) =>
         b.setButtonText("Cancel").onClick(() => {
@@ -134,7 +167,7 @@ export class NoteModal extends Modal {
             if (this.busy) return;
             this.busy = true;
             for (const el of this.contentEl.querySelectorAll<HTMLInputElement>(
-              "input, textarea, button",
+              "input, textarea, select, button",
             ))
               el.disabled = true;
             try {
@@ -142,8 +175,9 @@ export class NoteModal extends Modal {
                 this.editing
                   ? this.filename
                   : newNotePath(this.folder, this.filename),
-                { ...this.values },
+                { ...(this.editing ? this.changed : this.values) },
                 createFolders,
+                this.kind,
               );
               this.close();
             } catch (e) {
@@ -154,7 +188,7 @@ export class NoteModal extends Modal {
             } finally {
               this.busy = false;
               for (const el of this.contentEl.querySelectorAll<HTMLInputElement>(
-                "input, textarea, button",
+                "input, textarea, select, button",
               ))
                 el.disabled = false;
             }

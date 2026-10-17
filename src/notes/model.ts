@@ -1,6 +1,7 @@
 /* Copyright 2026 Christian Grobmeier. Licensed under Apache-2.0. */
 import { parseDocument, stringify } from "yaml";
 import { bookPlanPath } from "../books/editor";
+import { isBookPlan } from "../books/manifest";
 import type { TemplateUse } from "../templates/catalog";
 
 export function cleanNoteHistory(value: unknown): TemplateUse[] {
@@ -89,18 +90,53 @@ export function noteFields(kind: string): NoteField[] {
 }
 export function advancedNoteFields(
   kind: string,
-  values: Record<string, string>,
+  _values: Record<string, string>,
 ): NoteField[] {
   if (!kind.includes("letter")) return [];
-  return [
-    common[2]!,
-    ...["author", "salutation", "closing"]
-      .filter((key) => Object.hasOwn(values, key))
-      .map((key) => ({
-        key,
-        label: key === "author" ? "Legacy signature name" : `Legacy ${key}`,
-      })),
-  ];
+  return [common[2]!];
+}
+export const DOCUMENT_TYPES = [
+  { id: "plain", name: "Plain document" },
+  { id: "letter", name: "Letter" },
+  { id: "submission-letter", name: "Submission letter" },
+  { id: "manuscript", name: "Manuscript" },
+] as const;
+/** Unknown/invalid explicit types require an author's choice, not inference. */
+export function documentKind(source: string): string {
+  const doc = propertyDocument(splitNote(source).yaml);
+  if (doc.has("document")) {
+    const value = doc.get("document");
+    return typeof value === "string" ? value : "";
+  }
+  return ["from", "to", "subject", "sender-name", "recipient-name"].some(
+    (key) => Boolean(doc.get(key)),
+  )
+    ? "letter"
+    : "plain";
+}
+export function documentTypeLabel(kind: string): string {
+  return (
+    DOCUMENT_TYPES.find((type) => type.id === kind)?.name ?? "Unrecognised type"
+  );
+}
+/** Individual-note editing never converts book plans or inserts starter writing. */
+export function updateDocumentDetails(
+  source: string,
+  kind: string,
+  values: Record<string, string>,
+): string {
+  if (isBookPlan(source))
+    throw new Error("Edit this book's reading order instead.");
+  if (!DOCUMENT_TYPES.some((type) => type.id === kind))
+    throw new Error("Choose a document type before saving.");
+  const fields = new Map(
+    DOCUMENT_TYPES.flatMap((type) =>
+      [...noteFields(type.id), ...advancedNoteFields(type.id, values)].map(
+        (field) => [field.key, field] as const,
+      ),
+    ),
+  );
+  return writeNoteDetails(source, kind, values, [...fields.values()]);
 }
 export const NOTE_TEMPLATES: NoteTemplate[] = [
   {
@@ -174,16 +210,28 @@ export function updateNoteDetails(
   values: Record<string, string>,
   convertLegacy = false,
 ): string {
+  return writeNoteDetails(
+    source,
+    kind,
+    values,
+    [...noteFields(kind), ...advancedNoteFields(kind, values)],
+    convertLegacy,
+  );
+}
+function writeNoteDetails(
+  source: string,
+  kind: string,
+  values: Record<string, string>,
+  fields: NoteField[],
+  convertLegacy = false,
+): string {
   const { yaml, body } = splitNote(source);
   const doc = propertyDocument(yaml);
   const legacyGreeting =
     kind.includes("letter") &&
     ["salutation", "closing", "from", "to"].some((key) => doc.has(key));
   const oldSender = doc.get("from");
-  for (const field of [
-    ...noteFields(kind),
-    ...advancedNoteFields(kind, values),
-  ]) {
+  for (const field of fields) {
     if (!Object.hasOwn(values, field.key)) continue;
     const value = values[field.key] ?? "";
     if (

@@ -158,6 +158,7 @@ function setup(bookMode = false) {
       path: string,
       values: Record<string, string>,
       folders: boolean,
+      kind?: string,
     ): Promise<void>;
   }[] = [];
   const createdNotes = new Map<string, string>();
@@ -488,6 +489,95 @@ function setup(bookMode = false) {
 }
 
 describe("review-to-export image workflow", () => {
+  it("exposes one author workflow without migration and duplicate commands", async () => {
+    const host = setup();
+    await host.plugin.onload();
+    assert.deepEqual(host.commands.map((command) => command.id).sort(), [
+      "cheat-sheet",
+      "create",
+      "create-recent",
+      "edit-document-details",
+      "manage-designs",
+      "publish",
+      "save-note-template",
+    ]);
+  });
+  it("saves a changed type, resets only its remembered layout and publishes the new default", async () => {
+    const host = setup();
+    host.setSource(
+      "---\ndocument: letter\nfrom: Alex Example\nto: Jamie Example\nclosing: ''\n---\nOriginal writing.",
+    );
+    await host.plugin.openPublish(host.note);
+    assert.equal(host.exportChoices[0]!.preset, "letter");
+    const ownKey = await noteLayoutKey(host.note.path),
+      otherKey = await noteLayoutKey("Another.md");
+    host.plugin.settings.noteLayouts = [ownKey, otherKey].map((noteKey) => ({
+      noteKey,
+      layoutKey: "letter|pdf|a4|-|-|-",
+    }));
+    await host.plugin.openNoteDetails(host.note);
+    await host.noteForms[0]!.save(
+      host.note.path,
+      { surname: "Example" },
+      false,
+      "manuscript",
+    );
+    assert.equal(noteProperties(host.source()).document, "manuscript");
+    assert.equal(noteProperties(host.source()).from, "Alex Example");
+    assert.equal(noteProperties(host.source()).to, "Jamie Example");
+    assert.equal(noteProperties(host.source()).closing, "");
+    assert.ok(host.source().endsWith("Original writing."));
+    assert.deepEqual(
+      Array.from(host.plugin.settings.noteLayouts, (row) => row.noteKey),
+      [otherKey],
+    );
+    await host.plugin.openPublish(host.note);
+    assert.equal(host.exportChoices.at(-1)!.preset, "general-manuscript");
+    assert.ok(host.notices.some((notice) => notice.includes("default design")));
+    await host.plugin.openNoteDetails(host.note);
+    await host.noteForms[1]!.save(host.note.path, {}, false, "plain");
+    await host.plugin.openPublish(host.note);
+    assert.equal(host.exportChoices.at(-1)!.preset, "plain-document");
+  });
+  it("does not clear preferences on Cancel, same-type saves, stale or moved sources", async () => {
+    const host = setup();
+    const key = await noteLayoutKey(host.note.path);
+    host.plugin.settings.noteLayouts = [
+      { noteKey: key, layoutKey: "letter|pdf|a4|-|-|-" },
+    ];
+    await host.plugin.openNoteDetails(host.note);
+    assert.equal(host.plugin.settings.noteLayouts.length, 1);
+    await host.noteForms[0]!.save(
+      host.note.path,
+      { title: "New title" },
+      false,
+      "plain",
+    );
+    assert.equal(host.plugin.settings.noteLayouts.length, 1);
+    await host.plugin.openNoteDetails(host.note);
+    host.changeNote();
+    await assert.rejects(
+      () => host.noteForms[1]!.save(host.note.path, {}, false, "letter"),
+      /changed/,
+    );
+    assert.equal(host.plugin.settings.noteLayouts.length, 1);
+    await host.plugin.openNoteDetails(host.note);
+    host.note.path = "Moved.md";
+    await assert.rejects(
+      () => host.noteForms[2]!.save(host.note.path, {}, false, "letter"),
+      /moved/,
+    );
+    assert.equal(host.plugin.settings.noteLayouts.length, 1);
+  });
+  it("opens unknown type details for explicit correction without changing the source on open", async () => {
+    const host = setup();
+    host.setSource("---\ndocument: unknown\n---\nWriting");
+    const original = host.source();
+    await host.plugin.openNoteDetails(host.note);
+    assert.equal(host.source(), original);
+    await host.noteForms[0]!.save(host.note.path, {}, false, "letter");
+    assert.equal(noteProperties(host.source()).document, "letter");
+  });
   it("reviews legacy letter conversion and refuses a stale save before accepting a fresh review", async () => {
     const host = setup();
     host.setSource(

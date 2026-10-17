@@ -52,20 +52,14 @@ export class PageFoundrySettingTab extends PluginSettingTab {
   display(): void {
     this.containerEl.empty();
     new Setting(this.containerEl)
-      .setName("Manage output presets")
+      .setName("Manage designs")
       .setDesc(
         "Create or edit your private local layouts using a form, without writing JSON.",
       )
       .addButton((b) =>
-        b.setButtonText("Open preset editor").onClick(() => {
-          void this.plugin.openPresetEditor().catch((error) => {
-            new Notice(
-              error instanceof Error
-                ? error.message
-                : "Could not open presets.",
-            );
-          });
-        }),
+        b
+          .setButtonText("Open designs")
+          .onClick(() => this.plugin.openDesigns()),
       );
 
     new Setting(this.containerEl)

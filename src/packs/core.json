@@ -44,7 +44,7 @@
         { "key": "date", "label": "Date" },
         { "key": "subject", "label": "Subject" },
         { "key": "salutation", "label": "Salutation" },
-        { "key": "closing", "label": "Legacy closing" }
+        { "key": "closing", "label": "Closing" }
       ]
     },
     {
@@ -58,7 +58,7 @@
         }
       },
       "metadata": [
-        { "key": "author", "label": "Legacy signature name" },
+        { "key": "author", "label": "Signature name" },
         { "key": "sender-name", "label": "Sender name", "required": true },
         { "key": "sender-address", "label": "Sender address" },
         {
@@ -70,7 +70,7 @@
         { "key": "salutation", "label": "Salutation" },
         { "key": "subject", "label": "Subject", "required": true },
         { "key": "date", "label": "Date" },
-        { "key": "closing", "label": "Legacy closing" }
+        { "key": "closing", "label": "Closing" }
       ]
     },
     {

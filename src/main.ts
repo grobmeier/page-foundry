@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { Notice, Plugin, type TFile } from "obsidian";
+import { Modal, Notice, Plugin, Setting, type TFile } from "obsidian";
 import { parseMarkdown } from "./core/markdown";
 import type {
   DocxPresetId,
@@ -63,7 +63,9 @@ import {
   NOTE_TEMPLATES,
   createNoteSource,
   noteProperties,
-  updateNoteDetails,
+  updateDocumentDetails,
+  documentKind,
+  documentTypeLabel,
   cleanNoteHistory,
   rememberNoteTemplate,
 } from "./notes/model";
@@ -150,42 +152,23 @@ export default class PageFoundryPlugin extends Plugin {
     }
     this.addSettingTab(new PageFoundrySettingTab(this.app, this));
     this.addCommand({
-      id: "set-up-book",
-      name: "Set up book",
-      callback: () => {
-        void this.openBookSetup().catch(
-          (error) =>
-            new Notice(
-              error instanceof Error
-                ? error.message
-                : "Could not open the book plan.",
-            ),
-        );
+      id: "publish",
+      name: "Publish",
+      checkCallback: (checking) => {
+        const file = this.app.workspace.getActiveFile();
+        if (file?.extension !== "md") return false;
+        if (!checking)
+          void this.openPublish(file).catch(
+            (error) =>
+              new Notice(
+                error instanceof Error
+                  ? error.message
+                  : "Could not open templates.",
+              ),
+          );
+        return true;
       },
     });
-    for (const recent of [false, true])
-      this.addCommand({
-        id: recent ? "publish-recent" : "publish",
-        name: recent ? "Publish recent" : "Publish",
-        checkCallback: (checking) => {
-          const file = this.app.workspace.getActiveFile();
-          if (file?.extension !== "md") return false;
-          if (!checking)
-            void (
-              recent
-                ? this.openPublishPicker(file, true)
-                : this.openPublish(file)
-            ).catch(
-              (error) =>
-                new Notice(
-                  error instanceof Error
-                    ? error.message
-                    : "Could not open templates.",
-                ),
-            );
-          return true;
-        },
-      });
     for (const recent of [false, true])
       this.addCommand({
         id: recent ? "create-recent" : "create",
@@ -202,24 +185,6 @@ export default class PageFoundryPlugin extends Plugin {
         },
       });
     this.addCommand({
-      id: "move-letter-writing",
-      name: "Move letter greeting and sign-off into writing",
-      checkCallback: (checking) => {
-        const file = this.app.workspace.getActiveFile();
-        if (file?.extension !== "md") return false;
-        if (!checking)
-          void this.openLetterWriting(file).catch(
-            (e) =>
-              new Notice(
-                e instanceof Error
-                  ? e.message
-                  : "Could not review this letter.",
-              ),
-          );
-        return true;
-      },
-    });
-    this.addCommand({
       id: "edit-document-details",
       name: "Edit document details",
       checkCallback: (checking) => {
@@ -232,24 +197,6 @@ export default class PageFoundryPlugin extends Plugin {
                 error instanceof Error
                   ? error.message
                   : "Could not open document details.",
-              ),
-          );
-        return true;
-      },
-    });
-    this.addCommand({
-      id: "convert-book-plan",
-      name: "Convert to readable book plan",
-      checkCallback: (checking) => {
-        const file = this.app.workspace.getActiveFile();
-        if (file?.extension !== "md") return false;
-        if (!checking)
-          void this.openBookSetup(true).catch(
-            (error) =>
-              new Notice(
-                error instanceof Error
-                  ? error.message
-                  : "Could not convert this plan.",
               ),
           );
         return true;
@@ -279,70 +226,10 @@ export default class PageFoundryPlugin extends Plugin {
       callback: () => new CheatSheetModal(this.app).open(),
     });
     this.addCommand({
-      id: "start-here",
-      name: "Start here",
-      callback: () => new CheatSheetModal(this.app).open(),
-    });
-    this.addCommand({
-      id: "manage-output-presets",
-      name: "Manage output presets",
+      id: "manage-designs",
+      name: "Manage designs",
       callback: () => {
-        void this.openPresetEditor().catch(
-          (error) =>
-            new Notice(
-              error instanceof Error
-                ? error.message
-                : "Could not open output presets.",
-            ),
-        );
-      },
-    });
-    this.addCommand({
-      id: "manage-book-designs",
-      name: "Manage book designs",
-      callback: () => {
-        void this.openBookDesigns().catch(
-          (error) =>
-            new Notice(
-              error instanceof Error
-                ? error.message
-                : "Could not open book designs.",
-            ),
-        );
-      },
-    });
-    this.addCommand({
-      id: "publish-current-book",
-      name: "Publish current book",
-      checkCallback: (checking) => {
-        const file = this.app.workspace.getActiveFile();
-        if (file?.extension !== "md") return false;
-        if (!checking)
-          void this.openPublish(file, true).catch(
-            (error) =>
-              new Notice(
-                error instanceof Error
-                  ? error.message
-                  : "Could not review the book.",
-              ),
-          );
-        return true;
-      },
-    });
-
-    this.addCommand({
-      id: "publish-current-note",
-      name: "Publish current note",
-      checkCallback: (checking) => {
-        const file = this.app.workspace.getActiveFile();
-        const available = Boolean(file?.extension === "md");
-        if (available && !checking && file) {
-          void this.openPublish(file).catch(() => {
-            console.error("Page Foundry could not read the active note");
-            new Notice("Page Foundry could not read the active note.");
-          });
-        }
-        return available;
+        this.openDesigns();
       },
     });
   }
@@ -369,6 +256,45 @@ export default class PageFoundryPlugin extends Plugin {
 
   async saveSettings(): Promise<void> {
     await this.saveData(this.settings);
+  }
+
+  openDesigns(): void {
+    const modal = new Modal(this.app);
+    modal.modalEl.addClass("page-foundry-modal");
+    modal.contentEl.createEl("h2", { text: "Manage designs" });
+    modal.contentEl.createEl("p", {
+      text: "Designs control output appearance, not your writing or document type. Your custom designs stay in your vault; nothing is uploaded.",
+    });
+    for (const [label, description, open] of [
+      [
+        "Book designs",
+        "Opening pages, chapters and running headers for ordered books.",
+        () => this.openBookDesigns(),
+      ],
+      [
+        "Document designs",
+        "Page layout, spacing and typography for individual notes.",
+        () => this.openPresetEditor(),
+      ],
+    ] as const) {
+      new Setting(modal.contentEl)
+        .setName(label)
+        .setDesc(description)
+        .addButton((button) =>
+          button.setButtonText(`Open ${label.toLowerCase()}`).onClick(() => {
+            modal.close();
+            void open().catch(
+              (error) =>
+                new Notice(
+                  error instanceof Error
+                    ? error.message
+                    : "Could not open designs.",
+                ),
+            );
+          }),
+        );
+    }
+    modal.open();
   }
 
   async openPresetEditor(): Promise<void> {
@@ -726,18 +652,9 @@ export default class PageFoundryPlugin extends Plugin {
       return;
     }
     const values = noteProperties(source);
-    const kind =
-      values.document ??
-      (values.from || values.to || values.subject ? "letter" : "plain");
+    const kind = documentKind(source);
     const template =
       NOTE_TEMPLATES.find((t) => t.kind === kind) ?? NOTE_TEMPLATES.at(-1)!;
-    if (
-      values.document &&
-      !NOTE_TEMPLATES.some((t) => t.kind === values.document)
-    )
-      throw new Error(
-        "This note has an unsupported document type. Edit its document property explicitly before using this details form; publishing ordinary notes is still available.",
-      );
     const legacyLetter =
       kind.includes("letter") && Boolean(values.from || values.to);
     if (legacyLetter)
@@ -762,17 +679,39 @@ export default class PageFoundryPlugin extends Plugin {
       "",
       file.path,
       true,
-      async (_path, details) => {
+      async (_path, details, _folders, selectedKind = kind) => {
+        const changedType = selectedKind !== kind;
+        const key =
+          changedType && this.settings.noteLayouts.length
+            ? await noteLayoutKey(path)
+            : undefined;
         await saveNoteDetails(
           this.app.vault,
           file,
           path,
           source,
-          updateNoteDetails(source, template.kind, details, legacyLetter),
+          updateDocumentDetails(source, selectedKind, details),
         );
-        new Notice("Document details saved in your note.");
+        if (changedType) {
+          this.settings.noteLayouts = this.settings.noteLayouts.filter(
+            (row) => row.noteKey !== key,
+          );
+          try {
+            await this.saveSettings();
+          } catch {
+            new Notice(
+              "Document type saved, but the reset output choice could not be saved. Publish uses the new default now; check its design after restarting.",
+            );
+            return;
+          }
+        }
+        new Notice(
+          changedType
+            ? `Document type saved: ${documentTypeLabel(selectedKind)}. Publish will start with its default design; your writing is unchanged.`
+            : "Document details saved in your note.",
+        );
       },
-      legacyLetter,
+      kind,
     ).open();
   }
 
@@ -834,10 +773,7 @@ export default class PageFoundryPlugin extends Plugin {
       new Notice(
         "This note's previous layout is unavailable. Review the default or choose Change layout.",
       );
-    layout ??= defaultLayout(
-      library,
-      book ? "book" : (noteProperties(source).document ?? "plain"),
-    );
+    layout ??= defaultLayout(library, book ? "book" : documentKind(source));
     await this.openExport(
       file,
       {
@@ -897,7 +833,7 @@ export default class PageFoundryPlugin extends Plugin {
         );
       },
       recent,
-      book ? "book" : (noteProperties(source).document ?? "plain"),
+      book ? "book" : documentKind(source),
     ).open();
   }
 
@@ -1005,6 +941,16 @@ export default class PageFoundryPlugin extends Plugin {
               error instanceof Error
                 ? error.message
                 : "Could not open templates.",
+            ),
+        );
+      },
+      () => {
+        void this.openNoteDetails(file).catch(
+          (error) =>
+            new Notice(
+              error instanceof Error
+                ? error.message
+                : "Could not open document details.",
             ),
         );
       },

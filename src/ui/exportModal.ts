@@ -20,6 +20,7 @@ import { preflight, reportText, type PreflightReport } from "../core/preflight";
 import { DEFAULT_PRINT_OPTIONS, PRINT_TRIMS } from "../print/model";
 import { disclosure } from "./disclosure";
 import { bookRoleLabel } from "../books/labels";
+import { documentTypeLabel } from "../notes/model";
 
 export type Destination = "vault" | "share";
 
@@ -39,6 +40,7 @@ export class ExportModal extends Modal {
     private readonly onRefresh: (choice: ExportChoice) => void,
     private readonly catalog: PresetCatalog = CORE_CATALOG,
     private readonly onTemplates?: () => void,
+    private readonly onDetails?: () => void,
   ) {
     super(app);
     this.choice = {
@@ -123,6 +125,11 @@ export class ExportModal extends Modal {
       text: this.review.document.book
         ? "Publish this book"
         : "Publish this note",
+    });
+    this.contentEl.createEl("p", {
+      text: this.review.document.book
+        ? "Book · ordered chapter notes"
+        : `Document type: ${documentTypeLabel(this.review.document.metadata.document ?? (this.review.document.metadata.from || this.review.document.metadata.to || this.review.document.metadata.subject || this.review.document.metadata["sender-name"] || this.review.document.metadata["recipient-name"] ? "letter" : "plain"))}`,
     });
     if (this.onTemplates)
       new Setting(this.contentEl).addButton((button) =>
@@ -339,23 +346,25 @@ export class ExportModal extends Modal {
       createButton?.setDisabled(blockers.length > 0);
     };
     updateChecks();
-    const bodyLetter =
-      output.recipe === "letter" &&
-      ["letter", "submission-letter"].includes(
-        this.review.document.metadata.document ?? "",
-      ) &&
-      !Object.hasOwn(this.review.document.metadata, "closing") &&
-      !Object.hasOwn(this.review.document.metadata, "salutation") &&
-      !this.review.document.metadata.from &&
-      !this.review.document.metadata.to;
     const fields = [...preset.metadata].filter(
       (field) =>
-        !bodyLetter || !["author", "salutation", "closing"].includes(field.key),
+        output.recipe !== "letter" ||
+        !["author", "salutation", "closing"].includes(field.key),
     );
     const metadataDetails = disclosure(
       this.contentEl,
       "Document details (export only)",
     );
+    metadataDetails.createEl("p", {
+      text: "Changes here apply only to this export. To save details or change document type, edit the note's saved details instead. Unsaved export choices will be discarded.",
+    });
+    if (this.onDetails)
+      new Setting(metadataDetails).addButton((button) =>
+        button.setButtonText("Edit saved document details").onClick(() => {
+          this.close();
+          this.onDetails!();
+        }),
+      );
     if (this.errors().length) metadataDetails.setAttribute("open", "");
     if (
       ["letter", "submission-letter"].includes(
