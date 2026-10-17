@@ -7,17 +7,17 @@ does not scan folders, download packs, or upload their contents.
 
 ## Install and use
 
-For normal use, **Manage output presets** creates or edits the configured local
-pack through a form. **Save as note template** is a different operation: it
-saves starting Markdown and properties. See [note templates](note-templates.md).
-The contract below remains useful for advanced pack authors; hand-written JSON
-is not required to adjust supported layouts.
+For normal use, **Manage designs → Document designs** creates or edits the
+configured local pack through a form. **Save as note template** is a different
+operation: it saves starting Markdown and properties. See
+[note templates](note-templates.md). The contract below remains useful for
+advanced pack authors; hand-written JSON is not required to adjust supported
+layouts.
 
 1. Copy a pack into a vault folder, for example
    `Designs/page-foundry-pack.json`.
 2. Enter that exact path in **Settings → Page Foundry → Preset pack path**.
-3. Run **Publish current note** and select the named preset for PDF, EPUB or
-   DOCX.
+3. Run **Publish** and select the named preset for PDF, EPUB or DOCX.
 4. Review its pack version, recipe, page size and layout settings. Complete any
    required metadata, then create the file.
 

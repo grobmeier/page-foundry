@@ -9,8 +9,8 @@ properties when you create a new note.
 
 1. Open a book plan. Use **Edit document details** to set its title, optional
    subtitle and imprint, and add its existing chapter notes.
-2. Run **Page Foundry: Manage book designs**. Choose **New design**, give it a
-   name and select **Book PDF** or **Paperback proof**.
+2. Run **Page Foundry: Manage designs → Book designs**. Choose **New design**,
+   give it a name and select **Book PDF** or **Paperback proof**.
 3. Open the relevant sections to adjust opening pages, chapters, body type and
    headers. **More layout controls** contains detailed title/rule dimensions and
    ordinary PDF margins. Paperback margins remain measured and protected.
@@ -35,10 +35,10 @@ long headings and page transitions, before publication.
 
 ## Edit or duplicate a design
 
-Manage book designs lists the book designs in your configured pack. Select one
-to edit it, or click **Duplicate design** to keep the original and make a new
-variation. Saving preserves the other presets in the pack. Cancel writes
-nothing.
+Manage designs → Book designs lists the book designs in your configured pack.
+Select one to edit it, or click **Duplicate design** to keep the original and
+make a new variation. Saving preserves the other presets in the pack. Cancel
+writes nothing.
 
 Book controls use pack version 2. Existing version-1 packs still work. When
 adding book controls to an older pack, the form defaults to **Save a copy** and

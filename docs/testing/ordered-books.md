@@ -1,10 +1,10 @@
 # Ordered book acceptance
 
-Run `npm run test-vault` and open the isolated `.test-vault` in Obsidian. Reload
-Page Foundry if the vault is already open. Do not use a personal vault for
-development testing.
+Install or update through [BRAT](brat.md), then open the isolated `.test-vault`.
+`npm run test-vault` adds missing examples only; it does not update the plugin.
+Do not use a personal vault for development testing.
 
-1. Open `A Neutral Journey.book.md`. Run **Page Foundry: Publish current book**.
+1. Open `Examples/Book/Reading order.book.md`. Run **Page Foundry: Publish**.
    Review all six entries: preface, heading-only part, first chapter, scene,
    second chapter, afterword. No letter preset should appear.
 2. Export PDF using General manuscript, EPUB, then DOCX using General
@@ -13,9 +13,8 @@ development testing.
 3. PDF/DOCX: one title page; each non-scene entry starts on a new page; the
    small scene continues under Chapter One. Body page numbers start at one.
    Chapter headings are not duplicated.
-4. EPUB: navigation follows manifest order. The first chapter's Continue link
-   reaches Chapter Two's Arrival, not Chapter One's identically named heading.
-   Return stays in Chapter One. Outside the book is plain text.
+4. EPUB: navigation follows plan order. Chapter two's **the gate** link reaches
+   Chapter one's heading. Links to files outside the book remain plain labels.
 5. Change entry order in the manifest, then **Refresh book review**. The list
    and exported order should match. Sources must remain unchanged.
 6. Open review, edit an included note, then Create. No output should be saved:

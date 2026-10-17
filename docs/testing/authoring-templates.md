@@ -1,58 +1,43 @@
-# Authoring templates test plan
+# Author workflow acceptance
 
-Use the isolated test vault and invented names/addresses. Do not copy private
-designs or personal manuscript text into development fixtures.
+Use the isolated test vault and its **Start here** note. The neutral
+**Examples** tree covers every starter, all output formats, book roles,
+paperback options, tables/images/code, custom designs and expected errors. Do
+not copy private designs or personal writing into development fixtures.
 
-Start with [the short guide](../start-here.md). On beta.3 and later, greet/sign
-off in the letter body. Publish opens the kind-aware layout directly; Change
-layout is optional. Check that a new letter omits
-author/language/greeting/closing properties unless explicitly supplied by a
-custom starter. Test an old letter's conversion by cancelling first, then
-reviewing and saving; its addresses and unrelated properties must survive. A
-newer edit while the review is open must block Save. Check two different notes
-retain independent successful layouts.
+## Short first-release check
 
-1. Run **Create new note → Letter**, name it **Authoring letter**, and fill
-   sender and recipient names and two-line addresses. Create it. Expect an
-   opened Markdown file with saved properties and no new PDF. The previously
-   open note must be unchanged. Draft fields can be blank; filename collisions
-   must fail without overwriting. Cancel another creation: no file should
-   appear.
-2. Reopen the letter and **Edit document details**. Expect both addresses to
-   survive. Change its subject and save; cancel another edit and check nothing
-   changed. If you edit the source elsewhere while the form is open, its Save
-   must refuse to overwrite the newer note.
-3. **Publish**, defaulting to Letter · A4 · PDF. Expect names and address lines,
-   subject, salutation and closing exactly once. Publishing must not modify the
-   note. Check the actual saved path in the result, then open the PDF. Try
-   DOCX/EPUB from a manuscript; those are different output layouts, not new-note
-   creation.
-4. **Create new note → Book**, then **Edit document details**. Add existing
-   `Book/Preface.md` and `Book/Chapter One.md`, choose roles and reorder. Save.
-   Expect readable headings/links and no JSON entries in Properties. Publish
-   PDF/EPUB; expect the same order. Missing exact paths must prevent
-   saving/publication.
-5. Open **A Neutral Journey.book** and run **Convert to readable book plan**.
-   Cancel first: unchanged YAML. Repeat and Convert and save: readable outline,
-   same sections/order/link destinations. No chapter notes should change.
-6. On the neutral letter, **Save as note template** to
-   `Designs/Neutral letter template.md`. Inspect the preview with personal-field
-   clearing on/off. Save with clearing on, then **Create new note** from that
-   template. It should be an independent file without copied addresses. Edit the
-   template Markdown and repeat; the new content should be used. Removing its
-   registration must not delete it. A moved template gives a useful error.
-7. **Manage output presets**. Save **Comfortable proof** based on Readable plain
-   document to `Designs/authoring-pack.json`, using 13-point text and 1.6
-   spacing. Choose it in Publish and inspect its output. Edit the preset again;
-   other presets remain. Invalid settings, collisions and newer external edits
-   must be rejected without data loss. Clear its configured path when done if
-   desired.
-8. Check **Create recent**, **Publish recent** and **Cheat Sheet**. Confirm the
-   two histories are separate and no personal values are reused from history.
-   Repeat keyboard/narrow-window navigation and inspect multiline fields.
+1. **Create new note → Letter**. Use a new filename and invented names with
+   two-line addresses. Expect a new Markdown note, no PDF and no change to the
+   previously open note. Cancel another creation and test a filename collision.
+2. **Edit document details**. Check readable addresses. Switch Document type to
+   Manuscript, enter a header surname, then switch back: your address must still
+   be present. Cancel: the source must be identical.
+3. Repeat and **Save details** as Manuscript. Expect unchanged writing and
+   retained addresses/custom properties, plus the chosen type and edited fields.
+   No starter text should be inserted. **Publish** must open General manuscript
+   PDF rather than a previously remembered letter design. Change back to Letter,
+   save, then Publish: expect Letter PDF. Same-type saves retain output choices.
+4. Try a note with no properties, and a disposable note with an unknown
+   `document` value. The form should allow an explicit type choice. Open the
+   form, then edit or move the source elsewhere: Save must refuse to overwrite.
+5. In Publish, open **Document details (export only)**. Changes here must not
+   change the note. **Edit saved document details** closes export review and
+   opens the persistent form; its warning explains that unsaved export choices
+   are discarded. Cancel this form without changing anything.
+6. Open **Examples/Book/Reading order.book**. Edit document details must open
+   the ordered-plan editor, not a prose type selector. Check all six sections,
+   reorder and publish PDF/EPUB/DOCX. Included chapter notes must remain
+   unchanged.
+7. Run **Manage designs**. Expect Book designs and Document designs. Test custom
+   appearance only at a new local path or in a deliberate copy; do not overwrite
+   retained owner designs. See [book designs](../book-designs.md).
+8. Inspect the palette with a Markdown note active: only Publish, Create new
+   note, Create recent, Edit document details, Save as note template, Manage
+   designs and Cheat Sheet. No migration commands or duplicate Publish aliases.
+   Repeat the details → type → Save → Publish path using the keyboard.
 
-Still required on physical iPad/iPhone: offline creation/rendering,
-PDF/EPUB/DOCX memory/performance, vault saving, Files/iCloud and an installed
-cloud share target. Desktop and browser checks do not establish these device
-results. No release or retailer certification is implied; inspect paperback
-proofs separately.
+The existing Start here route adds formatting, paperback, offline, file-location
+and private-template checks. Physical iPad/iPhone/Android rendering, memory and
+Files/iCloud/installed share targets remain separate acceptance gates. Inspect
+paperback PDFs, retailer previews and physical proofs separately.

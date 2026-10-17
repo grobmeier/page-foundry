@@ -74,11 +74,13 @@ it("provides all note types, book roles, valid packs and local image targets wit
     "US Letter",
     "Offline",
     "Expected errors",
+    "Change document type",
+    "Manage designs",
   ])
     assert.ok(guide.toLowerCase().includes(term.toLowerCase()), term);
   assert.doesNotMatch(
     guide,
-    /legacy installation|convert to readable book plan/iu,
+    /legacy installation|convert to readable book plan|current document type limitation|does not yet offer a type selector/iu,
   );
 });
 

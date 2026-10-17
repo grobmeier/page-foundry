@@ -60,20 +60,20 @@ The development build currently provides:
 - **Create new note** and **Create recent** prepare editable Markdown letters,
   manuscripts, books and documents with saved properties; no active note or
   export is needed. **Edit document details** saves names and multiline letter
-  addresses in the note;
-- **Publish** and **Publish recent** choose output layouts separately, including
-  six paperback size/paper combinations. Note-template and layout histories are
-  separate, contain no document text or addresses, and can be cleared;
+  addresses in the note. Its Document type selector changes between plain,
+  letter, submission letter and manuscript without rewriting the body;
+- **Publish** opens a suitable design directly, including six paperback
+  size/paper combinations. Note-template and layout histories are separate,
+  contain no document text or addresses, and can be cleared;
 - **Save as note template** previews a private Markdown copy and registers only
-  its exact path. **Manage output presets** edits supported local layouts
+  its exact path. **Manage designs** groups book and document appearance editors
   through a form. See [custom templates](docs/note-templates.md);
-- **Set up book** to create or edit a book plan visually: add sections, choose
-  their note paths, and move them into reading order. IDs are managed
+- **Create new note → Book**, then **Edit document details** to add sections,
+  choose their note paths, and move them into reading order. IDs are managed
   internally; saves reject changed plans and never rewrite chapter notes;
 
-- `Publish current note` in the Obsidian command palette;
-- `Publish current book` for an explicit ordered Markdown manifest, with
-  inclusion/order review, front/back matter, parts, chapters and continuous
+- **Publish** for individual notes or an explicit ordered Markdown book plan,
+  with inclusion/order review, front/back matter, parts, chapters and continuous
   scenes;
 - a PDF-only no-bleed paperback proof recipe with three trim sizes, mirrored
   page-count-based gutters, Roman front matter, optional right-hand starts and
@@ -122,19 +122,11 @@ Run **Create new note → Book**, then **Edit document details** to add existing
 chapter notes and put them in reading order. New plans have simple title/author/
 language properties and ordinary Markdown section headings and exact note links,
 not JSON entries in Properties. Hidden comments retain stable link destinations.
-Run **Publish** when ready. **Set up book** remains a compatible editor
-shortcut.
+Run **Publish** when ready.
 
-Older YAML plans remain supported. **Convert to readable book plan** shows their
-order and offers **Convert and save**; Cancel leaves the source unchanged.
-Opening and publishing never migrate a plan automatically.
-
-Open a Markdown manifest and run **Page Foundry: Publish current book**. Its
-legacy leading YAML contains `page-foundry-book: 1`, a book `title`, optional
-author/ language/identifier metadata and an ordered `entries` list. Each entry
-has a unique lowercase hyphenated `id`, a `role` and an exact vault-relative
-Markdown `path`; a heading-only `part` may use `title` instead of a path. Roles
-are `front-matter`, `part`, `chapter`, `scene` and `back-matter`.
+Existing book plans remain supported without conversion. Opening and publishing
+never migrate a plan automatically. Use the form to manage reading order;
+authors do not need to write JSON, nested YAML or internal IDs.
 
 Only listed notes and their explicit images are included. Manifest prose and
 chapter metadata are not imported. PDF/DOCX have one book title page and new
@@ -143,12 +135,13 @@ notes; links outside the list become plain labels. Sources are never rewritten.
 Change order in the manifest and refresh review. Before saving, all included
 sources and resources are checked again; changes require a new review.
 
-The isolated test vault contains `A Neutral Journey.book.md` and its five source
-notes. Follow the [ordered book test plan](docs/testing/ordered-books.md).
-Limits: 128 KiB manifest, 50 entries, 2 MiB per note, 20 MiB total note text; 50
-unique images, 5 MiB each and 20 MiB combined. There are no globs, nested
-project expansion or automatic vault discovery. No-bleed paperback geometry is
-available below; full retailer/physical proof acceptance remains external.
+The isolated test vault contains `Examples/Book/Reading order.book.md` and its
+five source notes. Follow the
+[ordered book test plan](docs/testing/ordered-books.md). Limits: 128 KiB
+manifest, 50 entries, 2 MiB per note, 20 MiB total note text; 50 unique images,
+5 MiB each and 20 MiB combined. There are no globs, nested project expansion or
+automatic vault discovery. No-bleed paperback geometry is available below; full
+retailer/physical proof acceptance remains external.
 
 ## Paperback proofs
 

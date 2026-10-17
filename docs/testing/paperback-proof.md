@@ -1,21 +1,20 @@
 # Paperback proof acceptance
 
-Open the isolated `.test-vault` and reload Page Foundry. Open
-`A Neutral Journey.book.md`, run **Publish current book**, and select PDF /
+Install or update through [BRAT](brat.md). In the isolated `.test-vault`, open
+`Examples/Book/Reading order.book.md`, run **Publish**, and select PDF /
 **Paperback interior (no bleed)**. This recipe is only available for books.
 
 1. Use 6 × 9 inch, white paper, right-hand part/chapter starts. Export offline.
-   The result includes a measured proof report. The short sample should have
-   eight physical pages: title (1), preface (2), part (3), blank (4), first
-   chapter with its continuous scene (5), blank (6), second chapter (7),
-   afterword (8). Blanks have no numbers; preface is Roman `i`; part starts
-   Arabic `1`, first chapter `3`, second chapter `5`, afterword `6`.
+   The result includes a measured proof report. Record its physical page count.
+   Parts/chapters start on right-hand pages; the scene continues its chapter.
+   Inserted blanks have no numbers, opening matter is Roman and body numbering
+   is Arabic. Counts depend on the design and final pagination.
 2. Check actual PDF page size, chapter positions and that no source was changed.
    The report must clearly say **Proof only**: this short book is below KDP's
    supported page count. The plugin does not certify upload readiness.
-3. Switch to **Next page** starts. The same book should have six physical pages
-   and no inserted blank pages. Try 5 × 8 inch / cream and 5.5 × 8.5 inch /
-   white. Trim choices affect PDF only; EPUB/DOCX remain unchanged.
+3. Switch to **Next page** starts. No chapter-start blank pages should be
+   inserted. Try 5 × 8 inch / cream and 5.5 × 8.5 inch / white. Trim choices
+   affect PDF only; EPUB/DOCX remain unchanged.
 4. Copy the print proof report using the explicit result button. If clipboard
    access is unavailable, the report remains visible and the PDF remains usable.
 5. Export a longer neutral test book. Above 300 physical pages the inside margin

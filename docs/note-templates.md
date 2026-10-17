@@ -15,22 +15,22 @@ Use **Edit document details** to save properties later. New letters have
 separate sender/recipient names and multiline addresses, date and optional
 subject. The greeting, sign-off and signature are ordinary writing in the body.
 Empty optional fields are omitted; language overrides live under More details.
-The form saves readable YAML strings, not nested address objects. Older letters
-still render their greeting and closing properties. The explicit **Move letter
-greeting and sign-off into writing** command previews a conversion before
-saving. Publishing supports the old `from` and `to` blocks too. Fields edited
-only in the export form are temporary and do not change the source note.
+The form saves readable YAML strings, not nested address objects. Existing
+letter properties remain supported without conversion. Fields edited only in the
+export form are temporary and do not change the source note.
 
-For a legacy letter, Edit document details shows the first line of each old
-block as its name and the remaining lines as its address. Review those fields;
-Save explicitly replaces the old blocks, while Cancel leaves them intact.
+**Document type** switches between Plain document, Letter, Submission letter and
+Manuscript. Only Save details applies changes. All writing and unedited
+properties survive, including fields belonging to the previous type; no starter
+text is inserted. A saved type change resets that note's remembered output
+design. Books use their separate reading-order editor, not this selector.
 
 **Publish** opens a suitable layout directly and remembers successful choices
-per note. **Change layout** and **More layouts** offer other designs; **Publish
-recent** remains an optional picker. **Create recent** remembers note templates
-separately. Histories contain only template/layout keys and usage, not
-addresses, manuscript text or filenames. Per-note preferences use bounded opaque
-path hashes and layout keys, not source paths, addresses or writing.
+per note. **Change layout** and **More layouts** offer other designs. **Create
+recent** remembers note templates separately. Histories contain only
+template/layout keys and usage, not addresses, manuscript text or filenames.
+Per-note preferences use bounded opaque path hashes and layout keys, not source
+paths, addresses or writing.
 
 ## Readable book plans
 
@@ -70,11 +70,8 @@ remain editable in source mode, and normal author comments are left alone.
 Manually authored plans without boundary comments are also supported; saving
 through the form adds the bounded region and retains explanatory prose.
 
-Legacy YAML plans remain readable. Use **Convert to readable book plan** and
-review **Convert and save** to replace their nested `entries` with this outline.
-The conversion preserves IDs, order and prose; stale saves are rejected. It
-never edits chapters. The old format is retained until you explicitly convert
-it.
+Existing book plans remain readable without conversion. Opening and publishing
+never replace their source format or edit chapters automatically.
 
 ## Make a private note template
 
@@ -116,11 +113,12 @@ Start writing here.
 
 ## Make a private output preset
 
-Run **Manage output presets**, choose a starting recipe, name your preset and
-adjust supported size, spacing, margins, colour and fonts. Save to an exact
-local JSON pack path in an existing folder. The form writes/validates the pack
-for you; you do not need to write JSON. The configured pack's existing presets
-can be edited in the same form. Blank overrides retain each format's settings.
+Run **Manage designs → Document designs**, choose a starting recipe, name your
+preset and adjust supported size, spacing, margins, colour and fonts. Save to an
+exact local JSON pack path in an existing folder. The form writes/validates the
+pack for you; you do not need to write JSON. The configured pack's existing
+presets can be edited in the same form. Blank overrides retain each format's
+settings.
 
 The editor preserves other presets and metadata definitions, increments the
 local pack version and rejects stale/moved saves. It never edits core presets or

@@ -47,9 +47,8 @@ upload them, but your own vault sharing, sync and backups can expose them.
 ## Maintainers
 
 The packaging command remains `npm run release:prepare -- 0.1.0-beta.N`. See the
-[packaging procedure](private-brat.md#maintainer-packaging); it stages only an
-explicit asset list, retains licence texts and produces checksums. For public
-beta publication verify that no private files or credentials occur in history,
-source archives or assets before uploading. Increment the beta number; never
-replace a published beta. No beta publication submits the community-directory
-listing automatically.
+[packaging procedure](release-packaging.md); it stages only an explicit asset
+list, retains licence texts and produces checksums. For public beta publication
+verify that no private files or credentials occur in history, source archives or
+assets before uploading. Increment the beta number; never replace a published
+beta. No beta publication submits the community-directory listing automatically.

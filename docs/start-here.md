@@ -20,10 +20,14 @@ New letters do not need Salutation, Closing, Author or a default Language
 property. **More details** offers a language override. Ordinary Markdown remains
 editable without Page Foundry.
 
-Older letters still use their greeting/closing properties. To simplify one, run
-**Move letter greeting and sign-off into writing**. Review the complete body
-before saving; remove any repeated phrases. Cancel changes nothing. Do not
-delete old properties blindly, because they may still supply printed content.
+## Change document type
+
+Open **Edit document details → Document type** and choose Plain document,
+Letter, Submission letter or Manuscript. Fields change in place; anything you
+enter is retained when switching. **Save details** applies the type and any
+edited fields. It preserves writing and existing properties; it never inserts
+starter text. Cancel changes nothing. After a saved type change, Publish starts
+with that type's default design instead of the previous remembered choice.
 
 ## Manuscripts and books
 
@@ -41,21 +45,23 @@ addresses from other notes. Change the format on the Publish form, or choose
 proofs. Letter address formatting is PDF-only; other formats export the writing
 with their chosen layout. Paperback PDFs still require retailer/physical proofs.
 
-**Create recent** reuses note starters; **Publish recent** is an optional layout
-picker. For a private starter, open a note and use **Save as note template**.
-Review its copied body as well as properties, then save and edit the template
-Markdown locally. **Manage output presets** controls page appearance, not
-starting text. Keep private designs outside the public engine repository.
+**Create recent** reuses note starters. For a private starter, open a note and
+use **Save as note template**. Review its copied body as well as properties,
+then save and edit the template Markdown locally. **Manage designs → Document
+designs** controls page appearance, not starting text. Keep private designs
+outside the public engine repository.
 
 Export-form detail changes are temporary; **Edit document details** saves them.
-For a reusable book appearance, run **Manage book designs**, adjust the form and
-**Create proof** before saving. Choose the saved design once through **Publish →
-Change layout**; Publish then remembers it for that book. See
-[Make your own book design](book-designs.md) for private storage and upgrade
+For a reusable book appearance, run **Manage designs → Book designs**, adjust
+the form and **Create proof** before saving. Choose the saved design once
+through **Publish → Change layout**; Publish then remembers it for that book.
+See [Make your own book design](book-designs.md) for private storage and upgrade
 copies. Use the result's actual path if Obsidian hides EPUB/DOCX in its sidebar.
 On supported mobile devices, sharing can save to Files or installed storage
 apps.
 
 For focused tests see [the authoring checklist](testing/authoring-templates.md).
-On the test vault, older developer checks live under **Archive**; your writing
-and designs are separate and are not reset by cleanup.
+In the test vault, **Start here** walks through the neutral **Examples** tree.
+Books remain separate ordered plans: create a Book, then add your existing note
+through Edit document details. Changing a prose type does not turn it into a
+book.
