@@ -31,12 +31,16 @@ handing off. BRAT installs release assets, not main commits.
 
 ## First stable release checklist
 
-From 0.1.3, push the approved stable tag only after local checks pass. The
+From 0.1.4, push the approved stable tag only after local checks pass. The
 `Verified release` workflow builds, compares repeated output, attests and
 publishes exactly `main.js`, `manifest.json` and `styles.css`. Do not upload the
 local legal/checksum companions: all licence text is already in the build.
 Release preparation must copy the build unchanged. See
 [review hardening](../architecture/review-hardening.md).
+
+If the tag event does not start a run, dispatch this workflow with that exact
+tag as its ref (`gh workflow run release.yml --ref <version>`). Dispatching a
+branch is rejected before building. Do not move or recreate an existing tag.
 
 - Run `npm run verify`, `npm run test:markdown-pdf` and `npm run test:book-pdf`.
   Check compiled paragraph coordinates with Python and `pdfplumber`:

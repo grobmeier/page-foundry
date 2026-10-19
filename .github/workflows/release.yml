@@ -3,6 +3,7 @@ name: Verified release
 on:
   push:
     tags: ["0.*"]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -27,8 +28,9 @@ jobs:
           RELEASE_TAG: ${{ github.ref_name }}
         run:
           node --input-type=module -e 'import fs from "node:fs"; const
-          m=JSON.parse(fs.readFileSync("manifest.json","utf8")); if(m.version
-          !== process.env.RELEASE_TAG) throw new Error("Tag and manifest version
+          m=JSON.parse(fs.readFileSync("manifest.json","utf8"));
+          if(process.env.GITHUB_REF_TYPE !== "tag" || m.version !==
+          process.env.RELEASE_TAG) throw new Error("Tag and manifest version
           must match");'
       - run: npm ci
       - run: npm audit --audit-level=low
