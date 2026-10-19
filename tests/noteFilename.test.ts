@@ -11,6 +11,8 @@ it("suggests portable filenames while leaving titles separate and book recogniti
     ["", "book", "My Book.book.md"],
     ["Valley.book.md", "book", "Valley.book.md"],
     ["Valley.book.md", "plain", "Valley.md"],
+    ["Valley.book.book.md", "plain", "Valley.md"],
+    ["a".repeat(95) + ".book extra", "plain", "a".repeat(95) + ".md"],
     ["CON", "plain", "_CON.md"],
     ["A\nnew\tday", "manuscript", "A new day.md"],
   ]) {

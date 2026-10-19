@@ -283,10 +283,12 @@ export function suggestedNoteFilename(title: string, kind: string): string {
     .replace(/\s+/g, " ")
     .trim()
     .replace(/\.md$/i, "")
-    .replace(/\.book$/i, "")
+    .replace(/(?:\.book)+$/i, "")
     .replace(/^[. ]+|[. ]+$/g, "")
     .slice(0, 100)
-    .trim();
+    .trim()
+    .replace(/(?:\.book)+$/i, "")
+    .replace(/[. ]+$/g, "");
   if (!stem) stem = kind === "book" ? "My Book" : "Untitled";
   if (/^(con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|$)/i.test(stem))
     stem = `_${stem}`;
