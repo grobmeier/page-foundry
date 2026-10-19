@@ -11,11 +11,14 @@ The suggested next design sequence is private font/asset support, ornaments,
 opening initials, then richer page treatments and format-native controls. Keep
 Create and Publish simple as the capabilities grow.
 
-## Stable 0.1.0 community-review findings
+## Stable community-review follow-ups
 
 - [#38: Remove legacy script-element scheduler fallbacks from the distributed bundle](https://github.com/grobmeier/page-foundry/issues/38)
-  is a blocking automated review finding; stable GitHub publication alone does
-  not make the plugin installable through the community directory.
+  records the blocking 0.1.0 dependency finding. The replacement is shipped in
+  0.1.1, with guarded packaging and repeated browser-style DOCX regressions. A
+  separate book-editor lookbehind finding is corrected in 0.1.2, with LF, CRLF,
+  Unicode and fenced-example range regressions. Exact-release community review
+  remains separate from GitHub publication.
 - [#39: Reduce the installed core below the Obsidian Sync Standard 5 MB file limit](https://github.com/grobmeier/page-foundry/issues/39)
   tracks the 16 MB bundle warning and needs a separately agreed portable
   packaging design. Do not claim Sync Standard compatibility yet.
@@ -23,6 +26,10 @@ Create and Publish simple as the capabilities grow.
   [#35](https://github.com/grobmeier/page-foundry/issues/35). Standalone
   licence/checksum assets are intentional; their licence text is embedded in the
   installed JavaScript too.
+- [#40: Resolve remaining community source-analysis warnings](https://github.com/grobmeier/page-foundry/issues/40)
+  records typed metadata boundaries, host-window APIs, settings search, runtime
+  file narrowing and source-quality recommendations. Corrections must preserve
+  validation and the declared minimum Obsidian version.
 
 ## Design flexibility
 

@@ -7,6 +7,13 @@ is separate from beta builds marked **Pre-release**. Publishing on GitHub does
 not by itself complete Obsidian's community-directory review; use release files
 or BRAT if an in-app directory installation is not yet available.
 
+The embedded offline PDF compiler makes `main.js` about 16 MB. **Obsidian Sync
+Standard cannot sync this plugin file**, because its per-file limit is 5 MB.
+Install the plugin separately on each device rather than expecting that plan to
+transfer it. Note and output-file syncing still depends on your storage
+provider's own limits. A smaller portable package is tracked in
+[#39](https://github.com/grobmeier/page-foundry/issues/39).
+
 ## Beta channel: BRAT
 
 BRAT installs Page Foundry on desktop and mobile and manages beta updates.
