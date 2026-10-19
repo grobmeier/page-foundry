@@ -1,7 +1,7 @@
 {
   "id": "page-foundry",
   "name": "Page Foundry",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "minAppVersion": "1.8.7",
   "description": "Publish notes as professional documents with portable presets.",
   "author": "Christian Grobmeier",
