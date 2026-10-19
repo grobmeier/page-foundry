@@ -1,10 +1,11 @@
 # Install and update Page Foundry
 
 Page Foundry requires Obsidian 1.8.7 or newer. Choose a release from
-[GitHub Releases](https://github.com/grobmeier/page-foundry/releases), where
-beta builds are marked **Pre-release**. The first stable version is being
-prepared; current downloads are beta builds. Release preparation does not add
-the plugin to Obsidian's community directory.
+[GitHub Releases](https://github.com/grobmeier/page-foundry/releases). The
+[latest stable release](https://github.com/grobmeier/page-foundry/releases/latest)
+is separate from beta builds marked **Pre-release**. Publishing on GitHub does
+not by itself complete Obsidian's community-directory review; use release files
+or BRAT if an in-app directory installation is not yet available.
 
 ## Beta channel: BRAT
 
@@ -19,7 +20,7 @@ BRAT installs Page Foundry on desktop and mobile and manages beta updates.
 
 No GitHub token is needed for this public repository. See the
 [BRAT guide](testing/brat.md) for update troubleshooting and credential safety.
-BRAT remains available for beta testing after the first stable release.
+BRAT remains available for beta testing alongside stable releases.
 
 ## Pinned desktop installation: release files
 

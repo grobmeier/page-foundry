@@ -11,15 +11,14 @@ remain the originals; publishing creates separate files.
 
 ## Get started
 
-Install Page Foundry with [BRAT](https://github.com/TfTHacker/obsidian42-brat)
-to receive beta builds and updates. You can also install a chosen build from
-[GitHub Releases](https://github.com/grobmeier/page-foundry/releases) using the
-[installation guide](docs/install.md). Page Foundry is licensed under Apache
-2.0.
+Get the stable release from
+[GitHub Releases](https://github.com/grobmeier/page-foundry/releases/latest), or
+use [BRAT](https://github.com/TfTHacker/obsidian42-brat) to try beta builds.
+Page Foundry requires Obsidian 1.8.7 or newer and is licensed under Apache 2.0.
 
-1. In Obsidian 1.8.7 or newer, install BRAT and run **Add a beta plugin for
-   testing**.
-2. Add **grobmeier/page-foundry** and enable Page Foundry in Community plugins.
+1. Follow the [installation guide](docs/install.md) for release-file or BRAT
+   installation. For BRAT, add **grobmeier/page-foundry**.
+2. Enable Page Foundry in Community plugins.
 3. Run **Page Foundry: Create new note**, choose a starter and begin writing.
    When ready, run **Page Foundry: Publish**.
 
