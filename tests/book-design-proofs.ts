@@ -86,4 +86,59 @@ await writeFile(
   join(output, "no-opening-pages-proof.txt"),
   simple.proofReport!,
 );
+// Short, two-line paragraphs expose boundary collisions hidden by long prose.
+// The companion PDF geometry check compares the paragraph boundary with the
+// measured line advance, for ordinary pages and measured paperback interiors.
+for (const [bodySizePt, lineSpacing] of [
+  [8, 1],
+  [11, 1.35],
+  [20, 2],
+] as const) {
+  for (const paragraphSpaceMm of [0, 3, 12]) {
+    const sample = assembleBook(
+      {
+        metadata: { title: "Paragraph proof", author: "Alex Example" },
+        entries: [
+          { id: "one", role: "chapter", title: "Spacing", path: "One.md" },
+        ],
+      },
+      new Map([
+        [
+          "One.md",
+          parseMarkdown(
+            "AlphaLine  \nBetaLine\n\nGammaLine  \nDeltaLine\n\nFinalLine",
+            "Spacing",
+          ),
+        ],
+      ]),
+    );
+    sample.style = { bodySizePt, lineSpacing };
+    sample.bookDesign = {
+      ...DEFAULT_BOOK_DESIGN,
+      titlePage: false,
+      contents: false,
+      imprintPage: false,
+      paragraphSpaceMm,
+    };
+    for (const profile of ["a4", "us-letter", "paperback"] as const) {
+      const bytes =
+        profile === "paperback"
+          ? (
+              await renderer.renderPrint(sample, {
+                trim: "5x8",
+                paper: "cream",
+                recto: false,
+              })
+            ).bytes
+          : await renderer.render(sample, "plain-document", profile);
+      await writeFile(
+        join(
+          output,
+          `paragraphs-${bodySizePt}-${paragraphSpaceMm}-${profile}.pdf`,
+        ),
+        bytes,
+      );
+    }
+  }
+}
 console.log(output);

@@ -163,7 +163,7 @@ export class BookDesignModal extends Modal {
       ["chapterSizePt", "Chapter heading size (pt)", chapter],
       ["chapterTopMm", "Chapter top spacing (mm)", chapter],
       ["indentMm", "First-line indent (mm)", body],
-      ["paragraphSpaceMm", "Paragraph spacing (mm)", body],
+      ["paragraphSpaceMm", "Extra paragraph spacing (mm)", body],
       ["titleSizePt", "Title size (pt)", more],
       ["titleTopMm", "Title top spacing (mm)", more],
       ["ruleWidthPercent", "Rule width (%)", more],

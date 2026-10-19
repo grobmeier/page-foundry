@@ -60,10 +60,12 @@ conversion. Inspect the PDF, retailer preview and physical proof. See
 [publication checks](testing/author-preflight.md) and
 [paperback checks](testing/paperback-proof.md).
 
-## Beta.8 custom-book spacing issue
+## Updating from beta.8
 
-Custom book designs with zero paragraph spacing can produce overlapping
-paragraphs. This was reproduced with the neutral Quiet book design and confirmed
-in the generated PDF. Use the standard Plain document PDF layout for a reading
-copy while the custom-book spacing fix is pending. Inspect proofs containing
-multiple consecutive paragraphs before relying on a custom design.
+Beta.8 can overlap consecutive paragraphs in custom book PDFs and mishandle
+Markdown hard line breaks. The fixes are included in the next release source:
+zero extra paragraph spacing retains normal line separation, and hard breaks
+produce line breaks rather than internal formatting text. Updating the source
+does not update a BRAT installation; install a release containing the fixes and
+regenerate affected PDFs. Until then, use standard Plain document PDF layouts
+for reading copies and inspect line breaks. Existing PDFs are not rewritten.

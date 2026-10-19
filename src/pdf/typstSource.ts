@@ -265,7 +265,7 @@ function renderInline(
           return `#layout(size => { let scale = calc.min(1, size.width / ${width}pt); image("/assets/${image.id}.${image.extension}", width: ${width}pt * scale, height: ${height}pt * scale, fit: "contain", alt: ${stringLiteral(node.alt)}) })`;
         }
         case "break":
-          return "\\";
+          return "#linebreak()\n";
       }
     })
     .join("");

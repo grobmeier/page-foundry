@@ -24,6 +24,9 @@ export function createBookSource(
       throw new Error("Invalid print gutter.");
   }
   const style = document.style ?? {};
+  // Typst's paragraph spacing replaces leading at a paragraph boundary.
+  // Zero extra gap must retain the normal line separation, not replace it.
+  const leadingEm = Math.max(0, (style.lineSpacing ?? 1.35) - 0.8);
   const snapshot = print
     ? {
         ...document,
@@ -109,7 +112,7 @@ export function createBookSource(
     .join("\n\n");
   return `#set page(${geometry})
 #set text(font: "Libertinus Serif", size: ${style.bodySizePt ?? 11}pt, fill: ${print ? "black" : `rgb(${JSON.stringify(style.color ?? "#000000")})`}, lang: "en")
-#set par(justify: true, leading: ${Math.max(0, (style.lineSpacing ?? 1.35) - 0.8)}em, first-line-indent: ${design.indentMm}mm, spacing: ${design.paragraphSpaceMm}mm)
+#set par(justify: true, leading: ${leadingEm}em, first-line-indent: ${design.indentMm}mm, spacing: ${leadingEm}em + ${design.paragraphSpaceMm}mm)
 #set heading(numbering: none)
 #let foundry-blanks() = {
   let ends = query(<foundry-group-end>)

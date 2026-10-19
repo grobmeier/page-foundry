@@ -118,6 +118,7 @@ it("renders only structural chapter designs, safe opening text, measured print m
   assert.match(source, /#link\(target\)/);
   assert.match(source, /query\(<foundry-section>\)/);
   assert.match(source, /#line\(length: 25%, stroke: 0.5pt\)/);
+  assert.match(source, /spacing: 0.55[0-9]*em \+ 0mm/);
   assert.equal(
     (source.match(/#v\(18mm\)/g) ?? []).length,
     book.book!.entries.filter((e) => e.role === "chapter").length,
@@ -134,6 +135,21 @@ it("renders only structural chapter designs, safe opening text, measured print m
   assert.match(print, /foundry-blanks/);
   assert.deepEqual(book, before);
   assert.throws(() => createTypstSource(book, "letter", "a4"), /Book PDF/);
+});
+it("keeps paragraph leading and adds only the requested extra book paragraph gap", () => {
+  const book = assembleBook(
+    {
+      metadata: { title: "Spacing" },
+      entries: [{ id: "one", role: "chapter", title: "One", path: "One.md" }],
+    },
+    new Map([["One.md", parseMarkdown("First  \nSecond\n\nThird", "One")]]),
+  );
+  book.style = { lineSpacing: 2 };
+  book.bookDesign = { ...DEFAULT_BOOK_DESIGN, paragraphSpaceMm: 3 };
+  const source = createTypstSource(book, "plain-document", "a4");
+  assert.match(source, /leading: 1.2em/);
+  assert.match(source, /spacing: 1.2em \+ 3mm/);
+  assert.match(source, /#text\("First"\)#linebreak\(\)\n#text\("Second"\)/);
 });
 it("round-trips subtitle and readable multiline imprint without changing outline or unrelated prose", () => {
   const source = serializeBookPlan(parseBookManifest(bookManifest));
