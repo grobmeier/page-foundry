@@ -1,11 +1,16 @@
 # Install and update Page Foundry
 
-Page Foundry requires Obsidian 1.8.7 or newer. Choose a release from
+Page Foundry requires Obsidian 1.8.7 or newer. Open its
+[community listing](https://community.obsidian.md/plugins/page-foundry) and
+choose **Add to Obsidian**, then review the plugin in Obsidian and install and
+enable it. The published listing includes the current version and review
+scorecard; a completed automated review can still carry warnings.
+
+You can also choose release files from
 [GitHub Releases](https://github.com/grobmeier/page-foundry/releases). The
 [latest stable release](https://github.com/grobmeier/page-foundry/releases/latest)
-is separate from beta builds marked **Pre-release**. Publishing on GitHub does
-not by itself complete Obsidian's community-directory review; use release files
-or BRAT if an in-app directory installation is not yet available.
+is separate from beta builds marked **Pre-release**. Use release files or BRAT
+for a pinned build, beta testing or if your app has not refreshed its directory.
 
 The embedded offline PDF compiler makes `main.js` about 16 MB. **Obsidian Sync
 Standard cannot sync this plugin file**, because its per-file limit is 5 MB.
