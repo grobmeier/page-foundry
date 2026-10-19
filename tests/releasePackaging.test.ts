@@ -1,7 +1,7 @@
 /* Copyright 2026 Christian Grobmeier. Licensed under Apache-2.0. */
 import assert from "node:assert/strict";
 import { it } from "node:test";
-import { betaVersion, prepareBeta } from "../scripts/prepare-beta.mjs";
+import { releaseVersion, prepareRelease } from "../scripts/prepare-release.mjs";
 import {
   mkdtemp,
   mkdir,
@@ -14,20 +14,26 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createHash } from "node:crypto";
 
-it("accepts only a matching numbered beta and rejects path-like release names", () => {
-  assert.equal(betaVersion("0.1.0-beta.1", "0.1.0"), "0.1.0-beta.1");
+it("accepts a matching stable version or numbered beta and rejects unsafe release names", () => {
+  assert.equal(releaseVersion("0.1.0", "0.1.0"), "0.1.0");
+  assert.equal(releaseVersion("0.1.0-beta.1", "0.1.0"), "0.1.0-beta.1");
   for (const name of [
-    "0.1.0",
+    undefined,
+    "0.2.0",
+    "v0.1.0",
+    "00.1.0",
+    "0.1.0-rc.1",
     "0.1.0-beta.0",
     "0.1.0-beta.01",
     "0.2.0-beta.1",
     "../beta",
     "0.1.0-beta.1/extra",
   ])
-    assert.throws(() => betaVersion(name, "0.1.0"), /Use/);
+    assert.throws(() => releaseVersion(name, "0.1.0"), /Use/);
+  assert.throws(() => releaseVersion("../release", "../release"), /Use/);
 });
 
-it("stages only explicit beta assets, retains the root manifest and refuses replacement", async () => {
+it("stages only explicit stable/beta assets, retains the root manifest and refuses replacement", async () => {
   const root = await mkdtemp(join(tmpdir(), "page-foundry-beta-test-"));
   try {
     await mkdir(join(root, "licenses"));
@@ -51,7 +57,7 @@ it("stages only explicit beta assets, retains the root manifest and refuses repl
     };
     for (const [path, bytes] of Object.entries(fixtures))
       await writeFile(join(root, path), bytes);
-    const destination = await prepareBeta(root, "0.1.0-beta.1");
+    const destination = await prepareRelease(root, "0.1.0-beta.1");
     assert.deepEqual(
       (await readdir(destination)).sort(),
       [
@@ -89,10 +95,24 @@ it("stages only explicit beta assets, retains the root manifest and refuses repl
         hash,
       );
     }
-    await assert.rejects(prepareBeta(root, "0.1.0-beta.1"), /EEXIST/);
+    await assert.rejects(prepareRelease(root, "0.1.0-beta.1"), /EEXIST/);
+    const stable = await prepareRelease(root, "0.1.0");
+    assert.deepEqual(
+      (await readdir(stable)).sort(),
+      (await readdir(destination)).sort(),
+    );
+    assert.equal(
+      JSON.parse(await readFile(join(stable, "manifest.json"), "utf8")).version,
+      "0.1.0",
+    );
+    assert.equal(
+      await readFile(join(stable, "main.js"), "utf8"),
+      await readFile(join(destination, "main.js"), "utf8"),
+    );
+    await assert.rejects(prepareRelease(root, "0.1.0"), /EEXIST/);
     await writeFile(join(root, "main.js"), "//# sourceMappingURL=private.map");
     await assert.rejects(
-      prepareBeta(root, "0.1.0-beta.2"),
+      prepareRelease(root, "0.1.0-beta.2"),
       /without source maps/,
     );
   } finally {

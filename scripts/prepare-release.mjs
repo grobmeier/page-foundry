@@ -4,16 +4,20 @@ import { createHash } from "node:crypto";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-export function betaVersion(value, base) {
+export function releaseVersion(value, base) {
   if (
-    !/^\d+\.\d+\.\d+-beta\.[1-9]\d*$/.test(value ?? "") ||
-    value.split("-beta.")[0] !== base
+    !/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.test(base) ||
+    (value !== base &&
+      (!/^\d+\.\d+\.\d+-beta\.[1-9]\d*$/.test(value ?? "") ||
+        value.split("-beta.")[0] !== base))
   )
-    throw new Error(`Use ${base}-beta.N, where N is a positive integer.`);
+    throw new Error(
+      `Use ${base} or ${base}-beta.N, where N is a positive integer.`,
+    );
   return value;
 }
 
-export async function prepareBeta(root, version) {
+export async function prepareRelease(root, version) {
   const json = async (path) =>
     JSON.parse(await readFile(resolve(root, path), "utf8"));
   const manifest = await json("manifest.json");
@@ -25,7 +29,7 @@ export async function prepareBeta(root, version) {
     pkg.version !== lock.version
   )
     throw new Error("Plugin, package and lockfile versions must match.");
-  betaVersion(version, manifest.version);
+  releaseVersion(version, manifest.version);
 
   // Installed public dependency files only; never inspect any vault/template directory.
   const licences = [
@@ -94,5 +98,5 @@ if (
   resolve(process.argv[1]) === fileURLToPath(import.meta.url)
 ) {
   const root = fileURLToPath(new URL("../", import.meta.url));
-  console.log(await prepareBeta(root, process.argv[2]));
+  console.log(await prepareRelease(root, process.argv[2]));
 }
