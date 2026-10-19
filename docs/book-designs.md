@@ -3,7 +3,8 @@
 A book design saves your PDF appearance. Its title, author, subtitle, imprint
 and chapter order come from your Markdown book, so you can reuse one design for
 several books. A note template is separate: it supplies starting text and
-properties when you create a new note.
+properties when you create a new note. For a complete first setup, follow the
+[private-template walkthrough](custom-templates.md).
 
 ## Create and use a design
 
@@ -32,6 +33,10 @@ matter uses Roman numbers; body pages use Arabic numbers. Chapter openings
 suppress headers, while later pages use the selected book/chapter title.
 Generated blanks have no header or footer. Inspect the whole proof, especially
 long headings and page transitions, before publication.
+
+**Extra paragraph spacing** adds a gap after the normal line separation. Zero
+keeps paragraphs on the same line rhythm as the body, with first-line indents
+providing the distinction.
 
 ## Edit or duplicate a design
 
@@ -72,4 +77,9 @@ or print-quality certification.
 
 Developers can regenerate neutral 50-chapter ordinary/print proofs with
 `npm run test:book-pdf`. The command writes into a fresh temporary directory and
-prints its path. It never reads a user vault or private design collection.
+prints its path. It never reads a user vault or private design collection. It
+also creates 27 short paragraph proofs across A4, US Letter and paperback
+layouts, with three type/line-spacing settings and zero, 3 mm and 12 mm extra
+paragraph gaps. With Python and `pdfplumber` installed, verify their actual PDF
+coordinates using `python3 scripts/check-pdf-paragraphs.py <printed-directory>`.
+Inspect rendered pages as well as running the coordinate check.

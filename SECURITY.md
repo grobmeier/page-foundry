@@ -2,9 +2,10 @@
 
 ## Supported versions
 
-Page Foundry has no stable release yet. Report vulnerabilities against the
-latest beta or main. Earlier beta releases are not maintained independently;
-update through BRAT when a corrected beta becomes available.
+Security fixes target the latest release and current development on main. Report
+the exact affected version or commit; older releases and individual betas are
+not maintained independently. Install the corrected release when available, or
+use BRAT to test a corrected beta.
 
 ## Reporting a vulnerability
 

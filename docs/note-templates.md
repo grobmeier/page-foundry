@@ -138,11 +138,12 @@ repaired or explicitly unconfigured, not silently replaced. Recipe/metadata
 schema editing remains an advanced [pack-authoring](preset-packs.md) feature.
 
 The engine's limits still apply: PDF bundles Libertinus Serif; arbitrary fonts,
-assets, executable Typst/LaTeX templates and decorative chapter/title-page
-designs are not supported yet. Paperback geometry and black ink follow measured
-proof rules rather than general margin/colour overrides. EPUB readers can change
-typography. An existing `.tex` design requires an intentional port, not an
-import that promises identical results.
+decorative assets and executable Typst/LaTeX templates are not supported.
+[Book designs](book-designs.md) support structured title/chapter controls, not
+arbitrary ornaments or imported page art. Paperback geometry and black ink
+follow measured proof rules rather than general margin/colour overrides. EPUB
+readers can change typography. An existing `.tex` design requires an intentional
+port, not an import that promises identical results.
 
 ## Privacy and saving
 

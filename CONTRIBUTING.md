@@ -2,8 +2,9 @@
 
 Thank you for helping authors publish from portable source material.
 
-Page Foundry is not yet ready for external contributions. This guide records the
-standards the project will use when it opens publicly.
+Contributions are welcome: bug reports, neutral examples, documentation and
+focused improvements to the authoring and publishing workflows. Follow these
+standards so authors can trust their source files and private designs.
 
 ## Principles
 

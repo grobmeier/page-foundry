@@ -11,9 +11,11 @@ remain the originals; publishing creates separate files.
 
 ## Get started
 
-Page Foundry is available as a public beta through
-[BRAT](https://github.com/TfTHacker/obsidian42-brat). It is licensed under
-Apache 2.0.
+Install Page Foundry with [BRAT](https://github.com/TfTHacker/obsidian42-brat)
+to receive beta builds and updates. You can also install a chosen build from
+[GitHub Releases](https://github.com/grobmeier/page-foundry/releases) using the
+[installation guide](docs/install.md). Page Foundry is licensed under Apache
+2.0.
 
 1. In Obsidian 1.8.7 or newer, install BRAT and run **Add a beta plugin for
    testing**.
@@ -21,10 +23,9 @@ Apache 2.0.
 3. Run **Page Foundry: Create new note**, choose a starter and begin writing.
    When ready, run **Page Foundry: Publish**.
 
-See the [installation and update guide](docs/testing/brat.md) or go straight to
-[the everyday guide](docs/start-here.md). The
-[release notes](https://github.com/grobmeier/page-foundry/releases) describe
-each beta.
+See [installation and updates](docs/install.md) or go straight to
+[the everyday guide](docs/start-here.md). BRAT remains the beta channel for
+trying changes before a stable release; release notes identify each build.
 
 ## From first draft to finished document
 
@@ -77,10 +78,10 @@ appearance. Keep your custom Markdown templates and versioned JSON design packs
 in your own vault or private storage and register their exact paths in settings.
 Private designs stay separate from the public plugin.
 
-Read [note templates](docs/note-templates.md),
-[book designs](docs/book-designs.md) and the
-[preset-pack reference](docs/preset-packs.md). Print-page design controls apply
-to PDF; EPUB and DOCX use their own format-specific layouts.
+Start with the [private-template walkthrough](docs/custom-templates.md), or read
+[note templates](docs/note-templates.md), [book designs](docs/book-designs.md)
+and the [preset-pack reference](docs/preset-packs.md). Print-page design
+controls apply to PDF; EPUB and DOCX use their own format-specific layouts.
 
 ## Publish and find your files
 
