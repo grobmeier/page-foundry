@@ -150,7 +150,9 @@ acceptance are ongoing. EPUB readers and retailer/physical proofs have separate
 ## Contributing and licence
 
 Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md),
-[SECURITY.md](SECURITY.md) and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
+[SECURITY.md](SECURITY.md) and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md). The
+[roadmap](docs/roadmap.md) links the tracked design capabilities and remaining
+validation work, including fonts, ornaments and opening initials.
 
 Copyright 2026 Christian Grobmeier. Licensed under the
 [Apache License, Version 2.0](LICENSE).

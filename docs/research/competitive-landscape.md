@@ -3,7 +3,10 @@
 **Reviewed:** 30 September 2026
 
 **Roadmap:** approved by the user on 30 September 2026. Implement the
-recommended sequence below through the repository's specification process.
+recommended sequence below through the repository's specification process. The
+sequence records the original milestones; the
+[current follow-up index](../roadmap.md) tracks remaining limitations and
+acceptance work as GitHub issues.
 
 Page Foundry enters an established category. Exporting Markdown to PDF, EPUB, or
 DOCX is not by itself a differentiator. Its strongest direction is a portable,

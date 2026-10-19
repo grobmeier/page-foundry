@@ -70,6 +70,7 @@ release packager excludes local vaults and packs.
 These controls apply to ordered-book PDFs. EPUB and DOCX remain available but do
 not inherit print-page design controls. PDF uses bundled Libertinus Serif;
 custom fonts, ornaments, opening initials and imported artwork are later work.
+These and the other design limitations are tracked in the [roadmap](roadmap.md).
 Existing LaTeX templates must be ported to the supported controls, not pasted
 into the editor. No Docker, Pandoc, TeX installation or rendering account is
 needed. Paperback output is a no-bleed black-ink proof, not retailer acceptance
