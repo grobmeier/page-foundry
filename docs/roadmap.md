@@ -11,6 +11,19 @@ The suggested next design sequence is private font/asset support, ornaments,
 opening initials, then richer page treatments and format-native controls. Keep
 Create and Publish simple as the capabilities grow.
 
+## Stable 0.1.0 community-review findings
+
+- [#38: Remove legacy script-element scheduler fallbacks from the distributed bundle](https://github.com/grobmeier/page-foundry/issues/38)
+  is a blocking automated review finding; stable GitHub publication alone does
+  not make the plugin installable through the community directory.
+- [#39: Reduce the installed core below the Obsidian Sync Standard 5 MB file limit](https://github.com/grobmeier/page-foundry/issues/39)
+  tracks the 16 MB bundle warning and needs a separately agreed portable
+  packaging design. Do not claim Sync Standard compatibility yet.
+- Artifact attestations are tracked in
+  [#35](https://github.com/grobmeier/page-foundry/issues/35). Standalone
+  licence/checksum assets are intentional; their licence text is embedded in the
+  installed JavaScript too.
+
 ## Design flexibility
 
 - [#6: Use explicitly selected private fonts in PDF designs](https://github.com/grobmeier/page-foundry/issues/6)
