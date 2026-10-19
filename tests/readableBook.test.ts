@@ -1,5 +1,6 @@
 /* Copyright 2026 Christian Grobmeier. Licensed under Apache-2.0. */
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { it } from "node:test";
 import { isBookPlan, parseBookManifest } from "../src/books/manifest";
 import {
@@ -14,6 +15,41 @@ import { EpubRenderer } from "../src/epub/renderer";
 import { strFromU8, unzipSync } from "fflate";
 import { bookControlComments } from "../src/books/controlComments";
 const manual = `---\ndocument: book\ntitle: A Neutral Book\nauthor: Alex Example\ncustom: kept\n---\nNotes for the author.\n\n## Opening pages\n- [[Book/Preface.md|Preface]]\n\n## Part: First steps\n\n## Chapter: Arrival\n- [[Book/One.md|Arrival]]\n\n## Closing pages\n- [[Book/Afterword.md|Afterword]]\n`;
+it("preserves comment offsets with LF, CRLF, empty lines and no final newline", () => {
+  for (const newline of ["\n", "\r\n"]) {
+    for (const finalNewline of ["", newline]) {
+      const comment = "%% foundry-section: visible %%";
+      const source =
+        [
+          "---",
+          "document: book",
+          "---",
+          "",
+          "A journey 🌿",
+          "",
+          "```markdown",
+          "%% foundry-section: fenced %%",
+          "```",
+          "~~~",
+          "%% foundry-section: also-fenced %%",
+          "~~~",
+          "",
+          comment,
+        ].join(newline) + finalNewline;
+      const from = source.indexOf(comment);
+      assert.deepEqual(bookControlComments(source), [
+        { from, to: from + comment.length },
+      ]);
+    }
+  }
+});
+it("keeps the book comment extension free of iOS-incompatible lookbehind", () => {
+  const source = readFileSync(
+    new URL("../src/books/controlComments.ts", import.meta.url),
+    "utf8",
+  );
+  assert.doesNotMatch(source, /\(\?<[=!]/);
+});
 it("hides only internal book control comments outside fenced examples", () => {
   const source = serializeBookPlan(editableBook(manual), manual);
   const ranges = bookControlComments(source);
