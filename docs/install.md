@@ -12,7 +12,7 @@ You can also choose release files from
 is separate from beta builds marked **Pre-release**. Use release files or BRAT
 for a pinned build, beta testing or if your app has not refreshed its directory.
 
-The embedded offline PDF compiler makes `main.js` about 16 MB. **Obsidian Sync
+The embedded offline PDF compiler makes `main.js` about 17 MB. **Obsidian Sync
 Standard cannot sync this plugin file**, because its per-file limit is 5 MB.
 Install the plugin separately on each device rather than expecting that plan to
 transfer it. Note and output-file syncing still depends on your storage
@@ -44,7 +44,9 @@ BRAT remains available for beta testing alongside stable releases.
    retain `data.json`, which contains your settings and template registrations.
 3. Open Obsidian and enable Page Foundry in Community plugins.
 
-Release assets include licence texts and `SHA256SUMS` for verification. Manual
+Licence texts are embedded in `main.js`; stable releases from 0.1.3 publish only
+the three installed files, with GitHub artifact attestations for provenance.
+Local maintainer staging also produces licence and checksum files. Manual
 installations stay on the chosen version until you replace the release files;
 use BRAT if you want managed beta updates. Avoid mixing manual updates with a
 BRAT-managed installation.

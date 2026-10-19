@@ -1,0 +1,62 @@
+# Copyright 2026 Christian Grobmeier. Licensed under Apache-2.0.
+name: Verified release
+on:
+  push:
+    tags: ["0.*"]
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22.19.0"
+          cache: npm
+      - name: Verify tag and source versions
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run:
+          node --input-type=module -e 'import fs from "node:fs"; const
+          m=JSON.parse(fs.readFileSync("manifest.json","utf8")); if(m.version
+          !== process.env.RELEASE_TAG) throw new Error("Tag and manifest version
+          must match");'
+      - run: npm ci
+      - run: npm audit --audit-level=low
+      - run: npm run verify
+      - run: npm run test:book-pdf
+      - run: npm run test:markdown-pdf
+      - name: Verify byte-for-byte repeatable production output
+        run: |
+          cp main.js "$RUNNER_TEMP/page-foundry-first-build.js"
+          npm run build
+          cmp main.js "$RUNNER_TEMP/page-foundry-first-build.js"
+      - name: Stage immutable release package
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: node scripts/prepare-release.mjs "$RELEASE_TAG"
+      - name: Attest installed plugin assets
+        uses: actions/attest-build-provenance@43d14bc2b83dec42d39ecae14e916627a18bb661 # v3
+        with:
+          subject-path: |
+            main.js
+            manifest.json
+            styles.css
+      - name: Publish exact built assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          gh release create "$RELEASE_TAG" main.js manifest.json styles.css \
+            --verify-tag --latest --title "Page Foundry $RELEASE_TAG" \
+            --notes-file "docs/releases/$RELEASE_TAG.md"

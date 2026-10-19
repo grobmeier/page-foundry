@@ -5,7 +5,7 @@ lockfile versions aligned. Packaging accepts that exact stable version or a
 matching numbered beta, and changes only the staged release manifest. It does
 not create a Git tag, publish a release or install a plugin.
 
-With Node.js 22.12 or newer and locked dependencies installed:
+With Node.js 22.19.0 (the stable CI version) and locked dependencies installed:
 
 ```sh
 npm ci
@@ -26,10 +26,17 @@ source and record the exact pushed commit in the release. Use matching
 tag/title/manifest versions. Mark betas **pre-release**, not latest stable; mark
 a stable release as stable only after its release decision. Never replace
 published assets or reuse a published tag. Download the public assets again and
-verify `SHA256SUMS` before handing off. BRAT installs release assets, not main
-commits.
+compare with the local `SHA256SUMS` and verify GitHub attestations before
+handing off. BRAT installs release assets, not main commits.
 
 ## First stable release checklist
+
+From 0.1.3, push the approved stable tag only after local checks pass. The
+`Verified release` workflow builds, compares repeated output, attests and
+publishes exactly `main.js`, `manifest.json` and `styles.css`. Do not upload the
+local legal/checksum companions: all licence text is already in the build.
+Release preparation must copy the build unchanged. See
+[review hardening](../architecture/review-hardening.md).
 
 - Run `npm run verify`, `npm run test:markdown-pdf` and `npm run test:book-pdf`.
   Check compiled paragraph coordinates with Python and `pdfplumber`:
