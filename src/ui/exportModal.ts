@@ -39,7 +39,10 @@ export class ExportModal extends Modal {
     private readonly review: ImageReview,
     private readonly onRefresh: (choice: ExportChoice) => void,
     private readonly catalog: PresetCatalog = CORE_CATALOG,
-    private readonly onTemplates?: () => void,
+    private readonly onTemplates?: (
+      choice: ExportChoice,
+      replace: () => void,
+    ) => void,
     private readonly onDetails?: () => void,
   ) {
     super(app);
@@ -134,8 +137,16 @@ export class ExportModal extends Modal {
     if (this.onTemplates)
       new Setting(this.contentEl).addButton((button) =>
         button.setButtonText("Change layout").onClick(() => {
-          this.close();
-          this.onTemplates!();
+          this.onTemplates!(
+            {
+              ...this.choice,
+              metadata: { ...this.choice.metadata },
+              printOptions: this.choice.printOptions
+                ? { ...this.choice.printOptions }
+                : undefined,
+            },
+            () => this.close(),
+          );
         }),
       );
     if (this.review.document.book) {

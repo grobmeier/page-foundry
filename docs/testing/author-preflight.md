@@ -8,7 +8,7 @@ detail, not certification of accessibility, submission rules or print.
    output and destination summary. Publishing must not change its Markdown.
 2. Open **Examples/Expected errors/Empty note**: every output must be blocked
    despite a title property. No finished file should be saved.
-3. Open **Examples/Expected errors/Broken heading link**. EPUB must be blocked;
+3. Open **Examples/Expected errors/Broken ebook link**. EPUB must be blocked;
    PDF/DOCX explain the plain-text fallback. Missing, remote and SVG images also
    have explicit expected-error examples.
 4. Publish **Examples/Writing/Submission letter** with its matching PDF design.

@@ -9,7 +9,7 @@ export class CheatSheetModal extends Modal {
     for (const [index, [title, text]] of [
       [
         "Create new note",
-        "Choose Letter, Manuscript, Book or one of your templates. More starters holds less-common choices. Create note saves a new editable Markdown file; it does not publish or change the open note. For letters, edit the greeting, sign-off and signature in the writing, and use Edit document details for saved addresses.",
+        "Choose Letter, Submission letter, Manuscript, Book, Plain document or one of your templates. Enter a title; the filename follows until you edit it under File location (optional). Create note saves a new editable Markdown file; it does not publish or change the open note. For letters, edit the greeting, sign-off and signature in the writing, and use Edit document details for saved addresses.",
       ],
       [
         "Publish",

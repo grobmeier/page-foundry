@@ -6,7 +6,7 @@ rendering account is needed.
 
 ## Write a letter
 
-1. Run **Page Foundry: Create new note → Letter**. Choose a filename and fill
+1. Run **Page Foundry: Create new note → Letter**. Enter a title and fill
    sender/recipient names, addresses and date. Subject is optional. Create it.
 2. Edit the greeting, writing, sign-off and signature directly in the note body.
    The signature starts with the sender name entered at creation; later changes

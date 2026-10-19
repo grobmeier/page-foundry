@@ -276,6 +276,23 @@ export function createNoteSource(
   const source = `---\n${stringify({ ...defaults, document: template.kind })}---\n\n${template.body}`;
   return updateNoteDetails(source, template.kind, defaults);
 }
+/** Suggest a portable filename without changing the author's title. */
+export function suggestedNoteFilename(title: string, kind: string): string {
+  let stem = title
+    .replace(/[\\/:*?"<>|%#\u0000-\u001f\u007f]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/\.md$/i, "")
+    .replace(/\.book$/i, "")
+    .replace(/^[. ]+|[. ]+$/g, "")
+    .slice(0, 100)
+    .trim();
+  if (!stem) stem = kind === "book" ? "My Book" : "Untitled";
+  if (/^(con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|$)/i.test(stem))
+    stem = `_${stem}`;
+  return `${stem}${kind === "book" ? ".book" : ""}.md`;
+}
+
 export function newNotePath(folder: string, name: string): string {
   if (!name.trim() || name.trim().includes("/"))
     throw new Error("Enter a filename, without folder separators.");

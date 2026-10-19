@@ -263,7 +263,12 @@ function setup(bookMode = false) {
         onload(): Promise<void>;
         openNewNote(recent?: boolean): Promise<void>;
         openNoteDetails(file: File): Promise<void>;
-        openPublishPicker(file: File, recent?: boolean): Promise<void>;
+        openPublishPicker(
+          file: File,
+          recent?: boolean,
+          previous?: ExportChoice,
+          replace?: () => void,
+        ): Promise<void>;
         openPublish(file: File): Promise<void>;
         openLetterWriting(file: File): Promise<void>;
         openBookDesigns(): Promise<void>;
@@ -688,6 +693,10 @@ describe("review-to-export image workflow", () => {
     assert.equal(typeof create.callback, "function");
     assert.equal(create.checkCallback, undefined);
     await host.plugin.openNewNote();
+    assert.deepEqual(
+      new Set(host.notePickers[0]!.templates.map((t) => t.id)),
+      new Set(["letter", "manuscript", "book", "plain", "submission-letter"]),
+    );
     assert.equal(host.notePickers.length, 1);
     host.notePickers[0]!.choose(
       host.notePickers[0]!.templates.find((t) => t.kind === "letter")!,
@@ -765,6 +774,57 @@ describe("review-to-export image workflow", () => {
     await host.firstReview;
     assert.equal(host.reviews.length, 1);
     assert.equal(host.saves.length, 0);
+  });
+  it("carries transient Publish choices to a freshly reviewed layout without saving settings", async () => {
+    const h = setup();
+    let replaced = false;
+    await h.plugin.openPublishPicker(
+      h.note,
+      false,
+      {
+        ...choice,
+        outputName: "Author proof",
+        destination: "share",
+        language: "de",
+        metadata: {
+          title: "Temporary title",
+          language: "de",
+          "sender-address": "Not applicable",
+        },
+      },
+      () => {
+        replaced = true;
+      },
+    );
+    assert.equal(replaced, false);
+    const picker = h.templateDialogs[0]!;
+    picker.choose(
+      picker.templates.find(
+        (t) => t.format === "docx" && t.preset === "plain-editable",
+      )!,
+    );
+    await h.firstReview;
+    assert.equal(replaced, true);
+    const next = h.exportChoices[0]!;
+    assert.equal(next.outputName, "Author proof");
+    assert.equal(next.destination, "share");
+    assert.equal(next.language, "de");
+    assert.equal(next.metadata!.title, "Temporary title");
+    assert.equal(next.metadata!["sender-address"], undefined);
+    assert.equal(h.stored.length, 0);
+    assert.equal(h.saves.length, 0);
+  });
+  it("rejects a moved note before replacing a Publish review", async () => {
+    const h = setup();
+    let replaced = false;
+    await h.plugin.openPublishPicker(h.note, false, choice, () => {
+      replaced = true;
+    });
+    h.note.path = "Moved.md";
+    h.templateDialogs[0]!.choose(h.templateDialogs[0]!.templates[0]!);
+    assert.equal(replaced, false);
+    assert.equal(h.reviews.length, 0);
+    assert.ok(h.notices.some((message) => message.includes("note moved")));
   });
   it("Publish recognises a book and excludes letter presets without reading chapters yet", async () => {
     const host = setup(true);

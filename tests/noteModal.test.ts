@@ -49,6 +49,7 @@ class Element {
 function setup(
   kind = "letter",
   save: (...args: unknown[]) => Promise<void> = async () => {},
+  editing = true,
 ) {
   const values = {
     title: "Letter",
@@ -106,6 +107,9 @@ function setup(
     addDropdown(fn: (field: unknown) => unknown) {
       return this.control("select", fn);
     }
+    addToggle(fn: (field: unknown) => unknown) {
+      return this.control("input", fn);
+    }
     addButton(fn: (button: unknown) => unknown) {
       const el = this.row.createEl("button");
       const button = {
@@ -148,7 +152,7 @@ function setup(
     { ...values },
     "",
     "Letter.md",
-    true,
+    editing,
     save,
     kind,
   );
@@ -167,6 +171,54 @@ function setup(
   };
   return { modal, field, button };
 }
+it("suggests the filename from a single title, hides location controls and respects a manual override", async () => {
+  const saved: unknown[][] = [];
+  const h = setup(
+    "letter",
+    async (...args) => {
+      saved.push(args);
+    },
+    false,
+  );
+  assert.equal(
+    h.modal.contentEl.all().filter((el) => el.label === "Title").length,
+    1,
+  );
+  const location = h.modal.contentEl
+    .all()
+    .find(
+      (el) =>
+        el.tag === "details" &&
+        el
+          .all()
+          .some((child) => child.textContent === "File location (optional)"),
+    );
+  assert.ok(location);
+  assert.ok(location.all().includes(h.field("Filename")));
+  assert.ok(location.all().includes(h.field("Folder")));
+  h.field("Title").change("A letter: for Jamie?");
+  assert.equal(h.field("Filename").value, "A letter for Jamie.md");
+  h.field("Filename").change("My draft.md");
+  h.field("Title").change("A new title");
+  h.field("Folder").change("Writing");
+  await h.button("Create note").click();
+  assert.equal(saved[0]![0], "Writing/My draft.md");
+  assert.equal((saved[0]![1] as Record<string, string>).title, "A new title");
+});
+it("retains the book-plan filename marker when deriving a book title", async () => {
+  const saved: unknown[][] = [];
+  const h = setup(
+    "book",
+    async (...args) => {
+      saved.push(args);
+    },
+    false,
+  );
+  h.field("Title").change("The Quiet Valley");
+  assert.equal(h.field("Filename").value, "The Quiet Valley.book.md");
+  await h.button("Create note").click();
+  assert.equal(saved[0]![0], "The Quiet Valley.book.md");
+});
 it("switches fields in place, retains entered values and sends only edits on explicit Save", async () => {
   const saved: unknown[][] = [];
   const h = setup("letter", async (...args) => {

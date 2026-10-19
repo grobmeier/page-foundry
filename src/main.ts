@@ -49,9 +49,11 @@ import { reviewVaultBook } from "./vault/books";
 import { DEFAULT_PRINT_OPTIONS } from "./print/model";
 import { CheatSheetModal } from "./ui/cheatSheetModal";
 import { TemplateModal } from "./ui/templateModal";
+import { changeReviewLayout } from "./templates/review";
 import {
   cleanTemplateHistory,
   rankTemplates,
+  type Template,
   rememberTemplate,
   templateLibrary,
 } from "./templates/catalog";
@@ -484,16 +486,6 @@ export default class PageFoundryPlugin extends Plugin {
       else new Notice("No recent note templates yet. Choose one to begin.");
     }
     const choose = (template: (typeof NOTE_TEMPLATES)[number]) => {
-      if (template.id === "more") {
-        new NoteTemplateModal(
-          this.app,
-          templates.filter((t) =>
-            ["plain", "submission-letter"].includes(t.id),
-          ),
-          choose,
-        ).open();
-        return;
-      }
       const title =
         template.defaults.title && !template.defaults.title.includes("{{")
           ? template.defaults.title
@@ -578,27 +570,7 @@ export default class PageFoundryPlugin extends Plugin {
         },
       ).open();
     };
-    const basics = templates.filter(
-      (t) =>
-        ["letter", "manuscript", "book"].includes(t.id) ||
-        custom.some((c) => c.template.id === t.id),
-    );
-    new NoteTemplateModal(
-      this.app,
-      recent
-        ? templates
-        : [
-            ...basics,
-            {
-              id: "more",
-              kind: "more",
-              name: "More starters…",
-              body: "",
-              defaults: {},
-            },
-          ],
-      choose,
-    ).open();
+    new NoteTemplateModal(this.app, templates, choose).open();
   }
 
   private async openSaveTemplate(file: TFile): Promise<void> {
@@ -786,7 +758,13 @@ export default class PageFoundryPlugin extends Plugin {
     );
   }
 
-  private async openPublishPicker(file: TFile, recent = false): Promise<void> {
+  private async openPublishPicker(
+    file: TFile,
+    recent = false,
+    previous?: ExportChoice,
+    replace?: () => void,
+  ): Promise<void> {
+    const path = file.path;
     const source = await this.app.vault.cachedRead(file);
     const book = isBookPlan(source, file.basename);
     const catalog = await loadVaultPacks(
@@ -809,9 +787,18 @@ export default class PageFoundryPlugin extends Plugin {
       this.app,
       templates,
       (template) => {
+        if (
+          file.path !== path ||
+          this.app.vault.getAbstractFileByPath(path) !== file
+        ) {
+          new Notice(
+            "The note moved or is no longer available. Reopen Publish from the note.",
+          );
+          return;
+        }
         void this.openExport(
           file,
-          {
+          previous ?? {
             format: template.format,
             preset: template.preset,
             profile: template.profile,
@@ -823,6 +810,8 @@ export default class PageFoundryPlugin extends Plugin {
             destination: "vault",
           },
           book,
+          previous ? template : undefined,
+          replace,
         ).catch(
           (error) =>
             new Notice(
@@ -888,7 +877,10 @@ export default class PageFoundryPlugin extends Plugin {
     file: TFile,
     previousChoice?: ExportChoice,
     book = false,
+    selectedLayout?: Template,
+    replace?: () => void,
   ): Promise<void> {
+    const path = file.path;
     const format = this.settings.lastFormat;
     const preset: PresetId =
       format === "pdf"
@@ -896,7 +888,12 @@ export default class PageFoundryPlugin extends Plugin {
         : format === "docx"
           ? this.settings.lastDocxPreset
           : this.settings.lastEpubPreset;
-    const markdown = book ? "" : await this.app.vault.cachedRead(file);
+    const source = await this.app.vault.cachedRead(file);
+    if (isBookPlan(source, file.basename) !== book)
+      throw new Error(
+        "The document type changed. Reopen Publish from the note.",
+      );
+    const markdown = book ? "" : source;
     const review = book
       ? await reviewVaultBook(this.app, file)
       : await reviewVaultImages(
@@ -920,9 +917,23 @@ export default class PageFoundryPlugin extends Plugin {
         this.settings.defaultLanguage,
       destination: "vault",
     };
+    if (selectedLayout && previousChoice)
+      previousChoice = changeReviewLayout(
+        previousChoice,
+        selectedLayout,
+        document,
+        catalog,
+      );
     if (previousChoice)
       choosePreset(catalog, previousChoice.preset, previousChoice.format);
-    new ExportModal(
+    if (
+      file.path !== path ||
+      this.app.vault.getAbstractFileByPath(path) !== file
+    )
+      throw new Error(
+        "The note moved or is no longer available. Reopen Publish from the note.",
+      );
+    const modal = new ExportModal(
       this.app,
       previousChoice ?? initial,
       (choice) =>
@@ -934,8 +945,8 @@ export default class PageFoundryPlugin extends Plugin {
         );
       },
       catalog,
-      () => {
-        void this.openPublishPicker(file).catch(
+      (choice, replaceReview) => {
+        void this.openPublishPicker(file, false, choice, replaceReview).catch(
           (error) =>
             new Notice(
               error instanceof Error
@@ -954,7 +965,9 @@ export default class PageFoundryPlugin extends Plugin {
             ),
         );
       },
-    ).open();
+    );
+    replace?.();
+    modal.open();
   }
 
   private async publish(

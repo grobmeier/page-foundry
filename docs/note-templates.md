@@ -6,10 +6,14 @@ not Markdown itself. Your source files remain ordinary Obsidian Markdown notes.
 ## Create and edit a document
 
 Run **Page Foundry: Create new note**, choose a note template and enter its
-filename, folder and details. **Create note** saves a new Markdown file and
-opens it. It does not publish, copy the active note or overwrite an existing
-file. Incomplete publication fields are allowed in drafts. Missing folders are
-only created if you explicitly enable **Create missing folders**.
+title and details. All five built-in starters and your registered templates are
+available directly, with frequently used choices first. The filename follows the
+title until you edit it. **File location (optional)** contains the filename,
+folder and deliberate missing-folder creation switch; an empty folder means the
+vault's top level. **Create note** saves a new Markdown file and opens it. It
+does not publish, copy the active note or overwrite an existing file. Incomplete
+publication fields are allowed in drafts. Missing folders are only created if
+you explicitly enable **Create missing folders**.
 
 Use **Edit document details** to save properties later. New letters have
 separate sender/recipient names and multiline addresses, date and optional
@@ -31,6 +35,13 @@ recent** remembers note templates separately. Histories contain only
 template/layout keys and usage, not addresses, manuscript text or filenames.
 Per-note preferences use bounded opaque path hashes and layout keys, not source
 paths, addresses or writing.
+
+Cancelling the layout picker returns to the same Publish review. Choosing a
+layout keeps your temporary filename, destination, language and details supported
+by that design. New fields start from the note; incompatible fields are dropped.
+The chosen design supplies its own page and print defaults. Nothing is saved in
+the note or settings until you explicitly publish. Note, resource and design
+changes are reviewed again before an output can be created.
 
 ## Readable book plans
 

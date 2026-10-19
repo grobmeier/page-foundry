@@ -31,6 +31,7 @@ function setup(
   const published: ExportChoice[] = [];
   let refreshes = 0;
   const notices: string[] = [];
+  const layoutRequests: { choice: ExportChoice; replace: () => void }[] = [];
   class Modal {
     closed = false;
     contentEl = {
@@ -183,6 +184,9 @@ function setup(
     (choice: ExportChoice) => published.push(choice),
     review,
     () => refreshes++,
+    undefined,
+    (choice: ExportChoice, replace: () => void) =>
+      layoutRequests.push({ choice, replace }),
   );
   modal.onOpen();
   function button(label: string) {
@@ -198,10 +202,23 @@ function setup(
     button,
     refreshes: () => refreshes,
     notices,
+    layoutRequests,
   };
 }
 
 describe("image review dialog", () => {
+  it("keeps the review alive while choosing a layout and supplies a detached choice", () => {
+    const h = setup();
+    h.controls.get("File name")!("My proof");
+    h.button("Change layout").click();
+    assert.equal(h.modal.closed, false);
+    assert.equal(h.layoutRequests[0]!.choice.outputName, "My proof");
+    h.layoutRequests[0]!.choice.metadata!.title = "Not the original";
+    h.button("Create PDF").click();
+    assert.notEqual(h.published[0]!.metadata!.title, "Not the original");
+    h.layoutRequests[0]!.replace();
+    assert.equal(h.modal.closed, true);
+  });
   it("offers print controls only for the book PDF recipe and keeps options export-only", () => {
     const host = setup([], "A neutral chapter.", undefined, true);
     host.controls.get("Layout")!("paperback-interior");

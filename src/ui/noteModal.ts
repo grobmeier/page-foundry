@@ -1,10 +1,18 @@
 /* Copyright 2026 Christian Grobmeier. Licensed under Apache-2.0. */
-import { App, Modal, Notice, Setting, SuggestModal } from "obsidian";
+import {
+  App,
+  Modal,
+  Notice,
+  Setting,
+  SuggestModal,
+  type TextComponent,
+} from "obsidian";
 import {
   newNotePath,
   noteFields,
   advancedNoteFields,
   DOCUMENT_TYPES,
+  suggestedNoteFilename,
   type NoteTemplate,
 } from "../notes/model";
 import { disclosure } from "./disclosure";
@@ -74,13 +82,32 @@ export class NoteModal extends Modal {
       }
     };
     if (!this.editing) {
-      new Setting(this.contentEl).setName("Filename").addText((t) =>
-        t.setValue(this.filename).onChange((v) => {
-          this.filename = v;
+      let manualFilename = false;
+      let filenameControl: TextComponent | undefined;
+      this.filename = suggestedNoteFilename(this.values.title ?? "", this.kind);
+      new Setting(this.contentEl).setName("Title").addText((t) =>
+        t.setValue(this.values.title ?? "").onChange((v) => {
+          this.values.title = v;
+          if (!manualFilename) {
+            this.filename = suggestedNoteFilename(v, this.kind);
+            filenameControl?.setValue(this.filename);
+          }
           updatePath();
         }),
       );
-      new Setting(this.contentEl)
+      const location = disclosure(this.contentEl, "File location (optional)");
+      new Setting(location)
+        .setName("Filename")
+        .setDesc("Suggested from the title until you edit it here.")
+        .addText((t) => {
+          filenameControl = t;
+          t.setValue(this.filename).onChange((v) => {
+            manualFilename = true;
+            this.filename = v;
+            updatePath();
+          });
+        });
+      new Setting(location)
         .setName("Folder")
         .setDesc(
           "Inside your vault. Empty means the top level; this is separate from the output folder.",
@@ -91,13 +118,11 @@ export class NoteModal extends Modal {
             updatePath();
           }),
         );
-      new Setting(this.contentEl)
-        .setName("Create missing folders")
-        .addToggle((t) =>
-          t.setValue(false).onChange((v) => {
-            createFolders = v;
-          }),
-        );
+      new Setting(location).setName("Create missing folders").addToggle((t) =>
+        t.setValue(false).onChange((v) => {
+          createFolders = v;
+        }),
+      );
     }
     if (this.editing) {
       new Setting(this.contentEl)
@@ -133,6 +158,7 @@ export class NoteModal extends Modal {
         return;
       }
       for (const field of [...noteFields(this.kind), ...advanced]) {
+        if (!this.editing && field.key === "title") continue;
         const setting = new Setting(
           advanced.includes(field)
             ? (more ??= disclosure(fields, "More details"))
