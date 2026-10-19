@@ -1,6 +1,6 @@
 {
   "name": "page-foundry",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Portable author publishing from Obsidian notes.",
   "type": "module",
   "main": "main.js",
