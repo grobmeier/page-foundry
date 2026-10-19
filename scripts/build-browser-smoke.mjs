@@ -6,6 +6,7 @@
 import esbuild from "esbuild";
 import { cp, mkdir } from "node:fs/promises";
 import { compressedBinaryPlugin } from "./compressed-binary-plugin.mjs";
+import { modernZipRuntime } from "./modern-zip-runtime.mjs";
 
 await mkdir(".test-browser", { recursive: true });
 await cp("tests/browser-smoke.html", ".test-browser/index.html");
@@ -15,6 +16,6 @@ await esbuild.build({
   format: "iife",
   outfile: ".test-browser/bundle.js",
   platform: "browser",
-  plugins: [compressedBinaryPlugin],
+  plugins: [compressedBinaryPlugin, modernZipRuntime],
   target: "safari16.4",
 });

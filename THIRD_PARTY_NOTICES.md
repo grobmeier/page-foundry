@@ -16,15 +16,21 @@ Page Foundry bundles the following components into its generated plugin file:
 - **mdast-util-gfm-table** and **micromark-extension-gfm-table** — MIT License.
 - **docx** — MIT License. Page Foundry uses its browser packer to create
   editable Office Open XML documents locally.
+- **JSZip** — MIT License (the MIT option of its dual licence). The build uses
+  the same pinned modular version instead of docx's embedded minified copy. Page
+  Foundry supplies a timer-backed function-only scheduler and native Promise
+  support; obsolete script-element and string-code fallbacks and the unused
+  Node-stream interface are omitted. See
+  [ZIP runtime adaptation](docs/architecture/zip-runtime.md).
 - **yaml** — ISC License.
 
 The exact versions are recorded in `package-lock.json`. Release preparation must
 preserve the applicable licence texts and review this inventory after every
 dependency change.
 
-Beta packaging collects the installed non-development dependency licence texts
-and bundled-font licence into `THIRD_PARTY_LICENSES.txt`, also retained as a
-comment in the distributed plugin so BRAT installations receive them. This
+Release packaging collects the installed non-development dependency licence
+texts and bundled-font licence into `THIRD_PARTY_LICENSES.txt`, also retained as
+a comment in the distributed plugin so BRAT installations receive them. This
 inventory includes transitive dependency notices; it is not a replacement for
 reviewing newly bundled components. The Libertinus licence source is pinned in
 `licenses/Libertinus-OFL.txt`. The DejaVu font licence is retained in

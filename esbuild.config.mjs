@@ -18,6 +18,7 @@ import esbuild from "esbuild";
 import { builtinModules } from "node:module";
 import process from "node:process";
 import { compressedBinaryPlugin } from "./scripts/compressed-binary-plugin.mjs";
+import { modernZipRuntime } from "./scripts/modern-zip-runtime.mjs";
 
 const production = process.argv[2] === "production";
 
@@ -52,7 +53,7 @@ const context = await esbuild.context({
   logLevel: "info",
   minify: production,
   outfile: "main.js",
-  plugins: [compressedBinaryPlugin],
+  plugins: [compressedBinaryPlugin, modernZipRuntime],
   sourcemap: production ? false : "inline",
   treeShaking: true,
 });
