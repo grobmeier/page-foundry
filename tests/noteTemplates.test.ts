@@ -9,10 +9,11 @@ import {
   privateTemplateSource,
 } from "../src/notes/templates";
 import { createNoteSource, noteProperties } from "../src/notes/model";
-import {
-  loadNoteTemplates,
-  confirmNoteTemplate,
-} from "../src/vault/noteTemplates";
+import type * as NoteTemplatesModule from "../src/vault/noteTemplates";
+import { vaultModule, TestVaultFile } from "./helpers/vaultModule";
+const { loadNoteTemplates, confirmNoteTemplate } = vaultModule<
+  typeof NoteTemplatesModule
+>("src/vault/noteTemplates.ts");
 const raw =
   "---\ndocument: manuscript\ntitle: '{{title}}'\nauthor: '{{author}}'\nlanguage: '{{language}}'\ncustom: 42\n---\n# {{title}}\n\nBy {{author}} on {{date}}.\n";
 it("expands bounded Markdown templates as text, with safely serialised properties", () => {
@@ -62,12 +63,12 @@ it("clears personal properties only after an explicit choice, leaving the body v
   assert.ok(privateTemplateSource(source, false).includes("Secret street"));
 });
 it("loads only exact registered template files and rejects missing, changed or oversized templates", async () => {
-  const file = {
+  const file = Object.assign(new TestVaultFile(), {
     path: "Private/Neutral.md",
     basename: "Neutral",
     extension: "md",
     stat: { size: raw.length },
-  } as TFile;
+  }) as TFile;
   let source = raw;
   const lookups: string[] = [],
     reads: string[] = [];

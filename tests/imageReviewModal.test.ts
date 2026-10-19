@@ -35,6 +35,7 @@ function setup(
   class Modal {
     closed = false;
     contentEl = {
+      ownerDocument: { defaultView: { navigator: { clipboard } } },
       empty() {
         text.length = 0;
         buttons.length = 0;

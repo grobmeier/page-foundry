@@ -13,10 +13,18 @@ const code = buildSync({
   bundle: true,
   write: false,
   format: "cjs",
+  supported: { "dynamic-import": false },
   external: ["obsidian", "electron"],
 }).outputFiles[0]!.text;
 
 class Element {
+  ownerDocument = {
+    defaultView: {
+      navigator: {} as {
+        clipboard?: { writeText(value: string): Promise<void> };
+      },
+    },
+  };
   children: Element[] = [];
   text = "";
   disabled = false;
@@ -80,7 +88,9 @@ function setup(
     contentEl = new Element();
     modalEl = new Element();
     closed = false;
-    constructor(public app: unknown) {}
+    constructor(public app: unknown) {
+      this.contentEl.ownerDocument.defaultView.navigator.clipboard = clipboard;
+    }
     close() {
       this.closed = true;
     }
@@ -231,7 +241,7 @@ describe("export result", () => {
         false,
       );
       await button(modal, "Open in default app").click();
-      button(modal, "Show in folder").click();
+      await button(modal, "Show in folder").click();
       assert.deepEqual(host.opened, ["/test-vault/Page Foundry/Draft.epub"]);
       assert.deepEqual(host.revealed, host.opened);
       assert.deepEqual(host.notices, []);
@@ -282,7 +292,7 @@ describe("export result", () => {
       "Page Foundry/Draft 2.epub",
     );
     await button(modal, "Open in default app").click();
-    button(modal, "Show in folder").click();
+    await button(modal, "Show in folder").click();
     assert.deepEqual(host.opened, ["/test-vault/Page Foundry/Draft 2.epub"]);
     assert.deepEqual(host.revealed, host.opened);
   });

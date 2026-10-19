@@ -7,7 +7,7 @@ import { FileSystemAdapter, Platform, type App } from "obsidian";
 
 export interface SavedFileActions {
   open(): Promise<void>;
-  reveal(): void;
+  reveal(): Promise<void>;
 }
 
 interface DesktopShell {
@@ -25,25 +25,25 @@ export function savedFileActions(
   ) {
     return undefined;
   }
-  try {
+  const fullPath = app.vault.adapter.getFullPath(vaultPath);
+  async function desktopShell(): Promise<DesktopShell> {
     // Electron is loaded only on desktop and only for a completed saved file.
-    const host = require("electron") as {
+    const host: {
       shell?: DesktopShell;
       remote?: { shell?: DesktopShell };
-    };
+    } = await import("electron");
     const shell = host.shell ?? host.remote?.shell;
-    if (!shell?.openPath || !shell.showItemInFolder) return undefined;
-    const fullPath = app.vault.adapter.getFullPath(vaultPath);
-    return {
-      async open() {
-        const error = await shell.openPath(fullPath);
-        if (error) throw new Error(`Could not open the file: ${error}`);
-      },
-      reveal() {
-        shell.showItemInFolder(fullPath);
-      },
-    };
-  } catch {
-    return undefined;
+    if (!shell?.openPath || !shell.showItemInFolder)
+      throw new Error("This desktop host cannot open or reveal saved files.");
+    return shell;
   }
+  return {
+    async open() {
+      const error = await (await desktopShell()).openPath(fullPath);
+      if (error) throw new Error(`Could not open the file: ${error}`);
+    },
+    async reveal() {
+      (await desktopShell()).showItemInFolder(fullPath);
+    },
+  };
 }

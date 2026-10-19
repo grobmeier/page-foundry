@@ -321,14 +321,14 @@ export class ExportModal extends Modal {
       text: reportText(this.report()),
       cls: "page-foundry-preflight",
     });
-    if (typeof globalThis.navigator?.clipboard?.writeText === "function")
+    const clipboard =
+      this.contentEl.ownerDocument.defaultView?.navigator.clipboard;
+    if (typeof clipboard?.writeText === "function")
       new Setting(details).addButton((button) =>
         button.setButtonText("Copy preflight report").onClick(async () => {
           button.setDisabled(true);
           try {
-            await globalThis.navigator.clipboard.writeText(
-              reportText(this.report()),
-            );
+            await clipboard.writeText(reportText(this.report()));
             new Notice(
               "Preflight report copied. Share it only with people you choose.",
             );

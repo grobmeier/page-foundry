@@ -288,7 +288,7 @@ function validateLanguage(value: string): string {
 }
 
 function createIdentifier(): string {
-  const uuid = globalThis.crypto?.randomUUID?.();
+  const uuid = crypto.randomUUID();
   if (!uuid) throw new Error("This device cannot generate an EPUB identifier.");
   return `urn:uuid:${uuid}`;
 }

@@ -64,7 +64,7 @@ export class TemplateModal extends SuggestModal<Template> {
         ];
   }
   renderSuggestion(template: Template, el: HTMLElement): void {
-    el.createEl("div", { text: template.name });
+    el.createDiv({ text: template.name });
   }
   onChooseSuggestion(template: Template): void {
     if (template.key === "more") {

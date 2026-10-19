@@ -5,11 +5,11 @@ import type { TFile, Vault } from "obsidian";
 import { CORE_PACK } from "../src/packs/core";
 import { editablePreset, updatedPack } from "../src/packs/editor";
 import { parsePack } from "../src/packs/model";
-import {
-  editablePackPath,
-  readEditablePack,
-  saveEditablePack,
-} from "../src/vault/presetEditor";
+import type * as PresetEditorModule from "../src/vault/presetEditor";
+import { vaultModule, TestVaultFile } from "./helpers/vaultModule";
+const { readEditablePack, saveEditablePack, editablePackPath } = vaultModule<
+  typeof PresetEditorModule
+>("src/vault/presetEditor.ts");
 it("creates validated local presets and applies only format-compatible overrides", () => {
   const base = CORE_PACK.presets.find((p) => p.id === "readable-plain")!;
   const before = structuredClone(base);
@@ -48,11 +48,11 @@ it("guards output pack saves against existing, stale, moved and incompatible fil
     name: "Neutral",
   });
   let source = updatedPack(undefined, preset);
-  const file = {
+  const file = Object.assign(new TestVaultFile(), {
     path: "Neutral.json",
     extension: "json",
     stat: { size: source.length },
-  } as TFile;
+  }) as TFile;
   const files = new Map<string, TFile>([[file.path, file]]);
   let writes = 0;
   const vault = {

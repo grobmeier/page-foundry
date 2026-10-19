@@ -1,7 +1,7 @@
 /* Copyright 2026 Christian Grobmeier. Licensed under Apache-2.0. */
 import { App, Modal, Notice, Setting } from "obsidian";
 import { CORE_PACK } from "../packs/core";
-import type { PackPreset, PresetPack } from "../packs/model";
+import type { PresetPack } from "../packs/model";
 import { editablePreset, updatedPack, type PresetEdits } from "../packs/editor";
 export class PresetEditorModal extends Modal {
   private target = "new";

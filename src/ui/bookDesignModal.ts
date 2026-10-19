@@ -2,11 +2,7 @@
 import { App, Modal, Notice, Setting } from "obsidian";
 import type { PackPreset, PresetPack } from "../packs/model";
 import { updatedPack } from "../packs/editor";
-import {
-  parseBookDesign,
-  BOOK_DESIGN_RANGES,
-  type BookDesign,
-} from "../books/design";
+import { parseBookDesign, BOOK_DESIGN_RANGES } from "../books/design";
 import {
   bookDesignCopyPath,
   editBookDesign,

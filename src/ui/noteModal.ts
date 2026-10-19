@@ -31,7 +31,7 @@ export class NoteTemplateModal extends SuggestModal<NoteTemplate> {
     );
   }
   renderSuggestion(template: NoteTemplate, el: HTMLElement): void {
-    el.createEl("div", { text: template.name });
+    el.createDiv({ text: template.name });
   }
   onChooseSuggestion(template: NoteTemplate): void {
     this.choose(template);

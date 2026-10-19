@@ -1,5 +1,5 @@
 /* Copyright 2026 Christian Grobmeier. Licensed under Apache-2.0. */
-import type { TFile, Vault } from "obsidian";
+import { TFile, type Vault } from "obsidian";
 import {
   configuredTemplates,
   parseNoteTemplate,
@@ -19,11 +19,11 @@ export async function loadNoteTemplates(
   const result: LoadedNoteTemplate[] = [];
   for (const path of configuredTemplates(paths)) {
     const file = vault.getAbstractFileByPath(path);
-    if (!file || !("extension" in file) || file.extension !== "md")
+    if (!(file instanceof TFile) || file.extension !== "md")
       throw new Error(
         `Note template not found: ${path}. Update its exact path in settings.`,
       );
-    const note = file as TFile;
+    const note = file;
     if (note.stat.size > TEMPLATE_MAX_BYTES)
       throw new Error(`Note template ${path} exceeds 128 KiB.`);
     const source = await vault.read(note);

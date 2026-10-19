@@ -47,19 +47,19 @@ export class ResultModal extends Modal {
       cls: "page-foundry-result-actions",
     });
     if (this.output.proofReport) {
+      const clipboard =
+        this.contentEl.ownerDocument.defaultView?.navigator.clipboard;
       const proof = disclosure(this.contentEl, "Print proof details");
       proof.createEl("pre", {
         text: this.output.proofReport,
         cls: "page-foundry-preflight",
       });
-      if (typeof globalThis.navigator?.clipboard?.writeText === "function")
+      if (typeof clipboard?.writeText === "function")
         new ButtonComponent(proof)
           .setButtonText("Copy print proof report")
           .onClick(async () => {
             try {
-              await globalThis.navigator.clipboard.writeText(
-                this.output.proofReport!,
-              );
+              await clipboard.writeText(this.output.proofReport!);
               new Notice("Print proof report copied.");
             } catch {
               new Notice(
@@ -126,9 +126,9 @@ export class ResultModal extends Modal {
         });
       new ButtonComponent(actions)
         .setButtonText("Show in folder")
-        .onClick(() => {
+        .onClick(async () => {
           try {
-            hostActions.reveal();
+            await hostActions.reveal();
           } catch (error) {
             new Notice(readableError(error, label));
           }

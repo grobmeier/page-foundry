@@ -1,7 +1,8 @@
 /* Copyright 2026 Christian Grobmeier. Licensed under Apache-2.0. */
-import type { TFile, Vault } from "obsidian";
+import { TFile, type Vault } from "obsidian";
 import { parsePack, PACK_MAX_BYTES, type PresetPack } from "../packs/model";
 import { saveNoteDetails } from "./notes";
+import { hasControlCharacters } from "../core/validation";
 export interface PackSnapshot {
   file: TFile;
   path: string;
@@ -14,7 +15,8 @@ export function editablePackPath(value: string): string {
     !path ||
     path.length > 1000 ||
     !path.endsWith(".json") ||
-    /[\\:%?#\u0000-\u001f]/.test(path) ||
+    /[\\:%?#]/.test(path) ||
+    hasControlCharacters(path) ||
     path.split("/").some((p) => !p || p === "." || p === "..")
   )
     throw new Error(
@@ -28,11 +30,11 @@ export async function readEditablePack(
 ): Promise<PackSnapshot> {
   editablePackPath(path);
   const file = vault.getAbstractFileByPath(path);
-  if (!file || !("extension" in file) || file.extension !== "json")
+  if (!(file instanceof TFile) || file.extension !== "json")
     throw new Error(
       "The configured output preset pack was not found. Repair its path or clear it before creating a new pack.",
     );
-  const note = file as TFile;
+  const note = file;
   if (note.stat.size > PACK_MAX_BYTES)
     throw new Error("This output pack exceeds 128 KiB.");
   const source = await vault.read(note),
