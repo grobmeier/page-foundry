@@ -252,6 +252,15 @@ workflow and the option checklist. It covers all five starters, PDF/EPUB/DOCX,
 supported paperback variants, local designs, formatting, destinations and
 expected errors.
 
+After an external fixture update, save pending edits and **fully reload
+Obsidian**, not just the plugin. Then reopen Start here and follow its example
+links. A stale vault index can report Cannot open even when a note exists.
+`npm run test-vault:guide` explicitly refreshes an unchanged generated guide
+from beta.6/beta.7. It refuses edited/unknown guides and first verifies a
+private backup outside the checkout. Other notes, designs, BRAT and settings
+stay unchanged. The guide follows development main; the installed BRAT beta may
+be older until another beta is published.
+
 For an explicitly requested fresh test workspace only,
 `npm run test-vault:fresh` moves old test content into a private timestamped
 recovery directory alongside the checkout, verifies checksums, and installs the

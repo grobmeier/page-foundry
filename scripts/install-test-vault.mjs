@@ -27,5 +27,5 @@ for (const [path, value] of await authorTestExamples()) {
   await writeMissing(destination, value);
 }
 console.log(
-  "Neutral examples added without replacing notes, BRAT, plugin files or settings. Open Start here.md.",
+  "Neutral examples added without replacing notes, BRAT, plugin files or settings. Save pending edits and fully reload Obsidian (not just the plugin), then open Start here.md and check its links. Use test-vault:guide to explicitly refresh an unchanged generated guide.",
 );

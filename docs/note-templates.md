@@ -37,11 +37,11 @@ Per-note preferences use bounded opaque path hashes and layout keys, not source
 paths, addresses or writing.
 
 Cancelling the layout picker returns to the same Publish review. Choosing a
-layout keeps your temporary filename, destination, language and details supported
-by that design. New fields start from the note; incompatible fields are dropped.
-The chosen design supplies its own page and print defaults. Nothing is saved in
-the note or settings until you explicitly publish. Note, resource and design
-changes are reviewed again before an output can be created.
+layout keeps your temporary filename, destination, language and details
+supported by that design. New fields start from the note; incompatible fields
+are dropped. The chosen design supplies its own page and print defaults. Nothing
+is saved in the note or settings until you explicitly publish. Note, resource
+and design changes are reviewed again before an output can be created.
 
 ## Readable book plans
 

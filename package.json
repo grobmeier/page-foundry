@@ -15,6 +15,7 @@
     "test:markdown-pdf": "node scripts/check-markdown-pdf.mjs",
     "verify": "npm run format:check && npm test && npm run build",
     "test-vault": "node --import tsx scripts/install-test-vault.mjs",
+    "test-vault:guide": "node --import tsx scripts/refresh-test-guide.ts --refresh-generated-guide",
     "test-vault:fresh": "node --import tsx scripts/prepare-author-test-vault.ts --reset-selected-test-vault",
     "test-outputs": "node --import tsx scripts/generate-test-outputs.ts"
   },

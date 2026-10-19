@@ -7,9 +7,12 @@ not copy private designs or personal writing into development fixtures.
 
 ## Short first-release check
 
-1. **Create new note → Letter**. Use a new filename and invented names with
-   two-line addresses. Expect a new Markdown note, no PDF and no change to the
-   previously open note. Cancel another creation and test a filename collision.
+1. **Create new note**. Expect all five built-in starters directly. Choose
+   Letter. Enter a title: expect a matching filename. Expand **File location
+   (optional)**, edit the filename, then change the title: your filename must
+   remain. Use invented names with two-line addresses. Expect a new Markdown
+   note, no PDF and no change to the previously open note. Cancel another
+   creation and test a filename collision.
 2. **Edit document details**. Check readable addresses. Switch Document type to
    Manuscript, enter a header surname, then switch back: your address must still
    be present. Cancel: the source must be identical.
@@ -36,6 +39,18 @@ not copy private designs or personal writing into development fixtures.
    note, Create recent, Edit document details, Save as note template, Manage
    designs and Cheat Sheet. No migration commands or duplicate Publish aliases.
    Repeat the details → type → Save → Publish path using the keyboard.
+9. In Publish, change the file name, destination, language and title in
+   export-only details. Open **Change layout**, then Escape: expect the same
+   review and choices. Repeat via **More layouts**, then choose another design.
+   Supported details must carry over; new fields come from the source note,
+   incompatible fields are dropped, and page/print defaults follow the design.
+   Nothing is saved merely by choosing. Change a source/resource/design before
+   Create: it must be reviewed again. Move the source while the picker is open:
+   the stale selection must be refused.
+
+After external example maintenance, save pending edits and fully reload Obsidian
+before checking every Start here link. A plugin-only reload is insufficient.
+Guide refresh is separate from the BRAT update; test against the intended build.
 
 The existing Start here route adds formatting, paperback, offline, file-location
 and private-template checks. Physical iPad/iPhone/Android rendering, memory and

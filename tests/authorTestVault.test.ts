@@ -63,6 +63,13 @@ it("provides all note types, book roles, valid packs and local image targets wit
   for (const name of ["Example output styles", "Example book design"])
     assert.ok(parsePack(String(files.get(`Examples/Customise/${name}.json`))));
   const guide = String(files.get("Start here.md"));
+  for (const match of guide.matchAll(/\[\[([^\]]+)\]\]/g))
+    assert.ok(files.has(`${match[1]}.md`), `Guide link target: ${match[1]}`);
+  assert.match(guide, /fully reload Obsidian/);
+  assert.match(guide, /File location \(optional\)/);
+  const checklist = await readFile("docs/testing/author-preflight.md", "utf8");
+  assert.ok(files.has("Examples/Expected errors/Broken ebook link.md"));
+  assert.match(checklist, /Expected errors\/Broken ebook link/);
   for (const term of [
     "5 × 8",
     "5.5 × 8.5",
