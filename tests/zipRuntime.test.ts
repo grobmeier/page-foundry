@@ -87,7 +87,7 @@ it("bundles and repeatedly exports DOCX without legacy script schedulers or DOM/
   });
   const code = result.outputFiles[0]!.text;
   const forbidden =
-    /createElement\(["']script["']\)|onreadystatechange|new Function/.exec(
+    /createElement\(["']script["']\)|onreadystatechange|\bFunction\s*\(|\b(?:atob|btoa)\s*\(/.exec(
       code,
     );
   assert.equal(

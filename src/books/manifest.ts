@@ -13,7 +13,10 @@ export interface BookManifest {
   entries: BookEntry[];
 }
 function isBookRole(value: unknown): value is BookEntry["role"] {
-  return typeof value === "string" && ["front-matter", "part", "chapter", "scene", "back-matter"].includes(value);
+  return (
+    typeof value === "string" &&
+    ["front-matter", "part", "chapter", "scene", "back-matter"].includes(value)
+  );
 }
 export const MAX_BOOK_BYTES = 20 * 1024 * 1024;
 export function isBookPlan(markdown: string, basename = ""): boolean {
@@ -110,10 +113,7 @@ export function parseBookManifest(
     )
       throw new Error("Entry IDs must be unique lowercase hyphenated names.");
     ids.add(id);
-    if (
-      !isBookRole(role)
-    )
-      throw new Error(`Invalid role for ${id}.`);
+    if (!isBookRole(role)) throw new Error(`Invalid role for ${id}.`);
     if (
       title !== undefined &&
       (typeof title !== "string" || !title.trim() || title.length > 2000)
@@ -137,7 +137,12 @@ export function parseBookManifest(
       paths.add(path);
     } else if (role !== "part" || !title)
       throw new Error(`Entry ${id} needs a note path.`);
-    return { id, role, ...(typeof path === "string" ? { path } : {}), ...(typeof title === "string" ? { title } : {}) };
+    return {
+      id,
+      role,
+      ...(typeof path === "string" ? { path } : {}),
+      ...(typeof title === "string" ? { title } : {}),
+    };
   });
   return { metadata, entries };
 }

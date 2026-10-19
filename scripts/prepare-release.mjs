@@ -1,8 +1,9 @@
 /* Copyright 2026 Christian Grobmeier. Licensed under Apache-2.0. */
-import { readFile, readdir, mkdir, writeFile } from "node:fs/promises";
+import { readFile, mkdir, writeFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { thirdPartyLicences, licenceFooter } from "./third-party-licences.mjs";
 
 export function releaseVersion(value, base) {
   if (
@@ -31,44 +32,14 @@ export async function prepareRelease(root, version) {
     throw new Error("Plugin, package and lockfile versions must match.");
   releaseVersion(version, manifest.version);
 
-  // Installed public dependency files only; never inspect any vault/template directory.
-  const licences = [
-    await readFile(resolve(root, "licenses/Libertinus-OFL.txt"), "utf8"),
-    await readFile(resolve(root, "licenses/DejaVu-LICENSE.txt"), "utf8"),
-  ];
-  for (const [path, dependency] of Object.entries(lock.packages).sort()) {
-    if (!path || dependency.dev) continue;
-    if (
-      !/^node_modules\/(?:@[a-z0-9_.-]+\/)?[a-z0-9_.-]+(?:\/node_modules\/(?:@[a-z0-9_.-]+\/)?[a-z0-9_.-]+)*$/.test(
-        path,
-      )
-    )
-      throw new Error(`Unexpected dependency path: ${path}`);
-    const directory = resolve(root, path);
-    const names = await readdir(directory);
-    let selected = names.filter((name) =>
-      /^(license|copying|notice)(\.|$)/i.test(name),
-    );
-    if (!selected.length)
-      selected = names.filter((name) => /^readme(?:\.md)?$/i.test(name));
-    if (!selected.length) throw new Error(`No licence source for ${path}.`);
-    licences.push(`\n## ${path} ${dependency.version}\n`);
-    for (const name of selected)
-      licences.push(await readFile(resolve(directory, name), "utf8"));
-    if (path === "node_modules/@myriaddreamin/typst-ts-web-compiler")
-      licences.push(
-        await readFile(
-          resolve(root, "node_modules/@myriaddreamin/typst.ts/LICENSE"),
-          "utf8",
-        ),
-      );
-  }
-  const licenceText = licences.join("\n\n");
+  const licenceText = await thirdPartyLicences(root);
   const bundle = await readFile(resolve(root, "main.js"), "utf8");
   if (!bundle.trim() || bundle.includes("sourceMappingURL="))
     throw new Error("Build a production plugin without source maps first.");
+  if (!bundle.endsWith(`${licenceFooter(licenceText)}\n`))
+    throw new Error("Rebuild: production licence footer is missing or stale.");
   const assets = new Map([
-    ["main.js", `${bundle}\n/*!\n${licenceText.replaceAll("*/", "* /")}\n*/\n`],
+    ["main.js", bundle],
     ["manifest.json", `${JSON.stringify({ ...manifest, version }, null, 2)}\n`],
     ["styles.css", await readFile(resolve(root, "styles.css"), "utf8")],
     ["THIRD_PARTY_LICENSES.txt", licenceText],

@@ -13,6 +13,10 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createHash } from "node:crypto";
+import {
+  thirdPartyLicences,
+  licenceFooter,
+} from "../scripts/third-party-licences.mjs";
 
 it("accepts a matching stable version or numbered beta and rejects unsafe release names", () => {
   assert.equal(releaseVersion("0.1.0", "0.1.0"), "0.1.0");
@@ -57,6 +61,8 @@ it("stages only explicit stable/beta assets, retains the root manifest and refus
     };
     for (const [path, bytes] of Object.entries(fixtures))
       await writeFile(join(root, path), bytes);
+    const built = `${fixtures["main.js"]}\n${licenceFooter(await thirdPartyLicences(root))}\n`;
+    await writeFile(join(root, "main.js"), built);
     const destination = await prepareRelease(root, "0.1.0-beta.1");
     assert.deepEqual(
       (await readdir(destination)).sort(),
@@ -84,6 +90,7 @@ it("stages only explicit stable/beta assets, retains the root manifest and refus
       await readFile(join(destination, "main.js"), "utf8"),
       /Fixture font licence/,
     );
+    assert.equal(await readFile(join(destination, "main.js"), "utf8"), built);
     for (const line of (await readFile(join(destination, "SHA256SUMS"), "utf8"))
       .trim()
       .split("\n")) {

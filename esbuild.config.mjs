@@ -19,10 +19,25 @@ import { builtinModules } from "node:module";
 import process from "node:process";
 import { compressedBinaryPlugin } from "./scripts/compressed-binary-plugin.mjs";
 import { modernZipRuntime } from "./scripts/modern-zip-runtime.mjs";
+import { offlineTypstRuntime } from "./scripts/offline-typst-runtime.mjs";
+import {
+  thirdPartyLicences,
+  licenceFooter,
+} from "./scripts/third-party-licences.mjs";
+import { fileURLToPath } from "node:url";
 
 const production = process.argv[2] === "production";
 
 const context = await esbuild.context({
+  footer: production
+    ? {
+        js: licenceFooter(
+          await thirdPartyLicences(
+            fileURLToPath(new URL("./", import.meta.url)),
+          ),
+        ),
+      }
+    : undefined,
   banner: {
     js: `/*!
  * Copyright 2026 Christian Grobmeier
@@ -49,11 +64,12 @@ const context = await esbuild.context({
     ...builtinModules,
   ],
   format: "cjs",
+  supported: { "dynamic-import": false },
   target: "es2021",
   logLevel: "info",
   minify: production,
   outfile: "main.js",
-  plugins: [compressedBinaryPlugin, modernZipRuntime],
+  plugins: [compressedBinaryPlugin, modernZipRuntime, offlineTypstRuntime],
   sourcemap: production ? false : "inline",
   treeShaking: true,
 });

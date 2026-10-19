@@ -19,6 +19,12 @@ strings are never evaluated. No script element, message listener or DOM mutation
 is used. Timers can be clamped by browser hosts, so native-device performance
 remains a separate acceptance check.
 
+From 0.1.3 the pinned DOCX adapter also replaces obsolete bind and
+generator/async-constructor string-code probes with native implementations. Its
+unused data-URL image path is disabled: the plugin supplies already validated
+local image bytes. These reductions are included in repeated DOCX
+book/table/image regression checks and the production capability inventory.
+
 Page Foundry uses Blob/Uint8Array output, not JSZip's Node stream API. The build
 therefore disables that optional interface rather than adding Node builtins to
 the mobile bundle. JSZip's version and licence, and docx's applicable notices,

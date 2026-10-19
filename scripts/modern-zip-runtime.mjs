@@ -31,7 +31,7 @@ export const modernZipRuntime = {
     build.onLoad(
       { filter: /[\\/]docx[\\/]dist[\\/]index\.mjs$/ },
       async ({ path }) => {
-        const source = await readFile(path, "utf8");
+        let source = await readFile(path, "utf8");
         const zipPackage = JSON.parse(
           await readFile(
             new URL("../node_modules/jszip/package.json", import.meta.url),
@@ -49,7 +49,45 @@ export const modernZipRuntime = {
           throw new Error(
             "Review the updated docx distribution before adapting its ZIP runtime.",
           );
+        // Supported hosts have native bind and generator syntax. Remove the
+        // obsolete string-code feature-detection/polyfill paths, not just new().
+        const bindMarker =
+          "//#region node_modules/function-bind/implementation.js";
+        const bindStart = source.indexOf(bindMarker);
+        const bindEnd = source.indexOf("//#endregion", bindStart);
+        const generatorProbe = 'return Function("return function*() {}")();';
+        if (
+          bindStart < 0 ||
+          bindEnd < 0 ||
+          source.split(generatorProbe).length !== 2
+        )
+          throw new Error("Review the changed DOCX native-runtime boundaries.");
+        source = (
+          source.slice(0, bindStart) +
+          "var require_implementation = () => Function.prototype.bind;\n" +
+          source.slice(bindEnd + "//#endregion".length)
+        ).replace(generatorProbe, "return function*() {};");
+        const intrinsicProbe = source.match(
+          /return \$Function\([^\n]+\)\(\);/,
+        )?.[0];
+        if (!intrinsicProbe || source.split(intrinsicProbe).length !== 2)
+          throw new Error(
+            "Review the changed DOCX intrinsic-constructor probe.",
+          );
+        source = source.replace(
+          intrinsicProbe,
+          `
+          if (expressionSyntax === "async function () {}") return Object.getPrototypeOf(async function() {}).constructor;
+          if (expressionSyntax === "function* () {}") return Object.getPrototypeOf(function*() {}).constructor;
+          if (expressionSyntax === "async function* () {}") return Object.getPrototypeOf(async function*() {}).constructor;
+          throw new Error("Unsupported intrinsic syntax in the native DOCX runtime.");
+        `,
+        );
         const marker = "//#region node_modules/jszip/dist/jszip.min.js";
+        const imageStringDecoder =
+          'return new Uint8Array(atob(dataURI.substring(base64IndexWithOffset)).split("").map((c) => c.charCodeAt(0)));';
+        if (source.split(imageStringDecoder).length !== 2)
+          throw new Error("Review the changed docx image-input boundary.");
         const start = source.indexOf(marker);
         const end = source.indexOf("//#endregion", start);
         if (start < 0 || end < 0 || source.indexOf(marker, start + 1) >= 0)
@@ -59,10 +97,14 @@ export const modernZipRuntime = {
         return {
           loader: "js",
           resolveDir: dirname(path),
-          contents:
+          contents: (
             source.slice(0, start) +
             'import FoundryJSZip from "jszip";\nvar require_jszip_min = () => FoundryJSZip;\n' +
-            source.slice(end + "//#endregion".length),
+            source.slice(end + "//#endregion".length)
+          ).replace(
+            imageStringDecoder,
+            'throw new Error("DOCX image inputs must be validated local bytes, not data URLs.");',
+          ),
         };
       },
     );
