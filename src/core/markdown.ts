@@ -5,7 +5,6 @@
 
 import type {
   BlockContent,
-  Content,
   ListItem,
   PhrasingContent,
   Root,
@@ -18,6 +17,7 @@ import { parse as parseYaml } from "yaml";
 import type { BlockNode, FoundryDocument, InlineNode } from "./model";
 import { wikiImages } from "./wikiImages";
 import { markdownTables } from "./tables";
+import { isRecord } from "./validation";
 
 const parser = unified()
   .use(remarkParse)
@@ -30,9 +30,9 @@ export function parseMarkdown(
   source: string,
   fallbackTitle: string,
 ): FoundryDocument {
-  const root = parser.parse(source) as Root;
+  const root = parser.parse(source);
   const definitions: Definitions = new Map();
-  function collect(node: Root | Content): void {
+  function collect(node: Root | RootContent): void {
     if (
       node.type === "definition" &&
       !definitions.has(node.identifier.toUpperCase())
@@ -62,7 +62,7 @@ function readMetadata(root: Root): Record<string, string> {
   }
 
   const parsed: unknown = parseYaml(yamlNode.value, { maxAliasCount: 20 });
-  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {};
+  if (!isRecord(parsed)) return {};
 
   return Object.fromEntries(
     Object.entries(parsed)
@@ -172,7 +172,7 @@ function toInlineList(
   return nodes.flatMap((node) => toInline(node, definitions));
 }
 
-function toInline(node: Content, definitions: Definitions): InlineNode[] {
+function toInline(node: RootContent, definitions: Definitions): InlineNode[] {
   switch (node.type) {
     case "text":
       return [{ type: "text", value: node.value }];
@@ -236,7 +236,7 @@ function toInline(node: Content, definitions: Definitions): InlineNode[] {
   }
 }
 
-function findWarnings(node: Root | Content): string[] {
+function findWarnings(node: Root | RootContent): string[] {
   const warnings: string[] = [];
   if (node.type === "html")
     warnings.push(
@@ -246,7 +246,7 @@ function findWarnings(node: Root | Content): string[] {
   return warnings;
 }
 
-function findUnsupported(node: Root | Content): string[] {
+function findUnsupported(node: Root | RootContent): string[] {
   if (node.type === "table") {
     const columns = node.children[0]?.children.length ?? 0;
     if (columns > 20 || node.children.length > 1001)

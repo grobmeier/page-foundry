@@ -1,6 +1,7 @@
 /* Copyright 2026 Christian Grobmeier. Licensed under Apache-2.0. */
 import type { Template, TemplateLayout } from "./catalog";
 import { cleanTemplateHistory, templateKey } from "./catalog";
+import { isRecord } from "../core/validation";
 export interface NoteLayout {
   noteKey: string;
   layoutKey: string;
@@ -21,10 +22,11 @@ export function cleanNoteLayouts(value: unknown): NoteLayout[] {
     .slice(0, 500)
     .flatMap((row) => {
       if (
-        !row ||
+        !isRecord(row) ||
         typeof row.noteKey !== "string" ||
         !/^[a-f0-9]{64}$/.test(row.noteKey) ||
         seen.has(row.noteKey) ||
+        typeof row.layoutKey !== "string" ||
         !cleanTemplateHistory([{ key: row.layoutKey, uses: 1, lastUsed: 0 }])
           .length
       )

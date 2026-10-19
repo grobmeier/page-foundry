@@ -127,12 +127,13 @@ export class TypstPdfRenderer {
                 selector: "<foundry-proof>",
                 field: "value",
               });
+              const measurements: unknown =
+                Array.isArray(query) && query.length === 1
+                  ? query[0]
+                  : undefined;
               return {
                 bytes: artifact.result,
-                measurements:
-                  Array.isArray(query) && query.length === 1
-                    ? query[0]
-                    : undefined,
+                measurements,
               };
             } catch (error) {
               return {
@@ -175,10 +176,9 @@ export class TypstPdfRenderer {
       fontMono,
     ].map(decodeCompressedBase64);
     await compiler.init({
-      getModule: () =>
-        ({
-          module_or_path: decodeCompressedBase64(compilerBinary),
-        }) as unknown as Uint8Array,
+      getModule: () => ({
+        module_or_path: decodeCompressedBase64(compilerBinary),
+      }),
       beforeBuild: [loadLocalFonts(fonts)],
     });
     return compiler;

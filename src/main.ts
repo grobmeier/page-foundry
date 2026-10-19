@@ -343,7 +343,7 @@ export default class PageFoundryPlugin extends Plugin {
       if (
         !active ||
         active.path !== reviewedPath ||
-        this.app.vault.getAbstractFileByPath(reviewedPath!) !== active
+        this.app.vault.getAbstractFileByPath(reviewedPath) !== active
       )
         throw new Error(
           "The book was moved or removed. Reopen the design editor.",

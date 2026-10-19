@@ -1,5 +1,6 @@
 /* Copyright 2026 Christian Grobmeier. Licensed under Apache-2.0. */
 import { parse } from "yaml";
+import { isRecord, hasControlCharacters } from "../core/validation";
 
 export interface BookEntry {
   id: string;
@@ -11,16 +12,21 @@ export interface BookManifest {
   metadata: Record<string, string>;
   entries: BookEntry[];
 }
+function isBookRole(value: unknown): value is BookEntry["role"] {
+  return typeof value === "string" && ["front-matter", "part", "chapter", "scene", "back-matter"].includes(value);
+}
 export const MAX_BOOK_BYTES = 20 * 1024 * 1024;
 export function isBookPlan(markdown: string, basename = ""): boolean {
   if (basename.endsWith(".book")) return true;
   const match = /^\uFEFF?---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/.exec(markdown);
   if (!match || match[1]!.length > 128 * 1024) return false;
   try {
-    const root = parse(match[1]!, { maxAliasCount: 20, uniqueKeys: true });
+    const root: unknown = parse(match[1]!, {
+      maxAliasCount: 20,
+      uniqueKeys: true,
+    });
     return Boolean(
-      root &&
-        typeof root === "object" &&
+      isRecord(root) &&
         (Object.hasOwn(root, "page-foundry-book") || root.document === "book"),
     );
   } catch {
@@ -35,11 +41,12 @@ export function parseBookManifest(
     throw new Error("The book manifest exceeds 128 KiB.");
   const match = /^\uFEFF?---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/.exec(markdown);
   if (!match) throw new Error("A book needs a leading YAML manifest.");
-  const root = parse(match[1]!, { maxAliasCount: 20, uniqueKeys: true });
+  const root: unknown = parse(match[1]!, {
+    maxAliasCount: 20,
+    uniqueKeys: true,
+  });
   if (
-    !root ||
-    typeof root !== "object" ||
-    Array.isArray(root) ||
+    !isRecord(root) ||
     (root["page-foundry-book"] !== 1 && root.document !== "book")
   )
     throw new Error("Use page-foundry-book: 1 in the manifest.");
@@ -66,7 +73,7 @@ export function parseBookManifest(
       typeof root[field] !== "string" ||
       (!root[field].trim() && field === "title") ||
       root[field].length > 2000 ||
-      /[\u0000-\u0008\u000b\u000c\u000e-\u001f]/u.test(root[field])
+      hasControlCharacters(root[field], true)
     )
       throw new Error(
         `Book ${field} must be non-empty text, at most 2000 characters.`,
@@ -104,9 +111,7 @@ export function parseBookManifest(
       throw new Error("Entry IDs must be unique lowercase hyphenated names.");
     ids.add(id);
     if (
-      !["front-matter", "part", "chapter", "scene", "back-matter"].includes(
-        String(role),
-      )
+      !isBookRole(role)
     )
       throw new Error(`Invalid role for ${id}.`);
     if (
@@ -119,7 +124,8 @@ export function parseBookManifest(
         typeof path !== "string" ||
         path.length > 1000 ||
         !path.endsWith(".md") ||
-        /[\\:%?#\u0000-\u001f]/.test(path) ||
+        /[\\:%?#]/.test(path) ||
+        hasControlCharacters(path) ||
         path
           .split("/")
           .some((part) => !part || part === "." || part === "..") ||
@@ -131,7 +137,7 @@ export function parseBookManifest(
       paths.add(path);
     } else if (role !== "part" || !title)
       throw new Error(`Entry ${id} needs a note path.`);
-    return { id, role, path, title } as BookEntry;
+    return { id, role, ...(typeof path === "string" ? { path } : {}), ...(typeof title === "string" ? { title } : {}) };
   });
   return { metadata, entries };
 }

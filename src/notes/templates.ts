@@ -27,7 +27,7 @@ function replaceTokens(
         `Unsupported template placeholder: ${key}. Use title, author, language, date or sender-name.`,
       );
     const text = fields[key.trim()] ?? "";
-    return body ? text.replace(/([\\`*_{}\[\]<>#!|])/g, "\\$1") : text;
+    return body ? text.replace(/([\\`*_{}[\]<>#!|])/g, "\\$1") : text;
   });
 }
 export function parseNoteTemplate(

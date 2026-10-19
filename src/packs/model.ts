@@ -11,6 +11,7 @@ import type {
   RenderStyle,
 } from "../core/model";
 import { parseBookDesign, type BookDesign } from "../books/design";
+import { hasControlCharacters } from "../core/validation";
 
 export const PACK_ENGINE_VERSION = 2;
 export const PACK_MAX_BYTES = 128 * 1024;
@@ -90,7 +91,7 @@ function text(value: unknown, label: string, max = 160): string {
     typeof value !== "string" ||
     !value.trim() ||
     value.length > max ||
-    /[\u0000-\u0008\u000b\u000c\u000e-\u001f]/u.test(value)
+    hasControlCharacters(value, true)
   )
     throw new Error(
       `${label} must be non-empty text of at most ${max} characters.`,
@@ -154,7 +155,7 @@ function style(value: unknown, format: OutputFormat): RenderStyle | undefined {
         : ["serif", "sans-serif", "monospace"];
   if (result.font !== undefined && !fonts.includes(String(result.font)))
     throw new Error("Choose a supported font for this output format.");
-  return result as RenderStyle;
+  return result;
 }
 
 export function parsePack(source: string): PresetPack {
@@ -278,7 +279,7 @@ export function parsePack(source: string): PresetPack {
       return {
         key,
         label: text(field.label, "Field label"),
-        required: field.required as boolean | undefined,
+        required: field.required,
         default:
           field.default === undefined
             ? undefined
@@ -391,10 +392,7 @@ export function metadataErrors(
   const errors: string[] = [];
   for (const field of preset.metadata) {
     const value = values[field.key] ?? "";
-    if (
-      value.length > 2000 ||
-      /[\u0000-\u0008\u000b\u000c\u000e-\u001f]/u.test(value)
-    )
+    if (value.length > 2000 || hasControlCharacters(value, true))
       errors.push(
         `${field.label} is too long or contains unsupported control characters.`,
       );

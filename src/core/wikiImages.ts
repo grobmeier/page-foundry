@@ -26,7 +26,7 @@ const tokenize: Tokenizer = function (effects, ok, nok) {
   return start;
   function start(code: number | null) {
     effects.enter("foundryEmbed");
-    effects.consume(code!);
+    effects.consume(code);
     return first;
   }
   function first(code: number | null) {

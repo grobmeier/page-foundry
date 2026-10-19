@@ -84,5 +84,5 @@ export function parseBookDesign(value: unknown): BookDesign {
     throw new Error("Choose centred or outside page numbers.");
   if (input.printDefaults !== undefined)
     validatePrintOptions(input.printDefaults as PrintOptions);
-  return structuredClone(result) as BookDesign;
+  return structuredClone<BookDesign>(result);
 }

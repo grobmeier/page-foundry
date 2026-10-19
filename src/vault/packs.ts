@@ -1,6 +1,7 @@
 /* Copyright 2026 Christian Grobmeier. Licensed under Apache-2.0. */
 import { TFile, type App } from "obsidian";
 import { CORE_PACK, CORE_CATALOG } from "../packs/core";
+import { hasControlCharacters } from "../core/validation";
 import {
   catalogue,
   parsePack,
@@ -19,7 +20,8 @@ export function packPath(value: string): string {
   if (
     !path ||
     path.length > 1000 ||
-    /[\\:\u0000-\u001f]/u.test(decoded) ||
+    /[\\:]/u.test(decoded) ||
+    hasControlCharacters(decoded) ||
     decoded.startsWith("/") ||
     decoded.split("/").some((part) => !part || part === "." || part === "..") ||
     !decoded.endsWith(".json")

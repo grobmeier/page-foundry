@@ -7,6 +7,7 @@ import {
   safeExternalHref,
 } from "../core/headings";
 import type { BookManifest } from "./manifest";
+import { hasControlCharacters } from "../core/validation";
 
 export function assembleBook(
   manifest: BookManifest,
@@ -125,7 +126,11 @@ export function assembleBook(
           } catch {
             return { ...copy, destinationError: "Invalid note-link escaping." };
           }
-          if (/[\\:\u0000-\u001f]/.test(path) || path.startsWith("/"))
+          if (
+            /[\\:]/.test(path) ||
+            hasControlCharacters(path) ||
+            path.startsWith("/")
+          )
             return copy;
           const directory = entry.path!.split("/").slice(0, -1);
           const segments = [...directory];

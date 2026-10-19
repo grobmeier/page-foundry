@@ -10,6 +10,8 @@ import type {
   InlineNode,
 } from "./model";
 
+import { hasControlCharacters } from "./validation";
+
 export const IMAGE_LIMITS = {
   fileBytes: 5 * 1024 * 1024,
   totalBytes: 20 * 1024 * 1024,
@@ -40,7 +42,8 @@ export function localImagePath(value: string): string {
     !path ||
     /^[a-z][a-z\d+.-]*:/iu.test(path) ||
     path.startsWith("/") ||
-    /[\\\u0000-\u001f|?#%]/u.test(path) ||
+    /[\\|?#%]/u.test(path) ||
+    hasControlCharacters(path) ||
     path.split("/").some((part) => part === "..")
   ) {
     throw new Error(

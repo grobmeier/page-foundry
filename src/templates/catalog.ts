@@ -2,6 +2,7 @@
 import type { PublishRequest } from "../core/model";
 import type { PresetCatalog } from "../packs/model";
 import { PRINT_TRIMS } from "../print/model";
+import { isRecord } from "../core/validation";
 
 export type TemplateLayout = Pick<
   PublishRequest,
@@ -111,7 +112,7 @@ export function cleanTemplateHistory(value: unknown): TemplateUse[] {
   const seen = new Set<string>();
   const result: TemplateUse[] = [];
   for (const row of value.slice(0, 500)) {
-    if (!row || typeof row !== "object") continue;
+    if (!isRecord(row)) continue;
     const { key, uses, lastUsed } = row;
     if (
       typeof key !== "string" ||
@@ -120,8 +121,10 @@ export function cleanTemplateHistory(value: unknown): TemplateUse[] {
         key,
       ) ||
       seen.has(key) ||
+      typeof uses !== "number" ||
       !Number.isSafeInteger(uses) ||
       uses < 1 ||
+      typeof lastUsed !== "number" ||
       !Number.isSafeInteger(lastUsed) ||
       lastUsed < 0
     )

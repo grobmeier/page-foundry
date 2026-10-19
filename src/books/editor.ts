@@ -1,5 +1,6 @@
 /* Copyright 2026 Christian Grobmeier. Licensed under Apache-2.0. */
 import { isMap, parseDocument, stringify } from "yaml";
+import { hasControlCharacters } from "../core/validation";
 import {
   parseBookManifest,
   type BookEntry,
@@ -47,7 +48,8 @@ export function bookPlanPath(value: string): string {
     !path ||
     path.length > 1000 ||
     !path.endsWith(".md") ||
-    /[\\:%?#\u0000-\u001f]/.test(path) ||
+    /[\\:%?#]/.test(path) ||
+    hasControlCharacters(path) ||
     path.split("/").some((part) => !part || part === "." || part === "..")
   )
     throw new Error(
@@ -60,9 +62,9 @@ export function serializeBookPlan(
   original?: string,
   convert = false,
 ): string {
-  const metadata = Object.fromEntries(
+  const metadata: Record<string, string> = Object.fromEntries(
     Object.entries(book.metadata)
-      .map(([key, value]) => [key, value.trim()])
+      .map(([key, value]) => [key, value.trim()] as const)
       .filter(([, value]) => value),
   );
   const entries = book.entries.map((entry) => ({
@@ -120,7 +122,7 @@ export function serializeBookPlan(
       .map((entry) => {
         if (
           [entry.path, entry.title].some(
-            (v) => v !== undefined && /[\r\n\[\]|]/.test(v),
+            (v) => v !== undefined && /[\r\n[\]|]/.test(v),
           )
         )
           throw new Error(

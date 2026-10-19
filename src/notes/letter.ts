@@ -20,8 +20,7 @@ export function letterWriting(source: string): string {
     values["sender-name"] ??
     values.from?.split(/\r?\n/)[0] ??
     "";
-  const text = (value: string) =>
-    value.replace(/([\\`*_{}\[\]<>#!|])/g, "\\$1");
+  const text = (value: string) => value.replace(/([\\`*_{}[\]<>#!|])/g, "\\$1");
   return `${values.salutation ? `${text(values.salutation)}\n\n` : ""}${body.trim()}\n\n${text(closing)}${signature ? `\n\n${text(signature)}` : ""}\n`;
 }
 

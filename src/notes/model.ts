@@ -3,6 +3,11 @@ import { parseDocument, stringify } from "yaml";
 import { bookPlanPath } from "../books/editor";
 import { isBookPlan } from "../books/manifest";
 import type { TemplateUse } from "../templates/catalog";
+import {
+  isRecord,
+  hasControlCharacters,
+  replaceControlCharacters,
+} from "../core/validation";
 
 export function cleanNoteHistory(value: unknown): TemplateUse[] {
   if (!Array.isArray(value)) return [];
@@ -11,12 +16,14 @@ export function cleanNoteHistory(value: unknown): TemplateUse[] {
     .slice(0, 500)
     .flatMap((row) => {
       if (
-        !row ||
+        !isRecord(row) ||
         typeof row.key !== "string" ||
         !/^[a-z][a-z0-9-]{0,63}$/.test(row.key) ||
         seen.has(row.key) ||
+        typeof row.uses !== "number" ||
         !Number.isSafeInteger(row.uses) ||
         row.uses < 1 ||
+        typeof row.lastUsed !== "number" ||
         !Number.isSafeInteger(row.lastUsed) ||
         row.lastUsed < 0
       )
@@ -179,7 +186,7 @@ export function splitNote(source: string): { yaml: string; body: string } {
   if (new TextEncoder().encode(source).length > 2 * 1024 * 1024)
     throw new Error("This note exceeds 2 MiB.");
   const match = /^\uFEFF?---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/.exec(source);
-  if (match && new TextEncoder().encode(match[1]!).length > 128 * 1024)
+  if (match && new TextEncoder().encode(match[1]).length > 128 * 1024)
     throw new Error("The document properties exceed 128 KiB.");
   return match
     ? { yaml: match[1]!, body: source.slice(match[0].length) }
@@ -234,10 +241,7 @@ function writeNoteDetails(
   for (const field of fields) {
     if (!Object.hasOwn(values, field.key)) continue;
     const value = values[field.key] ?? "";
-    if (
-      value.length > 2000 ||
-      /[\u0000-\u0008\u000b\u000c\u000e-\u001f]/u.test(value)
-    )
+    if (value.length > 2000 || hasControlCharacters(value, true))
       throw new Error(
         `${field.label} must be at most 2000 characters and contain no control characters.`,
       );
@@ -278,8 +282,8 @@ export function createNoteSource(
 }
 /** Suggest a portable filename without changing the author's title. */
 export function suggestedNoteFilename(title: string, kind: string): string {
-  let stem = title
-    .replace(/[\\/:*?"<>|%#\u0000-\u001f\u007f]/g, " ")
+  let stem = replaceControlCharacters(title, " ", true)
+    .replace(/[\\/:*?"<>|%#]/g, " ")
     .replace(/\s+/g, " ")
     .trim()
     .replace(/\.md$/i, "")

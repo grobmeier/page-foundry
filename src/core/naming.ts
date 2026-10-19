@@ -5,16 +5,18 @@
 
 import { normalizePath, type TAbstractFile, type Vault } from "obsidian";
 import type { OutputFormat } from "./model";
+import { replaceControlCharacters } from "./validation";
 
 export function safePdfName(value: string): string {
   return safeOutputName(value, "pdf");
 }
 
 export function safeOutputName(value: string, extension: OutputFormat): string {
-  const stem = value
-    .replace(/\.(?:pdf|epub|docx)$/iu, "")
-    .normalize("NFKC")
-    .replace(/[<>:"/\\|?*\u0000-\u001f]/gu, "-")
+  const stem = replaceControlCharacters(
+    value.replace(/\.(?:pdf|epub|docx)$/iu, "").normalize("NFKC"),
+    "-",
+  )
+    .replace(/[<>:"/\\|?*]/gu, "-")
     .replace(/\s+/gu, " ")
     .replace(/[. ]+$/gu, "")
     .trim();
