@@ -63,9 +63,16 @@ conversion. Inspect the PDF, retailer preview and physical proof. See
 ## Updating from beta.8
 
 Beta.8 can overlap consecutive paragraphs in custom book PDFs and mishandle
-Markdown hard line breaks. The fixes are included in the next release source:
-zero extra paragraph spacing retains normal line separation, and hard breaks
-produce line breaks rather than internal formatting text. Updating the source
-does not update a BRAT installation; install a release containing the fixes and
-regenerate affected PDFs. Until then, use standard Plain document PDF layouts
-for reading copies and inspect line breaks. Existing PDFs are not rewritten.
+Markdown hard line breaks. These are fixed in **0.1.0-beta.9**: zero extra
+paragraph spacing retains normal line separation, and hard breaks produce line
+breaks rather than internal formatting text. Updating the source does not update
+a BRAT installation; install beta.9 or newer and regenerate affected PDFs.
+Existing PDFs are not rewritten.
+
+## Tracked follow-ups
+
+The [roadmap](roadmap.md) records current design/content limits and outstanding
+acceptance checks. Fonts, ornaments, opening initials and other future
+capabilities have separate issues with acceptance criteria; they are not
+features available in this build. Privacy and local-only resource restrictions
+remain deliberate boundaries.
