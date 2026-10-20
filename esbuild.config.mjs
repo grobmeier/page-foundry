@@ -20,6 +20,7 @@ import process from "node:process";
 import { compressedBinaryPlugin } from "./scripts/compressed-binary-plugin.mjs";
 import { modernZipRuntime } from "./scripts/modern-zip-runtime.mjs";
 import { offlineTypstRuntime } from "./scripts/offline-typst-runtime.mjs";
+import { opaqueYamlRuntime } from "./scripts/opaque-yaml-runtime.mjs";
 import {
   thirdPartyLicences,
   licenceFooter,
@@ -69,7 +70,12 @@ const context = await esbuild.context({
   logLevel: "info",
   minify: production,
   outfile: "main.js",
-  plugins: [compressedBinaryPlugin, modernZipRuntime, offlineTypstRuntime],
+  plugins: [
+    compressedBinaryPlugin,
+    modernZipRuntime,
+    offlineTypstRuntime,
+    opaqueYamlRuntime,
+  ],
   sourcemap: production ? false : "inline",
   treeShaking: true,
 });

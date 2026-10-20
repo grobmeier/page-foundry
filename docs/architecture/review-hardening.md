@@ -32,9 +32,18 @@ composition. No files in `node_modules` are patched on disk.
   old string-code polyfills. Data-URL image input is rejected; Page Foundry
   already supplies validated PNG/JPEG bytes. The separate
   [ZIP runtime adaptation](zip-runtime.md) remains in place.
+- YAML's binary tag is preserved as opaque tagged text, not decoded bytes or
+  ordinary text metadata. A version- and hash-guarded adapter replaces only that
+  tag's codec in browser and Node proof builds. Valid custom properties, aliases
+  and comments survive editing; invalid binary text remains an error. The syntax
+  check uses a linear scan, including for long properties. YAML mappings, dates
+  and other tags retain their existing handling. Document details require a
+  mapping root; scalar binary/date roots are not properties. Page Foundry does
+  not create new binary properties from byte arrays.
 - The production build inventories executable syntax, including direct aliases,
-  and rejects reintroduced network or dynamic-JavaScript calls. This bounded
-  check is a regression guard, not a full static-analysis or malware service.
+  and rejects reintroduced network, dynamic-JavaScript or browser base64 calls.
+  This bounded check is a regression guard, not a full static-analysis or
+  malware service.
 
 The pinned compiler is `@myriaddreamin/typst-ts-web-compiler` 0.7.0. Its
 unchanged WASM SHA-256 is
@@ -58,9 +67,12 @@ settings search does not require dropping older users.
 
 ## Disclosures that should remain honest
 
-- YAML 1.1 binary-data handling includes browser base64 codecs. Embedded assets
-  are also encoded data, not hidden executable JavaScript. A base64 disclosure
-  alone is not evidence of code execution or manuscript upload.
+- The YAML adapter removes its browser `atob`/`btoa` calls. Embedded PDF assets
+  still use base64 and the existing local decoder: this is not a base64-free
+  runtime. The compiler, fonts and packaging are unchanged. Encoded assets are
+  not hidden executable JavaScript, and a base64 disclosure alone is not
+  evidence of code execution or manuscript upload. A community service may still
+  disclose encoded assets; local checks do not predict its scorecard.
 - Copy-report buttons intentionally write to the clipboard. Removing them just
   to remove a disclosure would remove an author-controlled feature.
 - The offline bundle still exceeds the Sync Standard 5 MB per-file limit.

@@ -8,6 +8,7 @@ import { cp, mkdir } from "node:fs/promises";
 import { compressedBinaryPlugin } from "./compressed-binary-plugin.mjs";
 import { modernZipRuntime } from "./modern-zip-runtime.mjs";
 import { offlineTypstRuntime } from "./offline-typst-runtime.mjs";
+import { opaqueYamlRuntime } from "./opaque-yaml-runtime.mjs";
 
 await mkdir(".test-browser", { recursive: true });
 await cp("tests/browser-smoke.html", ".test-browser/index.html");
@@ -17,6 +18,11 @@ await esbuild.build({
   format: "iife",
   outfile: ".test-browser/bundle.js",
   platform: "browser",
-  plugins: [compressedBinaryPlugin, modernZipRuntime, offlineTypstRuntime],
+  plugins: [
+    compressedBinaryPlugin,
+    modernZipRuntime,
+    offlineTypstRuntime,
+    opaqueYamlRuntime,
+  ],
   target: "safari16.4",
 });

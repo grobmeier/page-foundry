@@ -1,5 +1,5 @@
 /* Copyright 2026 Christian Grobmeier. Licensed under Apache-2.0. */
-import { parseDocument, stringify } from "yaml";
+import { isMap, parseDocument, stringify } from "yaml";
 import { bookPlanPath } from "../books/editor";
 import { isBookPlan } from "../books/manifest";
 import type { TemplateUse } from "../templates/catalog";
@@ -206,9 +206,9 @@ function propertyDocument(yaml: string) {
   const doc = parseDocument(yaml || "{}", { uniqueKeys: true });
   if (doc.errors.length)
     throw new Error("Check the note's YAML properties before editing details.");
-  const root: unknown = doc.toJS({ maxAliasCount: 20 });
-  if (!root || typeof root !== "object" || Array.isArray(root))
+  if (!isMap(doc.contents))
     throw new Error("Document properties must be a YAML mapping.");
+  doc.toJS({ maxAliasCount: 20 });
   return doc;
 }
 export function updateNoteDetails(

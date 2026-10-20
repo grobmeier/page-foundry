@@ -27,7 +27,9 @@ Page Foundry bundles the following components into its generated plugin file:
   support; obsolete script-element and string-code fallbacks and the unused
   Node-stream interface are omitted. See
   [ZIP runtime adaptation](docs/architecture/zip-runtime.md).
-- **yaml** — ISC License.
+- **yaml** — ISC License. A version- and hash-guarded build adapter preserves
+  YAML binary tags as opaque text instead of decoding or encoding binary data.
+  Upstream dependency files are not modified on disk.
 
 The exact versions are recorded in `package-lock.json`. Release preparation must
 preserve the applicable licence texts and review this inventory after every

@@ -94,8 +94,8 @@ if (
     "Executable runtime capability inventory:",
     JSON.stringify(result),
   );
-  if (result.network || result.dynamicCode)
+  if (result.network || result.dynamicCode || result.browserBinaryCodecs)
     throw new Error(
-      "Review the reintroduced network or dynamic-code capability before release.",
+      "Review the reintroduced network, dynamic-code or browser base64 capability before release.",
     );
 }
